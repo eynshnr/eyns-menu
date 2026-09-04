@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eyns' Hotel - Room Rates</title>
+    <link rel="icon" type="image/jpeg" href="assets/logo.jpg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f7f5f2',
+                            100: '#e8e1d5',
+                            800: '#5c4033', 
+                            900: '#3e2b22',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Hide scrollbar for the image carousels while keeping functionality */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-brand-50 text-gray-800 antialiased selection:bg-brand-800 selection:text-white">
+
+    <div class="max-w-6xl mx-auto px-4 py-12 md:py-16">
+        
+        <!-- Header Section -->
+        <header class="text-center mb-16">
+            <a href="index.html" class="inline-flex items-center gap-2 text-sm font-semibold text-brand-800 hover:text-brand-900 mb-8">
+                <i class="fas fa-arrow-left"></i> Back to Menu
+            </a>
+            <h1 class="font-serif text-5xl md:text-7xl text-brand-800 font-bold mb-4 tracking-tight">Eyns' Hotel</h1>
+            <p class="text-sm md:text-base tracking-[0.3em] uppercase text-gray-500 font-semibold mb-6">Since 1988</p>
+            <div class="w-24 h-1 bg-brand-800 mx-auto rounded-full opacity-80"></div>
+            <h2 class="font-serif text-3xl text-gray-700 mt-8 italic">Room Rates</h2>
+        </header>
+
+        <!-- Room Rates Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+
+            <!-- Category 1 -->
+            <div class="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-300">
+                <div class="relative h-56 w-full bg-brand-100 group">
+                    <div class="flex h-full overflow-x-auto snap-x snap-mandatory hide-scrollbar">
+                        <img src="assets/rooms/room-1.jpg" alt="Room 1" class="w-full h-full object-cover shrink-0 snap-center" onerror="this.onerror=null; this.src='https://placehold.co/600x400/e8e1d5/5c4033?text=Room+Image'">
+                        <img src="assets/rooms/room-2.jpg" alt="Room 2" class="w-full h-full object-cover shrink-0 snap-center" onerror="this.onerror=null; this.src='https://placehold.co/600x400/e8e1d5/5c4033?text=Room+Image'">
+                        <img src="assets/rooms/room-3.jpg" alt="Room 3" class="w-full h-full object-cover shrink-0 snap-center" onerror="this.onerror=null; this.src='https://placehold.co/600x400/e8e1d5/5c4033?text=Room+Image'">
+                        <img src="assets/rooms/room-4.jpg" alt="Room 4" class="w-full h-full object-cover shrink-0 snap-center" onerror="this.onerror=null; this.src='https://placehold.co/600x400/e8e1d5/5c4033?text=Room+Image'">
+                    </div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-brand-900/90 via-brand-900/20 to-transparent pointer-events-none"></div>
+                    <div class="absolute top-3 right-3 bg-black/60 text-white text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full pointer-events-none flex items-center gap-1.5 backdrop-blur-sm z-10">
+                        <i class="fas fa-images"></i> Swipe for more
+                    </div>
+                    <div class="absolute bottom-4 left-6 text-white pointer-events-none">
+                        <div class="text-3xl font-bold font-serif mb-1">₱1,400</div>
+                        <div class="text-brand-100 text-sm font-medium">Rooms 1, 2, 3, 4, 6</div>
+                    </div>
+                </div>
+                <div class="p-6 flex-grow flex flex-col justify-between">
+                    <ul class="space-y-3 text-gray-600 mb-6">
+                        <li class="flex items-start"><i class="fas fa-bed mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>1 Queen Size Bed</span></li>
+                        <li class="flex items-start"><i class="fas fa-shower mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Hot & Cold Shower</span></li>
+                        <li class="flex items-start"><i class="fas fa-snowflake mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Airconditioned Room</span></li>
+                        <li class="flex items-start"><i class="fas fa-wifi mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Wifi-ready</span></li>
+                    </ul>
+                    <div class="pt-4 border-t border-gray-100 flex items-center text-sm font-semibold text-gray-500">
+                        <i class="fas fa-user-friends mr-2"></i> Recommended for 1~2 pax
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category 2 -->
+            <div class="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-300">
+                <div class="relative h-56 w-full bg-brand-100">
+                    <img src="assets/rooms/room-5.jpg" alt="Room 5" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/600x400/e8e1d5/5c4033?text=Room+Image'">
+                    <div class="absolute inset-0 bg-gradient-to-t from-brand-900/90 via-brand-900/20 to-transparent"></div>
+                    <div class="absolute bottom-4 left-6 text-white">
+                        <div class="text-3xl font-bold font-serif mb-1">₱1,700</div>
+                        <div class="text-brand-100 text-sm font-medium">Room 5</div>
+                    </div>
+                </div>
+                <div class="p-6 flex-grow flex flex-col justify-between">
+                    <ul class="space-y-3 text-gray-600 mb-6">
+                        <li class="flex items-start"><i class="fas fa-bed mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>1 King Size Bed & 1 Twin Bed</span></li>
+                        <li class="flex items-start"><i class="fas fa-shower mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Hot & Cold Shower</span></li>
+                        <li class="flex items-start"><i class="fas fa-snowflake mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Airconditioned Room</span></li>
+                        <li class="flex items-start"><i class="fas fa-wifi mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Wifi-ready</span></li>
+                    </ul>
+                    <div class="pt-4 border-t border-gray-100 flex items-center text-sm font-semibold text-gray-500">
+                        <i class="fas fa-users mr-2"></i> Recommended for 3~4 pax
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category 3 (Premium) -->
+            <div class="bg-white rounded-2xl shadow-md border-2 border-brand-800 overflow-hidden flex flex-col hover:shadow-lg transition-shadow duration-300 relative">
+                <div class="absolute top-4 right-4 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider z-20 shadow-md pointer-events-none">Family Suite</div>
+                <div class="relative h-56 w-full bg-brand-100">
+                    <img src="assets/rooms/room-18.jpg" alt="Room 18" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/600x400/e8e1d5/5c4033?text=Room+Image'">
+                    <div class="absolute inset-0 bg-gradient-to-t from-brand-900/90 via-brand-900/20 to-transparent"></div>
+                    <div class="absolute bottom-4 left-6 text-white">
+                        <div class="text-3xl font-bold font-serif mb-1">₱3,500</div>
+                        <div class="text-brand-100 text-sm font-medium">Room 18</div>
+                    </div>
+                </div>
+                <div class="p-6 flex-grow flex flex-col justify-between">
+                    <ul class="space-y-3 text-gray-600 mb-6">
+                        <li class="flex items-start"><i class="fas fa-bed mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>1 King Size Bed, 2 Double Beds & 1 Sofa Bed</span></li>
+                        <li class="flex items-start"><i class="fas fa-shower mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Hot & Cold Shower</span></li>
+                        <li class="flex items-start"><i class="fas fa-snowflake mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Airconditioned Room</span></li>
+                        <li class="flex items-start"><i class="fas fa-wifi mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Wifi-ready</span></li>
+                    </ul>
+                    <div class="pt-4 border-t border-gray-100 flex items-center text-sm font-semibold text-gray-500">
+                        <i class="fas fa-users mr-2"></i> Recommended for 3~6 pax
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category 4 -->
+            <div class="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-300">
+                <div class="relative h-56 w-full bg-brand-100">
+                    <img src="assets/rooms/room-7.jpg" alt="Rooms 7, 8" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/600x400/e8e1d5/5c4033?text=Room+Image'">
+                    <div class="absolute inset-0 bg-gradient-to-t from-gray-800/90 via-gray-800/20 to-transparent"></div>
+                    <div class="absolute bottom-4 left-6 text-white">
+                        <div class="text-3xl font-bold font-serif mb-1">₱1,100</div>
+                        <div class="text-gray-300 text-sm font-medium">Rooms 7, 8</div>
+                    </div>
+                </div>
+                <div class="p-6 flex-grow flex flex-col justify-between">
+                    <ul class="space-y-3 text-gray-600 mb-6">
+                        <li class="flex items-start"><i class="fas fa-bed mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>1 Queen Size Bed</span></li>
+                        <li class="flex items-start"><i class="fas fa-tint mt-1 mr-3 text-blue-500 w-5 text-center"></i> <span>Cold Shower only</span></li>
+                        <li class="flex items-start"><i class="fas fa-snowflake mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Airconditioned Room</span></li>
+                        <li class="flex items-start"><i class="fas fa-wifi mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Wifi-ready</span></li>
+                    </ul>
+                    <div class="pt-4 border-t border-gray-100 flex items-center text-sm font-semibold text-gray-500">
+                        <i class="fas fa-user-friends mr-2"></i> Recommended for 1~2 pax
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category 5 -->
+            <div class="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-300">
+                <div class="relative h-56 w-full bg-brand-100">
+                    <img src="assets/rooms/room-9.jpg" alt="Rooms 9, 10" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/600x400/e8e1d5/5c4033?text=Room+Image'">
+                    <div class="absolute inset-0 bg-gradient-to-t from-gray-800/90 via-gray-800/20 to-transparent"></div>
+                    <div class="absolute bottom-4 left-6 text-white">
+                        <div class="text-3xl font-bold font-serif mb-1">₱1,400</div>
+                        <div class="text-gray-300 text-sm font-medium">Rooms 9, 10</div>
+                    </div>
+                </div>
+                <div class="p-6 flex-grow flex flex-col justify-between">
+                    <ul class="space-y-3 text-gray-600 mb-6">
+                        <li class="flex items-start"><i class="fas fa-bed mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>2 Queen Size Beds</span></li>
+                        <li class="flex items-start"><i class="fas fa-tint mt-1 mr-3 text-blue-500 w-5 text-center"></i> <span>Cold Shower only</span></li>
+                        <li class="flex items-start"><i class="fas fa-snowflake mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Airconditioned Room</span></li>
+                        <li class="flex items-start"><i class="fas fa-wifi mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Wifi-ready</span></li>
+                    </ul>
+                    <div class="pt-4 border-t border-gray-100 flex items-center text-sm font-semibold text-gray-500">
+                        <i class="fas fa-users mr-2"></i> Recommended for 2~4 pax
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category 6 -->
+            <div class="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-300">
+                <div class="relative h-56 w-full bg-brand-100">
+                    <img src="assets/rooms/room-11.jpg" alt="Room 11" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/600x400/e8e1d5/5c4033?text=Room+Image'">
+                    <div class="absolute inset-0 bg-gradient-to-t from-gray-800/90 via-gray-800/20 to-transparent"></div>
+                    <div class="absolute bottom-4 left-6 text-white">
+                        <div class="text-3xl font-bold font-serif mb-1">₱1,400</div>
+                        <div class="text-gray-300 text-sm font-medium">Room 11</div>
+                    </div>
+                </div>
+                <div class="p-6 flex-grow flex flex-col justify-between">
+                    <ul class="space-y-3 text-gray-600 mb-6">
+                        <li class="flex items-start"><i class="fas fa-bed mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>3 Single Beds</span></li>
+                        <li class="flex items-start"><i class="fas fa-tint mt-1 mr-3 text-blue-500 w-5 text-center"></i> <span>Cold Shower only</span></li>
+                        <li class="flex items-start"><i class="fas fa-snowflake mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Airconditioned Room</span></li>
+                        <li class="flex items-start"><i class="fas fa-wifi mt-1 mr-3 text-brand-800 w-5 text-center"></i> <span>Wifi-ready</span></li>
+                    </ul>
+                    <div class="pt-4 border-t border-gray-100 flex items-center text-sm font-semibold text-gray-500">
+                        <i class="fas fa-users mr-2"></i> Recommended for 3 pax
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category 7 (Budget) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-brand-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-300 lg:col-span-3 md:col-span-2 lg:w-2/3 lg:mx-auto">
+                <div class="relative h-56 w-full bg-brand-100">
+                    <img src="assets/rooms/room-17.jpg" alt="Rooms 12, 14, 15, 16, 17" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/600x400/e8e1d5/5c4033?text=Room+Image'">
+                    <div class="absolute inset-0 bg-gradient-to-t from-gray-700/90 via-gray-700/20 to-transparent"></div>
+                    <div class="absolute bottom-4 left-6 text-white">
+                        <div class="text-3xl font-bold font-serif mb-1">₱500</div>
+                        <div class="text-gray-200 text-sm font-medium">Rooms 12, 14, 15, 16, 17</div>
+                    </div>
+                </div>
+                <div class="p-6 flex-grow flex flex-col justify-between">
+                    <ul class="space-y-3 text-gray-600 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                        <li class="flex items-start"><i class="fas fa-bed mt-1 mr-3 text-gray-500 w-5 text-center"></i> <span>1 Twin Bed</span></li>
+                        <li class="flex items-start"><i class="fas fa-restroom mt-1 mr-3 text-gray-500 w-5 text-center"></i> <span>Common CR only</span></li>
+                        <li class="flex items-start"><i class="fas fa-wind mt-1 mr-3 text-gray-500 w-5 text-center"></i> <span>Air Ventilated Room</span></li>
+                        <li class="flex items-start"><i class="fas fa-wifi mt-1 mr-3 text-gray-500 w-5 text-center"></i> <span>Wifi-ready</span></li>
+                    </ul>
+                    <div class="pt-4 border-t border-gray-100 flex items-center text-sm font-semibold text-gray-500">
+                        <i class="fas fa-user-friends mr-2"></i> Recommended for 1~2 pax
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Information & Contact Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-8 md:p-12 rounded-3xl shadow-sm border border-brand-100">
+            
+            <!-- Policies -->
+            <div>
+                <h3 class="font-serif text-2xl text-brand-800 font-bold mb-6 border-b border-brand-100 pb-2">Hotel Information</h3>
+                <ul class="space-y-4 text-gray-600">
+                    <li class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center mr-4 text-brand-800">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-bold uppercase tracking-wider text-gray-400">Check-in</span>
+                            <span class="font-medium">1:00 PM</span>
+                        </div>
+                    </li>
+                    <li class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center mr-4 text-brand-800">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-bold uppercase tracking-wider text-gray-400">Check-out</span>
+                            <span class="font-medium">12:00 NN</span>
+                        </div>
+                    </li>
+                    <li class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center mr-4 text-brand-800">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <div>
+                            <span class="font-medium">Free Parking with CCTV</span>
+                        </div>
+                    </li>
+                    <li class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center mr-4 text-brand-800">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-bold uppercase tracking-wider text-gray-400">Restaurant Hours</span>
+                            <span class="font-medium">6:00 AM ~ 12:00 MN</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Contact -->
+            <div>
+                <h3 class="font-serif text-2xl text-brand-800 font-bold mb-6 border-b border-brand-100 pb-2">Reach Us</h3>
+                <ul class="space-y-4 text-gray-600">
+                    <li class="flex items-start">
+                        <div class="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center mr-4 text-brand-800 flex-shrink-0 mt-1">
+                            <i class="fab fa-facebook-messenger"></i>
+                        </div>
+                        <div class="pt-2">
+                            <span class="font-medium">Eyns Hotel & Restaurant</span>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <div class="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center mr-4 text-brand-800 flex-shrink-0 mt-1">
+                            <i class="fas fa-phone-alt"></i>
+                        </div>
+                        <div class="pt-2">
+                            <span class="font-medium block">0917-841-7553</span>
+                            <span class="font-medium block mt-1">0917-523-7555</span>
+                        </div>
+                    </li>
+                    <li class="flex items-start">
+                        <div class="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center mr-4 text-brand-800 flex-shrink-0 mt-1">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="pt-1">
+                            <span class="font-medium block text-gray-800">5 Don Pedro Abella St., Brgy. 2, Catanauan, Quezon</span>
+                            <span class="block text-sm mt-1 italic text-gray-500">Near Immaculate Concepcion Parish Church, Catanauan Covered Court and Southern Luzon Academy</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+        
+    </div>
+
+</body>
+</html>
