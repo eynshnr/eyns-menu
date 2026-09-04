@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EYNS Hotel & Restaurant - Menu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'eyns-brown': '#3E2723',
+                        'eyns-gold': '#D4AF37',
+                        'eyns-cream': '#FDFBF7',
+                        'eyns-text': '#2D3748',
+                        'eyns-muted': '#718096'
+                    },
+                    fontFamily: {
+                        'serif': ['"Playfair Display"', 'serif'],
+                        'sans': ['Lato', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FDFBF7; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #D4AF37; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b5952f; 
+        }
+
+        /* Smooth tab transition */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Menu item hover effect */
+        .menu-item-row {
+            transition: all 0.3s ease;
+        }
+        .menu-item-row:hover {
+            background-color: rgba(212, 175, 55, 0.05);
+            transform: translateX(4px);
+        }
+
+        /* Dotted leader for prices */
+        .price-leader {
+            flex-grow: 1;
+            border-bottom: 1px dotted #cbd5e1;
+            margin: 0 10px;
+            position: relative;
+            top: -6px;
+        }
+    </style>
+</head>
+<body class="bg-eyns-cream text-eyns-text font-sans antialiased selection:bg-eyns-gold selection:text-white">
+
+    <!-- Navigation / Header -->
+    <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-eyns-gold/20 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <!-- Logo Area -->
+                <div class="flex items-center justify-center md:justify-start gap-3 mb-4 md:mb-0">
+                    <!-- Replace logo.png with your actual logo file (place it in the same folder as this HTML file) -->
+                    <img src="logo.png" alt="EYNS Hotel & Restaurant Logo" class="h-12 w-12 md:h-14 md:w-14 object-contain rounded-full" onerror="this.style.display='none'">
+                    <div class="text-center md:text-left">
+                        <h1 class="font-serif text-3xl md:text-4xl text-eyns-brown font-bold tracking-wider">EYNS</h1>
+                        <p class="text-xs tracking-widest text-eyns-gold uppercase mt-1">Since 1988</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="flex space-x-1 sm:space-x-4 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 hide-scrollbar" id="menu-tabs">
+                    <button class="tab-btn active whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 bg-eyns-brown text-white shadow-md" data-target="main-dishes">
+                        Main Dishes
+                    </button>
+                    <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 text-eyns-brown hover:bg-eyns-brown/10" data-target="snacks-pasta">
+                        Snacks & Pasta
+                    </button>
+                    <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-200 text-eyns-brown hover:bg-eyns-brown/10" data-target="beverages">
+                        Beverages & Bar
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <div class="relative bg-eyns-brown text-white py-16 md:py-24 overflow-hidden">
+        <div class="absolute inset-0 opacity-10">
+            <!-- subtle background pattern could go here -->
+            <svg class="absolute left-0 top-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <path d="M0 100 C 20 0 50 0 100 100 Z" fill="currentColor"/>
+            </svg>
+        </div>
+        <div class="relative max-w-4xl mx-auto px-4 text-center z-10">
+            <h2 class="font-serif text-4xl md:text-5xl lg:text-6xl mb-4 font-bold text-eyns-gold">EYNS HOTEL & RESTAURANT</h2>
+            <p class="text-lg md:text-xl font-light tracking-wide mb-2">Catanauan, Quezon</p>
+            <div class="flex items-center justify-center space-x-4 text-sm text-gray-300 mt-6">
+                <span><i class="fas fa-phone-alt mr-2 text-eyns-gold"></i>(0917) 841-7553</span>
+                <span>•</span>
+                <span><i class="fas fa-envelope mr-2 text-eyns-gold"></i>eyns.hnr@gmail.com</span>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+        
+        <!-- ==================== TAB 1: MAIN DISHES ==================== -->
+        <div id="main-dishes" class="tab-content active">
+            <div class="text-center mb-12">
+                <h3 class="font-serif text-3xl text-eyns-brown italic">House Specialties & Main Dishes</h3>
+                <div class="h-1 w-24 bg-eyns-gold mx-auto mt-4 rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-16">
+                <!-- House Specialties -->
+                <section>
+                    <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                        <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">House Specialties</h4>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Grilled Fish</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱150 / 100g</span>
+                            </div>
+                            <p class="text-sm text-eyns-muted italic mt-1">(Blue Marlin, Tanigue)</p>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Grilled Belly</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱150 / 100g</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Sinigang Isda</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱600</span>
+                            </div>
+                            <p class="text-sm text-eyns-muted italic mt-1">(Sibu, Tanigue, Lapulapu)</p>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Sinigang na Hipon</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱600</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Sinigang Baboy</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱600</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Steamed or Sweet & Sour Lapu-Lapu</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱150 / 100g</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Fried Pusit</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱500</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Ginataang Pusit</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱600</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Crispy Pata</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱800 / ₱700</span>
+                            </div>
+                            <p class="text-sm text-eyns-muted italic mt-1">(Large / Medium)</p>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Lengua</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱750</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Callos</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱750</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Adobong Puti</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱600</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="space-y-16">
+                    <!-- Chicken -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Chicken</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Fried Chicken Classic</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱400</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Buttered Chicken</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱450</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Buffalo Chicken</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱450</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Sweet & Sour Chicken</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱450</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Honey Garlic Chicken</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱450</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Garlic Parmesan</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱450</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Seafoods -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Seafoods</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Fish Fillet</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱300</span>
+                                </div>
+                                <p class="text-sm text-eyns-muted italic mt-1">(Sweet & Sour / Garlic Ranch)</p>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Daing na Bangus</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱500</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Calamares</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱300</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Gambas</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱400</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Sisig Pusit</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱300</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Camaron</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱350</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Pork Entrees -->
+                <section>
+                    <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                        <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Pork Entrees</h4>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Sweet & Sour Pork</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱450</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Sisig Pork</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱250</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Shanghai</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱200</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Lechon Kawali</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱350</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="space-y-16">
+                     <!-- Rice -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Rice</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Plain Rice (Platter / Cup)</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱100 / ₱30</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Java Rice (Platter)</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱130</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Sinangag (Platter / Cup)</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱120 / ₱35</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Veggies -->
+                <section>
+                    <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                        <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Veggies</h4>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Seafood Delight</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱500</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Chopsuey</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱350</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Mixed Veggies w/ Shrimp</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱450</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Breakfast Solo Meals -->
+                <section>
+                    <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                        <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Breakfast Solo Meals</h4>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Hungarian Sausage</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱325</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Dried Beef Tapa</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱300</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Boneless Daing Bangus</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱250</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Tocino</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱150</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Bacon</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱150</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Ham</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱150</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Corn Beef</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱150</span>
+                            </div>
+                        </div>
+                        <div class="menu-item-row group">
+                            <div class="flex items-baseline justify-between">
+                                <span class="font-semibold text-lg text-gray-800">Torsillo</span>
+                                <div class="price-leader"></div>
+                                <span class="font-bold text-eyns-brown">₱250</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 2: SNACKS & PASTA ==================== -->
+        <div id="snacks-pasta" class="tab-content">
+            <div class="text-center mb-12">
+                <h3 class="font-serif text-3xl text-eyns-brown italic">Soups, Pansit, Pasta & Snacks</h3>
+                <div class="h-1 w-24 bg-eyns-gold mx-auto mt-4 rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-16">
+                
+                <!-- Soup & Pansit column -->
+                <div class="space-y-16">
+                    <!-- Soup -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Soup</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Hototay Soup</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱200</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Mushroom Soup</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Crab & Corn Soup</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Nido Oriental</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Lomi</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱200</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Shabu-Shabu</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱350</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Pansit -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Pansit</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Chami Classic</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱200</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Chami Tamis Anghang</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱200</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Sotanghon Canton</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱200</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Bihon</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱200</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Miki Bihon</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱200</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Canton</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱200</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Pasta -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Pasta</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Spaghetti</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱120</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Seafood Pesto</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱450</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Puttanesca</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱350</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Carbonara</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱300</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Vongole</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱450</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Sandwiches & Snacks column -->
+                <div class="space-y-16">
+                    <!-- Sandwich -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Sandwich</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Cheese Burger</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱120</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Bacon Cheeseburger</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱140</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Clubhouse</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱200</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Chicken Sandwich</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱70</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Chicken Fillet</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱70</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Quesadilla</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Pizzadilla</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Creamy Spinach Roll</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Salad Wrap</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Bread -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Bread</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Buttered Toast</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱60</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Garlic Bread</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱75</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Toasted Bread</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱75</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Pika-Pika -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Pika-Pika</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Potato Fries</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱250</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Nachos</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱200</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Talabing</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱200</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Topped Fries</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱300</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 3: BEVERAGES & BAR ==================== -->
+        <div id="beverages" class="tab-content">
+            <div class="text-center mb-12">
+                <h3 class="font-serif text-3xl text-eyns-brown italic">Coffee, Beverages, Desserts & Bar</h3>
+                <div class="h-1 w-24 bg-eyns-gold mx-auto mt-4 rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-16">
+                
+                <!-- Coffee & Milk column -->
+                <div class="space-y-16">
+                    <!-- Coffee -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Coffee</h4>
+                        </div>
+                        <div class="space-y-6">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Americano</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱120</span>
+                                </div>
+                                <p class="text-sm text-eyns-muted mt-1 leading-snug">Espresso diluted with hot/cold water for a smooth, bold coffee</p>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Cappuccino</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                                <p class="text-sm text-eyns-muted mt-1 leading-snug">Espresso topped with equal parts steamed and cold milk and foam</p>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Vanilla Latte</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                                <p class="text-sm text-eyns-muted mt-1 leading-snug">Espresso combined with steamed cold milk and homemade vanilla syrup</p>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Latte</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                                <p class="text-sm text-eyns-muted mt-1 leading-snug">Espresso blended with steamed cold milk offering a smooth coffee</p>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Caramel Latte</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                                <p class="text-sm text-eyns-muted mt-1 leading-snug">Velvety blend of espresso & steamed milk, topped with caramel drizzle</p>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Tablea Latte</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                                <p class="text-sm text-eyns-muted mt-1 leading-snug">Espresso mixed with milk sweetened with homemade local tablea sauce</p>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Horchata Espresso</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                                <p class="text-sm text-eyns-muted mt-1 leading-snug">Fusion of espresso and milk, sweetened with homemade horchata syrup</p>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Matcha Espresso</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                                <p class="text-sm text-eyns-muted mt-1 leading-snug">Vibrant matcha green tea & bold espresso combined with milk</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Non-Coffee Beverages -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Non-Coffee Beverages</h4>
+                        </div>
+                        <div class="space-y-6">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Matcha Milk</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                                <p class="text-sm text-eyns-muted mt-1 leading-snug">Creamy blend of matcha green tea and velvety milk</p>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Tablea Milk</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                                <p class="text-sm text-eyns-muted mt-1 leading-snug">Combination of rich tablea chocolate and creamy milk</p>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Cinnamon Vanilla Milk</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                                <p class="text-sm text-eyns-muted mt-1 leading-snug">Sweet and cinnamon-infused milk with a hint of warm spice</p>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Calumpit Juice</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱85 / ₱200</span>
+                                </div>
+                                <p class="text-sm text-eyns-muted mt-1 leading-snug">A refreshing homemade blend capturing unique local flavor</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Iced Blends -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Iced Blends</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Kitkat Matcha</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱165</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Double Mocha</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱165</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Salted Caramel</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱165</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">White Mocha</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱165</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Desserts, Drinks & Bar column -->
+                <div class="space-y-16">
+                    <!-- Pastry & Dessert -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Pastry & Dessert</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Cinnamon Roll</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱35</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Dark Chocolate Pastry</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱120</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Blueberry Cheesecake</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱250</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Leche Flan</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱250</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Buko Halo-Halo</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱100</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Buko Shake</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱100</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Mais Con Yelo</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱100</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Saging Con Yelo</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱100</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Seasonal Shake</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱120</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Refreshing Drinks & Softdrinks -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Refreshing Drinks & Softdrinks</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Cucumber Juice</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Honey Calamansi</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱200</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Blue Lemonade</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Softdrinks 1.5L / 8oz</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱150 / ₱20</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Bottled Water</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱20</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">San Mig Light / Apple / Pilsen</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱90</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Red Horse</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱100</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Liquor & Spirits -->
+                    <section>
+                        <div class="border-b-2 border-eyns-brown pb-2 mb-6">
+                            <h4 class="font-sans text-xl font-bold text-eyns-brown tracking-widest uppercase">Liquor & Spirits</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Alfonso 1L / 70cl</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱500 / ₱450</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Alfonso Solera 1L / 70cl</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱600 / ₱500</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Alfonso Platinum 1L</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱700</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Fundador USmooth 1L</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱1,000</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Fundador Light 1L</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱750</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Carlo Rossi 750ml</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱650</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Double Black 1L</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱3,500</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Black Label 1L</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱1,900</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Jack Daniel 70cl</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱1,900</span>
+                                </div>
+                            </div>
+                            <div class="menu-item-row group">
+                                <div class="flex items-baseline justify-between">
+                                    <span class="font-semibold text-lg text-gray-800">Carlos 1 1L</span>
+                                    <div class="price-leader"></div>
+                                    <span class="font-bold text-eyns-brown">₱1,900</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-eyns-brown text-eyns-cream py-8 mt-12 border-t-4 border-eyns-gold">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <h5 class="font-serif text-xl mb-2">EYNS HOTEL & RESTAURANT</h5>
+            <p class="text-sm text-gray-400 mb-4">Catanauan, Quezon</p>
+            <p class="text-xs text-gray-500 mb-4 italic">
+                All prices are subject to government taxes.<br>
+                For room bookings & catering, call (0917) 841-7553 or email eyns.hnr@gmail.com
+            </p>
+            <div class="mt-6 flex justify-center space-x-4">
+                <a href="#" class="text-eyns-gold hover:text-white transition-colors"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" class="text-eyns-gold hover:text-white transition-colors"><i class="fab fa-instagram"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Interactive Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Remove active state from all buttons
+                    tabBtns.forEach(b => {
+                        b.classList.remove('bg-eyns-brown', 'text-white', 'shadow-md');
+                        b.classList.add('text-eyns-brown');
+                    });
+
+                    // Add active state to clicked button
+                    btn.classList.add('bg-eyns-brown', 'text-white', 'shadow-md');
+                    btn.classList.remove('text-eyns-brown');
+
+                    // Hide all content
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                    });
+
+                    // Show target content
+                    const targetId = btn.getAttribute('data-target');
+                    document.getElementById(targetId).classList.add('active');
+                    
+                    // Smooth scroll to top of menu content slightly offset for header
+                    window.scrollTo({
+                        top: document.querySelector('main').offsetTop - 100,
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
