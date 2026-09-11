@@ -18,7 +18,7 @@
               200: '#fde68a',
               300: '#fcd34d',
               400: '#fbbf24',
-              500: '#d4af37', 
+              500: '#d4af37',
               600: '#b8860b',
               700: '#92400e',
               800: '#78350f',
@@ -48,13 +48,13 @@
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- html2canvas for JPEG saving -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
   <!-- React & Babel -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- html2canvas for JPEG exporting -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <style>
     body {
@@ -71,57 +71,40 @@
       -webkit-text-fill-color: transparent;
     }
     .glass-card {
-      background: rgba(22, 30, 46, 0.7);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(212, 175, 55, 0.15);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      background: rgba(22, 30, 46, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(212, 175, 55, 0.25);
     }
-    .glass-card-hover:hover {
-      border-color: rgba(212, 175, 55, 0.6);
-      box-shadow: 0 10px 30px -10px rgba(212, 175, 55, 0.2);
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
     }
-    .step-number {
-      background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
-      color: #1a0509;
+    ::-webkit-scrollbar-track {
+      background: #0d1321;
     }
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #d4af37; }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #d4af37;
+    }
 
-    /* Print Stylesheet matching Official Printable Sheet */
+    /* Print / Capture Stylesheet matching Official A4 Sheet */
     @media print {
-      @page {
-        size: A4 portrait;
-        margin: 15mm; /* Standard professional A4 margins */
-      }
       body {
         background: white !important;
         color: black !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
       }
       .no-print {
         display: none !important;
       }
       .print-only {
         display: block !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
       }
-      /* Prevent awkward page breaks */
-      table, tr, td, th, .bg-gray-200 {
-        page-break-inside: avoid;
-        break-inside: avoid;
-      }
-      .print-card {
-        border: 1px solid #999 !important;
-        background: #fff !important;
-        color: black !important;
-      }
+    }
+    .print-only {
+      display: none;
     }
   </style>
 </head>
@@ -130,26 +113,14 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useMemo, useEffect } = React;
+    const { useState, useMemo } = React;
 
     const OFFICIAL_PACKAGES = [
-      {
-        id: 'no_package',
-        name: 'SEMINAR/MEETINGS/TABLE RESERVATION',
-        tagline: 'Ideal for meetings, seminars, & simple food orders (Food + ₱5,000 Service Charge)',
-        flatRate: 0,
-        inclusions: [
-          'Food Orders / A La Carte Selection',
-          'Standard Service Charge (₱5,000)',
-          'Optional Venue Rental / Add-ons'
-        ]
-      },
       {
         id: 'entry',
         name: 'PACKAGE ENTRY',
         tagline: 'Ideal for intimate gatherings & classic celebrations',
         tierRates: { 50: 45000, 100: 60000, 150: 75000 },
-        excessRate: 400,
         inclusions: [
           'Classic Menu A Included',
           'Open-Air Venue',
@@ -167,7 +138,6 @@
         tagline: 'Complete air-conditioned setup with themed styling & host',
         popular: true,
         tierRates: { 50: 60000, 100: 75000, 150: 90000 },
-        excessRate: 400,
         inclusions: [
           'Classic Menu A Included',
           'Air-conditioned Venue (4 hrs)',
@@ -185,7 +155,6 @@
         name: "ANNA'S SIGNATURE",
         tagline: 'Premium triple-zone styling, full lights/sounds & grazing table',
         tierRates: { 50: 90000, 100: 105000, 150: 120000 },
-        excessRate: 400,
         inclusions: [
           'Classic Menu A Included',
           'Air-conditioned Venue (4 hrs)',
@@ -195,6 +164,17 @@
           'Prep Room Included',
           'Grazing Table (50 Pax)',
           'Professional Host'
+        ]
+      },
+      {
+        id: 'food_packs',
+        name: 'FOOD PACKS ONLY',
+        tagline: 'Delivered or packed institutional catering meals (Priced by menu items)',
+        isFoodPacks: true,
+        inclusions: [
+          'Quality Packed Meals (Main Dish, Rice, Side / Dessert)',
+          'Eco-Friendly or Box Packaging',
+          'Standard Delivery Options Available'
         ]
       },
       {
@@ -212,14 +192,16 @@
         ]
       },
       {
-        id: 'food_packs',
-        name: 'FOOD PACKS ONLY',
-        tagline: 'Individually packed meals for events & seminars (No setup)',
-        flatRate: 0,
+        id: 'no_package',
+        name: 'SEMINAR/MEETINGS/TABLE RESERVATION',
+        tagline: 'Venue & Food service without standard all-inclusive package',
+        isNoPackage: true,
+        serviceCharge: 5000,
         inclusions: [
-          'Food Orders / A La Carte Selection',
-          'Take-out Packaging',
-          'No Venue Setup or Styling'
+          'Venue Use / Table Reservation',
+          'Standard Food & Beverage Service',
+          'Basic Sound / Setup Support',
+          'Professional Staffing'
         ]
       }
     ];
@@ -266,48 +248,42 @@
     ];
 
     const OFFICIAL_ADDONS = [
-      // Venue & Space
-      { id: 'a_ac_venue', name: 'Air-conditioned Venue Rental', price: 5000, cat: 'Venue & Facilities', desc: 'Fully air-conditioned hall/room setup (4 hours)' },
-
-      // Live Stations
-      { id: 'ls_ihaw', name: 'Station 1: Filipino Ihaw-Ihaw Station', price: 45000, cat: 'Live Food Station', desc: 'Chicken, Pork BBQ, Raw & Fresh Seafood cooked live' },
-      { id: 'ls_asian', name: 'Station 2: Asian Live Station', price: 30000, cat: 'Live Food Station', desc: 'Dimsum, Pancit, Siopao, Lumpia' },
-      { id: 'ls_italian', name: 'Station 3: Italian Live Station', price: 45000, cat: 'Live Food Station', desc: 'Live Pizza & Pasta with portable pizza oven' },
-      { id: 'ls_lechon', name: 'Station 4: Live Lechon Station', price: 30000, cat: 'Live Food Station', desc: 'Live lechon setup with carving station' },
-      { id: 'ls_desserts', name: 'Station 5: Assorted Desserts & Pastries', price: 40000, cat: 'Live Food Station', desc: 'Pastry stands, dessert displays' },
-      { id: 'ls_espresso', name: 'Station 6: Espresso Coffee & Tea Cart', price: 15000, cat: 'Live Food Station', desc: 'Espresso machine, tea brewer, barista' },
-      { id: 'ls_cocktail', name: 'Station 7: Cocktail Bar w/ Bartender', price: 15000, cat: 'Live Food Station', desc: 'Full bar setup with glassware, spirits' },
-
-      // Grazing Menu Options
-      { id: 'g_fiesta', name: 'Grazing Area: Fiesta Filipino Cart', price: 15000, cat: 'Grazing Tables' },
-      { id: 'g_salad', name: 'Grazing Area: Assorted Salad Bar', price: 10000, cat: 'Grazing Tables' },
-      { id: 'g_dessert', name: 'Grazing Area: Assorted Dessert Corner', price: 15000, cat: 'Grazing Tables' },
-      { id: 'g_grill', name: 'Grazing Area: Meat Delis Grilling Station', price: 35000, cat: 'Grazing Tables' },
-      { id: 'g_pizzapasta', name: 'Grazing Area: Pizza & Pasta Bar', price: 25000, cat: 'Grazing Tables' },
-      { id: 'g_japanese', name: 'Grazing Area: Japanese Snack Bar', price: 25000, cat: 'Grazing Tables' },
-      { id: 'g_chinese', name: 'Grazing Area: Chinese Snack Bar', price: 25000, cat: 'Grazing Tables' },
-      { id: 'g_american', name: 'Grazing Area: American Snack Bar', price: 15000, cat: 'Grazing Tables' },
-
-      // Technical & Services
+      { id: 'a_tables', name: 'Guest Tables & Chairs Setup', price: 50, perPax: true, cat: 'Setups & Staff' },
+      { id: 'a_buffet_setup', name: 'Buffet Setup', price: 3500, cat: 'Setups & Staff' },
+      { id: 'a_stage_simple', name: 'Simple Backdrop Stage', price: 5000, cat: 'Setups & Staff' },
+      { id: 'a_stage_thematic', name: 'Thematic Stage', price: 15000, cat: 'Setups & Staff' },
+      { id: 'a_staffing', name: 'Staffing Service', price: 7500, cat: 'Setups & Staff' },
+      { id: 'a_ac_venue', name: 'Air-conditioned Venue Rental', price: 5000, cat: 'Venue' },
+      { id: 'ls_ihaw', name: 'Station 1: Filipino Ihaw-Ihaw Station', price: 45000, cat: 'Live Food Station', desc: 'Chicken, Pork BBQ, Raw & Fresh Seafood cooked live (Griller, charcoal, 2 staff)' },
+      { id: 'ls_asian', name: 'Station 2: Asian Live Station', price: 30000, cat: 'Live Food Station', desc: 'Dimsum, Pancit, Siopao, Lumpia (Steamers, burners, sauces, 2 staff)' },
+      { id: 'ls_italian', name: 'Station 3: Italian Live Station', price: 45000, cat: 'Live Food Station', desc: 'Live Pizza & Pasta with portable pizza oven, gas burners & 2 staff' },
+      { id: 'ls_lechon', name: 'Station 4: Live Lechon Station', price: 30000, cat: 'Live Food Station', desc: 'Live lechon setup with carving station, heating lamps & 1 staff' },
+      { id: 'ls_desserts', name: 'Station 5: Assorted Desserts & Pastries', price: 40000, cat: 'Live Food Station', desc: 'Pastry stands, dessert displays, heating lamps & 1 staff' },
+      { id: 'ls_espresso', name: 'Station 6: Espresso Coffee & Tea Cart', price: 15000, cat: 'Live Food Station', desc: 'Espresso machine, tea brewer, percolator & professional barista' },
+      { id: 'ls_cocktail', name: 'Station 7: Cocktail Bar w/ Bartender', price: 15000, cat: 'Live Food Station', desc: 'Full bar setup with glassware, garnishes, spirits, 60kg ice & 2 bartenders' },
+      { id: 'g_fiesta', name: 'Grazing Area: Fiesta Filipino Cart + Barako Setup', price: 15000, cat: 'Grazing Tables', desc: 'Recommended for 50~75 pax' },
+      { id: 'g_salad', name: 'Grazing Area: Assorted Salad Bar', price: 10000, cat: 'Grazing Tables', desc: 'Recommended for 50~75 pax' },
+      { id: 'g_dessert', name: 'Grazing Area: Assorted Dessert Corner', price: 15000, cat: 'Grazing Tables', desc: 'Recommended for 50~75 pax' },
+      { id: 'g_grill', name: 'Grazing Area: Meat Delis Grilling Station', price: 35000, cat: 'Grazing Tables', desc: 'Turkey with sides, grilling station for assorted meats' },
+      { id: 'g_pizzapasta', name: 'Grazing Area: Pizza & Pasta Bar', price: 25000, cat: 'Grazing Tables', desc: 'Recommended for 50~75 pax' },
+      { id: 'g_japanese', name: 'Grazing Area: Japanese Snack Bar', price: 25000, cat: 'Grazing Tables', desc: 'Recommended for 50~75 pax' },
+      { id: 'g_chinese', name: 'Grazing Area: Chinese Snack Bar', price: 25000, cat: 'Grazing Tables', desc: 'Recommended for 50~75 pax' },
+      { id: 'g_american', name: 'Grazing Area: American Snack Bar', price: 15000, cat: 'Grazing Tables', desc: 'Recommended for 50~75 pax' },
       { id: 'a_led', name: 'LED Wall Display', price: 20000, cat: 'Visuals & Sound' },
-      { id: 'a_balag', name: 'Outdoor Balag Setup', price: 15000, isStarting: true, cat: 'Styling' },
-      { id: 'a_tables', name: 'Guest Tables & Chairs Setup', price: 50, perPax: true, cat: 'Styling', desc: 'Priced at ₱50 per guest' },
-      { id: 'a_buffet_setup', name: 'Buffet Setup', price: 3500, cat: 'Styling' },
-      { id: 'a_simple_stage', name: 'Simple Backdrop Stage', price: 5000, cat: 'Styling' },
-      { id: 'a_theme_stage', name: 'Thematic Stage', price: 15000, cat: 'Styling' },
-      { id: 'a_ls', name: 'Full Lights & Sounds System', price: 10000, isStarting: true, cat: 'Visuals & Sound' },
+      { id: 'a_balag', name: 'Outdoor Balag Setup', price: 15000, cat: 'Styling' },
+      { id: 'a_full_styling', name: 'Full Venue & Ceremony Themed Styling', price: 0, cat: 'Styling' },
+      { id: 'a_ls', name: 'Full Lights & Sounds System', price: 10000, cat: 'Visuals & Sound' },
       { id: 'a_photo', name: 'Photobooth Setup', price: 3000, cat: 'Entertainment' },
       { id: 'a_360', name: '360 Video Booth', price: 15000, cat: 'Entertainment' },
-      { id: 'a_band', name: 'Live Band / Saxophonist', price: 5000, isStarting: true, cat: 'Entertainment' },
-      { id: 'a_magic', name: 'Magician + Clown', price: 5000, isStarting: true, cat: 'Entertainment' },
+      { id: 'a_band', name: 'Live Band / Saxophonist', price: 5000, cat: 'Entertainment' },
+      { id: 'a_magic', name: 'Magician + Clown', price: 5000, cat: 'Entertainment' },
       { id: 'a_playground', name: 'Inflatable Playground', price: 10000, cat: 'Entertainment' },
-      { id: 'a_host', name: 'Professional Event Host', price: 4000, isStarting: true, cat: 'Services' },
-      { id: 'a_coord', name: 'On-Day Event Coordinator', price: 15000, isStarting: true, cat: 'Services' },
+      { id: 'a_host', name: 'Professional Event Host', price: 4000, cat: 'Services' },
+      { id: 'a_coord', name: 'On-Day Event Coordinator', price: 15000, cat: 'Services' },
       { id: 'a_photographer', name: 'Professional Photographer', price: 10000, cat: 'Services' },
       { id: 'a_sde', name: 'Same Day Edit (Video + Photo)', price: 40000, cat: 'Services' },
-      { id: 'a_staffing', name: 'Service Staffing', price: 7500, cat: 'Services' },
-      { id: 'a_lechon_roast', name: 'Lechon (Whole Roasted)', price: 8000, isStarting: true, cat: 'Food' },
-      { id: 'a_cake', name: '2-Tier Custom Cake', price: 5000, isStarting: true, cat: 'Food' }
+      { id: 'a_lechon_roast', name: 'Lechon (Whole Roasted)', price: 8000, cat: 'Food' },
+      { id: 'a_cake', name: '2-Tier Custom Cake', price: 5000, cat: 'Food' }
     ];
 
     const FULL_A_LA_CARTE_CATALOG = {
@@ -361,135 +337,169 @@
         { name: 'Relleno', price: 150 },
         { name: 'Baby Back Ribs', price: 150 }
       ],
-      'Rice & Noodles': [
+      'Rice': [
         { name: 'Steamed Rice', price: 25 },
+        { name: 'Clam Rice', price: 85 },
         { name: 'Paella', price: 85 },
         { name: 'Yangchow Fried Rice', price: 75 },
-        { name: 'Palabok', price: 75 },
-        { name: 'Chami Tamis-Anghang', price: 75 },
-        { name: 'Pancit Bihon', price: 65 },
-        { name: 'Carbonara', price: 85 },
-        { name: 'Lasagna', price: 150 }
+        { name: 'Java Rice', price: 35 },
+        { name: 'Hainanese Rice', price: 35 },
+        { name: 'Sinangag', price: 35 }
       ],
       'Veggies': [
         { name: 'Lumpia Ubod', price: 65 },
         { name: 'Vietnamese Spring Roll', price: 85 },
+        { name: 'Ensaladang Pako', price: 65 },
+        { name: 'Seafood Vegetables', price: 85 },
         { name: 'Chopsuey', price: 75 },
-        { name: 'Garden Salad', price: 85 }
+        { name: 'Garden Salad', price: 85 },
+        { name: 'Potato Salad', price: 85 }
+      ],
+      'Pancit': [
+        { name: 'Palabok', price: 75 },
+        { name: 'Chami Tamis-Anghang', price: 75 },
+        { name: 'Japchae', price: 75 },
+        { name: 'Sotanghon Canton', price: 75 },
+        { name: 'Pancit Bihon', price: 65 }
+      ],
+      'Pasta': [
+        { name: 'Carbonara', price: 85 },
+        { name: 'Seafood Pesto', price: 100 },
+        { name: 'Puttanesca', price: 100 },
+        { name: 'Lasagna', price: 150 },
+        { name: 'Seafood Marinara', price: 120 },
+        { name: 'Spaghetti', price: 85 },
+        { name: 'Baked Macaroni', price: 85 }
       ],
       'Dessert': [
         { name: 'Special Buko Halo-Halo', price: 75 },
         { name: 'Fruit Cup', price: 75 },
         { name: 'Buko Pandan', price: 50 },
-        { name: 'Coffee Jelly', price: 35 }
+        { name: 'Coffee Jelly', price: 35 },
+        { name: 'Macarons / Brownies / Caramel Bar', price: 35 }
       ]
     };
 
-    const EynsOfficialLogo = ({ className = "w-12 h-12", logoUrl = "assets/logo.jpg" }) => {
+    const HOTEL_ROOMS = [
+      { id: 'r_1', name: 'Standard Room 1', roomNo: 'Room 1', price: 1400, desc: '1 Queen, AC, Hot/Cold Shower', pax: '1~2 pax', paxIcon: 'fa-user-friends', features: ['1 Queen Size Bed', 'Hot & Cold Shower', 'Airconditioned Room', 'Wifi-ready'], images: ['476.png'] },
+      { id: 'r_2', name: 'Standard Room 2', roomNo: 'Room 2', price: 1400, desc: '1 Queen, AC, Hot/Cold Shower', pax: '1~2 pax', paxIcon: 'fa-user-friends', features: ['1 Queen Size Bed', 'Hot & Cold Shower', 'Airconditioned Room', 'Wifi-ready'], images: ['477.png'] },
+      { id: 'r_3', name: 'Standard Room 3', roomNo: 'Room 3', price: 1400, desc: '1 Queen, AC, Hot/Cold Shower', pax: '1~2 pax', paxIcon: 'fa-user-friends', features: ['1 Queen Size Bed', 'Hot & Cold Shower', 'Airconditioned Room', 'Wifi-ready'], images: ['478.png'] },
+      { id: 'r_4', name: 'Standard Room 4', roomNo: 'Room 4', price: 1400, desc: '1 Queen, AC, Hot/Cold Shower', pax: '1~2 pax', paxIcon: 'fa-user-friends', features: ['1 Queen Size Bed', 'Hot & Cold Shower', 'Airconditioned Room', 'Wifi-ready'], images: ['479.png'] },
+      { id: 'r_5', name: 'Deluxe Room 5', roomNo: 'Room 5', price: 1700, desc: '1 King, 1 Twin, AC, Hot/Cold Shower', pax: '3~4 pax', paxIcon: 'fa-users', features: ['1 King Size Bed & 1 Twin Bed', 'Hot & Cold Shower', 'Airconditioned Room', 'Wifi-ready'], images: ['480.png'] },
+      { id: 'r_6', name: 'Standard Room 6', roomNo: 'Room 6', price: 1400, desc: '1 Queen, AC, Hot/Cold Shower', pax: '1~2 pax', paxIcon: 'fa-user-friends', features: ['1 Queen Size Bed', 'Hot & Cold Shower', 'Airconditioned Room', 'Wifi-ready'], images: ['476.png'] },
+      { id: 'r_7', name: 'Standard Room 7', roomNo: 'Room 7', price: 1100, desc: '1 Queen, AC, Cold Shower', pax: '1~2 pax', paxIcon: 'fa-user-friends', features: ['1 Queen Size Bed', 'Cold Shower only', 'Airconditioned Room', 'Wifi-ready'], images: ['483.png'] },
+      { id: 'r_8', name: 'Standard Room 8', roomNo: 'Room 8', price: 1100, desc: '1 Queen, AC, Cold Shower', pax: '1~2 pax', paxIcon: 'fa-user-friends', features: ['1 Queen Size Bed', 'Cold Shower only', 'Airconditioned Room', 'Wifi-ready'], images: ['483.png'] },
+      { id: 'r_9', name: 'Family Room 9', roomNo: 'Room 9', price: 1400, desc: '2 Queen, AC, Cold Shower', pax: '2~4 pax', paxIcon: 'fa-users', features: ['2 Queen Size Beds', 'Cold Shower only', 'Airconditioned Room', 'Wifi-ready'], images: ['484.png'] },
+      { id: 'r_10', name: 'Family Room 10', roomNo: 'Room 10', price: 1400, desc: '2 Queen, AC, Cold Shower', pax: '2~4 pax', paxIcon: 'fa-users', features: ['2 Queen Size Beds', 'Cold Shower only', 'Airconditioned Room', 'Wifi-ready'], images: ['484.png'] },
+      { id: 'r_11', name: 'Triple Room 11', roomNo: 'Room 11', price: 1400, desc: '3 Single, AC, Cold Shower', pax: '3 pax', paxIcon: 'fa-users', features: ['3 Single Beds', 'Cold Shower only', 'Airconditioned Room', 'Wifi-ready'], images: ['486.png'] },
+      { id: 'r_12', name: 'Budget Room 12', roomNo: 'Room 12', price: 500, desc: '1 Twin, Fan, Common CR', pax: '1~2 pax', paxIcon: 'fa-user-friends', features: ['1 Twin Bed', 'Common CR only', 'Air Ventilated Room', 'Wifi-ready'], images: ['487.png'] },
+      { id: 'r_14', name: 'Budget Room 14', roomNo: 'Room 14', price: 500, desc: '1 Twin, Fan, Common CR', pax: '1~2 pax', paxIcon: 'fa-user-friends', features: ['1 Twin Bed', 'Common CR only', 'Air Ventilated Room', 'Wifi-ready'], images: ['487.png'] },
+      { id: 'r_15', name: 'Budget Room 15', roomNo: 'Room 15', price: 500, desc: '1 Twin, Fan, Common CR', pax: '1~2 pax', paxIcon: 'fa-user-friends', features: ['1 Twin Bed', 'Common CR only', 'Air Ventilated Room', 'Wifi-ready'], images: ['487.png'] },
+      { id: 'r_16', name: 'Budget Room 16', roomNo: 'Room 16', price: 500, desc: '1 Twin, Fan, Common CR', pax: '1~2 pax', paxIcon: 'fa-user-friends', features: ['1 Twin Bed', 'Common CR only', 'Air Ventilated Room', 'Wifi-ready'], images: ['487.png'] },
+      { id: 'r_17', name: 'Budget Room 17', roomNo: 'Room 17', price: 500, desc: '1 Twin, Fan, Common CR', pax: '1~2 pax', paxIcon: 'fa-user-friends', features: ['1 Twin Bed', 'Common CR only', 'Air Ventilated Room', 'Wifi-ready'], images: ['487.png'] },
+      { id: 'r_18', name: 'Family Suite 18', roomNo: 'Room 18', price: 3500, badge: 'Family Suite', desc: '1 King, 2 Double, 1 Sofa Bed, AC, Hot/Cold', pax: '3~6 pax', paxIcon: 'fa-users', features: ['1 King, 2 Double & 1 Sofa Bed', 'Hot & Cold Shower', 'Airconditioned Room', 'Wifi-ready'], images: ['488.png', '489.png'] }
+    ];
+
+    const EynsOfficialLogo = ({ className = "w-12 h-12" }) => {
       const [imgError, setImgError] = React.useState(false);
-      if (logoUrl && !imgError) {
+
+      if (!imgError) {
         return (
-          <img src={logoUrl} alt="Logo" className={`${className} rounded-full object-cover shadow-md border border-gold-500/40`} onError={() => setImgError(true)} />
+          <img
+            src="assets/logo.jpg"
+            alt="Eyns' Hotel & Restaurant Official Logo"
+            className={`${className} rounded-full object-cover shadow-md border border-gold-500/40`}
+            onError={() => setImgError(true)}
+          />
         );
       }
+
       return (
         <svg viewBox="0 0 500 500" className={className} xmlns="http://www.w3.org/2000/svg">
           <circle cx="250" cy="250" r="240" fill="#2d0b0d" />
           <circle cx="250" cy="250" r="228" fill="none" stroke="#d4af37" strokeWidth="4" />
           <circle cx="250" cy="250" r="218" fill="none" stroke="#d4af37" strokeWidth="2" />
-          <g transform="translate(262, 172) scale(0.95)">
-            <path d="M 5,22 L 28,2 L 51,22 Z" fill="#e0b84c" />
-            <path d="M 0,22 Q 28,15 56,22 L 52,25 Q 28,18 4,25 Z" fill="#b8860b" />
-            <rect x="12" y="22" width="32" height="18" fill="#e0b84c" />
-            <rect x="23" y="27" width="10" height="13" fill="#2d0b0d" />
-          </g>
-          <text x="240" y="300" fontFamily="'Alex Brush', cursive, serif" fontSize="165" fontWeight="bold" fill="#e0b84c" textAnchor="middle">Eyns'</text>
-          <text x="285" y="335" fontFamily="'Playfair Display', Georgia, serif" fontSize="32" letterSpacing="2" fill="#e0b84c" textAnchor="middle">Since 1988</text>
+          <text x="240" y="300" fontFamily="'Alex Brush', cursive, serif" fontSize="165" fontWeight="bold" fill="#e0b84c" textAnchor="middle">
+            Eyns'
+          </text>
         </svg>
       );
     };
 
     function App() {
-      // Set to packages first
-      const [activeTab, setActiveTab] = useState('packages'); 
-      const [logoUrl, setLogoUrl] = useState('assets/logo.jpg');
+      const [activeTab, setActiveTab] = useState('packages');
+      const [docType, setDocType] = useState('Quotation'); // Quotation or SOA
+      const [addonCategory, setAddonCategory] = useState('All');
+      const [catalogCategory, setCatalogCategory] = useState('All');
+      const [catalogSearch, setCatalogSearch] = useState('');
       
-      // Builder State
+      // Client Details State
       const [clientName, setClientName] = useState('Valued Client');
       const [eventType, setEventType] = useState('Wedding');
       const [eventDate, setEventDate] = useState('2026-12-18');
       const [guestCount, setGuestCount] = useState(100);
-      const [quoteRef, setQuoteRef] = useState(`EYNS-${new Date().getFullYear()}-QT`);
+      const [quoteRef, setQuoteRef] = useState('EYNS-2026-QT');
+      const [amountPaid, setAmountPaid] = useState(0);
 
-      // Selections
+      // Package Selections
       const [selectedPkgId, setSelectedPkgId] = useState('essential');
-      const [isCustomMenu, setIsCustomMenu] = useState(false);
       const [selectedMenuTierId, setSelectedMenuTierId] = useState('menu_a');
-      const [selectedAddonIds, setSelectedAddonsIds] = useState([]); 
-      const [selectedAlacarte, setSelectedAlacarte] = useState([]); 
-      const [customMenuPax, setCustomMenuPax] = useState({}); // Track pax per dish
-      const [taxMode, setTaxMode] = useState('none'); 
+      const [selectedAddonIds, setSelectedAddonsIds] = useState([]);
       
-      // UI State for Filters
-      const [addonCategory, setAddonCategory] = useState('All');
-      const [catalogCategory, setCatalogCategory] = useState('All');
+      // Rooms State
+      const [roomCounts, setRoomCounts] = useState({});
 
-      // Auto-logic for selections
-      useEffect(() => {
-        if (selectedPkgId === 'no_package' || selectedPkgId === 'food_packs') {
-          setIsCustomMenu(true);
-        }
+      // Custom Menu State
+      const [isCustomMenu, setIsCustomMenu] = useState(false);
+      const [customMenuItems, setCustomMenuItems] = useState([]); // Array of { name, price, pax }
+
+      const selectedPkg = useMemo(() => {
+        return OFFICIAL_PACKAGES.find(p => p.id === selectedPkgId) || OFFICIAL_PACKAGES[1];
       }, [selectedPkgId]);
 
-      const selectedPkg = OFFICIAL_PACKAGES.find(p => p.id === selectedPkgId);
-      const selectedMenuTier = OFFICIAL_MENU_SELECTIONS.find(m => m.id === selectedMenuTierId);
-
-      // Math Helpers
-      const getDishPrice = (dishName) => {
-        for (const cat in FULL_A_LA_CARTE_CATALOG) {
-          const dish = FULL_A_LA_CARTE_CATALOG[cat].find(d => d.name === dishName);
-          if (dish) return dish.price;
-        }
-        return 0;
-      };
+      const selectedMenuTier = useMemo(() => {
+        return OFFICIAL_MENU_SELECTIONS.find(m => m.id === selectedMenuTierId) || OFFICIAL_MENU_SELECTIONS[0];
+      }, [selectedMenuTierId]);
 
       const packageBasePrice = useMemo(() => {
         if (!selectedPkg) return 0;
-        if (selectedPkgId === 'no_package') return 5000; // 5k Service charge
-        if (selectedPkg.flatRate !== undefined) return selectedPkg.flatRate;
+        if (selectedPkg.flatRate) return selectedPkg.flatRate;
+        if (selectedPkg.isNoPackage) return selectedPkg.serviceCharge; // 5000 base service charge
+        if (selectedPkg.isFoodPacks) return 0; // Food Packs Only price depends solely on chosen menu items
 
-        const count = Number(guestCount) || 50;
-        const setupCost = selectedPkg.tierRates[50] - (50 * 300); // Extract pure setup cost (Food is exactly 300/head up to 150 pax)
-        
-        if (count <= 150) {
-          return setupCost + (count * 300);
-        } else {
-          // For excess beyond 150, apply the specific excess rate (which covers both extra food and rentals)
-          const excess = count - 150;
-          return selectedPkg.tierRates[150] + (excess * selectedPkg.excessRate);
+        const rates = selectedPkg.tierRates;
+        if (!rates) return 0;
+
+        // Exact tier interpolation or strict tier lookup matching official rates
+        if (guestCount <= 50) return rates[50];
+        if (guestCount <= 100) {
+          const ratio = (guestCount - 50) / 50;
+          return rates[50] + (rates[100] - rates[50]) * ratio;
         }
-      }, [selectedPkg, selectedPkgId, guestCount]);
+        if (guestCount <= 150) {
+          const ratio = (guestCount - 100) / 50;
+          return rates[100] + (rates[150] - rates[100]) * ratio;
+        }
+        const extraPerPax = (rates[150] - rates[100]) / 50;
+        return rates[150] + (guestCount - 150) * extraPerPax;
+      }, [selectedPkg, guestCount]);
+
+      const foodCredit = useMemo(() => {
+        if (isCustomMenu && selectedPkg && !selectedPkg.isNoPackage && !selectedPkg.isFoodPacks && !selectedPkg.flatRate) {
+          return 300 * guestCount; // ₱300 per pax food credit
+        }
+        return 0;
+      }, [isCustomMenu, selectedPkg, guestCount]);
 
       const menuUpgradeSubtotal = useMemo(() => {
         if (selectedPkgId === 'styling_only' || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' || isCustomMenu) return 0;
         return (selectedMenuTier?.surcharge || 0) * guestCount;
-      }, [selectedPkgId, isCustomMenu, selectedMenuTier, guestCount]);
+      }, [selectedPkgId, selectedMenuTier, guestCount, isCustomMenu]);
 
       const alacarteSubtotal = useMemo(() => {
-        return selectedAlacarte.reduce((sum, dishName) => {
-          const pax = customMenuPax[dishName] || guestCount;
-          return sum + (getDishPrice(dishName) * pax);
-        }, 0);
-      }, [selectedAlacarte, customMenuPax, guestCount]);
-
-      const BASE_FOOD_CREDIT_PER_PAX = 300; // Deducted when clients opt out of the standard package menu
-
-      const foodCredit = useMemo(() => {
-        // No credit for styling only, seminar, or food packs
-        if (selectedPkgId === 'styling_only' || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs') return 0; 
-        if (!isCustomMenu) return 0;
-        return BASE_FOOD_CREDIT_PER_PAX * guestCount;
-      }, [selectedPkgId, isCustomMenu, guestCount]);
+        if (!isCustomMenu && selectedPkgId !== 'food_packs') return 0;
+        return customMenuItems.reduce((sum, item) => sum + (item.price * item.pax), 0);
+      }, [isCustomMenu, selectedPkgId, customMenuItems]);
 
       const addonsSubtotal = useMemo(() => {
         return selectedAddonIds.reduce((sum, id) => {
@@ -499,327 +509,295 @@
         }, 0);
       }, [selectedAddonIds, guestCount]);
 
-      const subtotalBeforeTax = packageBasePrice - foodCredit + menuUpgradeSubtotal + (isCustomMenu || selectedPkgId === 'no_package' ? alacarteSubtotal : 0) + addonsSubtotal;
+      const roomsSubtotal = useMemo(() => {
+        return Object.entries(roomCounts).reduce((sum, [id, qty]) => {
+          const room = HOTEL_ROOMS.find(r => r.id === id);
+          return sum + (room ? room.price * qty : 0);
+        }, 0);
+      }, [roomCounts]);
 
+      const subtotalBeforeTax = packageBasePrice - foodCredit + menuUpgradeSubtotal + alacarteSubtotal + addonsSubtotal + roomsSubtotal;
+
+      const [taxMode, setTaxMode] = useState('none');
       const taxAmount = useMemo(() => {
-        if (taxMode === 'vat12') return subtotalBeforeTax * 0.12;
-        if (taxMode === 'gov7') return subtotalBeforeTax * 0.07;
+        if (taxMode === 'vat') return subtotalBeforeTax * 0.12;
+        if (taxMode === 'gov') return subtotalBeforeTax * 0.07;
         return 0;
       }, [subtotalBeforeTax, taxMode]);
 
       const grandTotal = subtotalBeforeTax + taxAmount;
+      const balanceDue = grandTotal - amountPaid;
 
       const toggleAddon = (id) => {
-        setSelectedAddonsIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+        setSelectedAddonsIds(prev =>
+          prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        );
       };
 
-      const toggleAlacarte = (dishName) => {
-        setSelectedAlacarte(prev => {
-          if (prev.includes(dishName)) {
-            const newPax = { ...customMenuPax };
-            delete newPax[dishName];
-            setCustomMenuPax(newPax);
-            return prev.filter(name => name !== dishName);
+      const updateRoomQty = (id, qty) => {
+        setRoomCounts(prev => {
+          const newCounts = { ...prev };
+          if (qty <= 0) {
+            delete newCounts[id];
           } else {
-            setCustomMenuPax(p => ({ ...p, [dishName]: guestCount }));
-            return [...prev, dishName];
+            newCounts[id] = qty;
           }
+          return newCounts;
         });
       };
 
-      const updateDishPax = (dishName, pax) => {
-        setCustomMenuPax(prev => ({ ...prev, [dishName]: Math.max(1, pax) }));
+      const addCustomDish = (name, price) => {
+        setCustomMenuItems(prev => [...prev, { name, price, pax: guestCount }]);
       };
 
-      const handleSaveJpeg = async (e) => {
-        e.preventDefault();
-        
-        const printContent = document.querySelector('.print-only');
-        if (!printContent) return;
+      const removeCustomDish = (index) => {
+        setCustomMenuItems(prev => prev.filter((_, i) => i !== index));
+      };
 
-        if (typeof html2canvas === 'undefined') {
-          alert("Image generation library is still loading. Please try again in a few seconds.");
-          return;
-        }
+      const updateDishPax = (index, pax) => {
+        setCustomMenuItems(prev => {
+          const updated = [...prev];
+          updated[index].pax = Math.max(1, Number(pax) || 1);
+          return updated;
+        });
+      };
 
-        // Temporarily display the print container off-screen to render it
-        const originalStyle = printContent.getAttribute('style') || '';
-        printContent.setAttribute('style', 'display: block !important; position: absolute; left: -9999px; top: -9999px; width: 800px; background: white; color: black;');
-
+      const handleSaveJpeg = async () => {
+        const element = document.getElementById('print-quotation-sheet');
+        if (!element) return;
+        element.style.display = 'block';
         try {
-          const canvas = await html2canvas(printContent, {
-            scale: 2, // High resolution
-            useCORS: true,
-            backgroundColor: '#ffffff'
-          });
-
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-          const link = document.createElement('a');
-          const cleanName = clientName.replace(/[^a-zA-Z0-9]/g, '_') || 'Client';
-          link.download = `EYNS_Quotation_${cleanName}.jpg`;
-          link.href = dataUrl;
-          link.click();
+          const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+          const image = canvas.toDataURL("image/jpeg", 0.95);
+          const a = document.createElement('a');
+          a.href = image;
+          a.download = `${docType === 'SOA' ? 'EYNS_SOA' : 'EYNS_Quotation'}_${clientName.replace(/\s+/g, '_')}.jpg`;
+          a.click();
         } catch (err) {
-          console.error("Failed to generate JPEG:", err);
-          alert("There was an issue saving the image. Please try printing instead.");
+          console.error("Capture failed:", err);
         } finally {
-          // Restore original hidden state
-          printContent.setAttribute('style', originalStyle);
+          element.style.display = 'none';
         }
-      };
-
-      const handlePrint = (e) => {
-        e.preventDefault();
-        
-        const printContent = document.querySelector('.print-only');
-        if (!printContent) {
-          window.print();
-          return;
-        }
-
-        // Use a hidden iframe to bypass mobile/tablet popup blockers (specifically for Samsung/Android browsers)
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'fixed';
-        iframe.style.right = '0';
-        iframe.style.bottom = '0';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = '0';
-        document.body.appendChild(iframe);
-
-        const doc = iframe.contentWindow.document;
-        doc.open();
-        doc.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>EYNS Quotation - ${clientName}</title>
-              <script src="https://cdn.tailwindcss.com"><\/script>
-              <style>
-                @page { size: A4 portrait; margin: 15mm; }
-                body { 
-                  font-family: 'Plus Jakarta Sans', sans-serif; 
-                  -webkit-print-color-adjust: exact; 
-                  print-color-adjust: exact; 
-                  background: white; 
-                  color: black; 
-                }
-              </style>
-            </head>
-            <body>
-              <div style="max-width: 4xl; margin: auto;">
-                ${printContent.innerHTML}
-              </div>
-              <script>
-                // Give Tailwind time to render CSS rules inside the hidden iframe before calling print
-                setTimeout(() => {
-                  window.print();
-                }, 800);
-              <\/script>
-            </body>
-          </html>
-        `);
-        doc.close();
-        
-        // Clean up the iframe after a safe delay
-        setTimeout(() => {
-          if (document.body.contains(iframe)) {
-            document.body.removeChild(iframe);
-          }
-        }, 5000);
-      };
-
-      const handleMessengerClick = (e) => {
-        e.preventDefault();
-        
-        let menuText = '';
-        if (selectedPkgId === 'styling_only') {
-          menuText = '\n- Food: Excluded';
-        } else if (selectedPkgId === 'no_package' || selectedPkgId === 'food_packs') {
-          menuText = `\n- Custom Food Menu (${selectedAlacarte.length} dishes): ₱${alacarteSubtotal.toLocaleString()}`;
-        } else if (isCustomMenu) {
-          menuText = `\n- Base Food Credit: -₱${foodCredit.toLocaleString()}\n- Custom Food Menu (${selectedAlacarte.length} dishes): ₱${alacarteSubtotal.toLocaleString()}`;
-        } else {
-          menuText = `\n- Menu Package: ${selectedMenuTier?.name} (+₱${menuUpgradeSubtotal.toLocaleString()})`;
-        }
-
-        const text = `Hello Jem Medina! I would like to inquire regarding EYNS Official Catering Quotation (${quoteRef}):\n
-- Client: ${clientName}
-- Event Date: ${eventDate}
-- Guests: ${guestCount} Pax
-- Core Package: ${selectedPkg?.name} (Base/Service: ₱${packageBasePrice.toLocaleString()})${menuText}
-- Add-ons (${selectedAddonIds.length}): ${selectedAddonIds.map(id => OFFICIAL_ADDONS.find(a=>a.id===id)?.name).join(', ')}
-${taxMode !== 'none' ? `- Tax (${taxMode === 'vat12' ? '12% VAT' : '7% Gov'}): ₱${taxAmount.toLocaleString()}\n` : ''}
-ESTIMATED GRAND TOTAL: ₱${grandTotal.toLocaleString()}
-
-Please confirm availability and booking process. Thank you!`;
-
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        try { document.execCommand('copy'); alert("Quotation details copied to clipboard! You will now be redirected to Messenger to paste and send it."); } 
-        catch (err) { console.error('Failed to copy', err); }
-        document.body.removeChild(textArea);
-        
-        window.open('https://m.me/yourfacebookpageid', '_blank'); // Needs actual FB page ID/link
       };
 
       return (
         <div className="flex-grow flex flex-col min-h-screen">
           
-          {}
           <header className="no-print bg-burgundy-950/90 border-b border-gold-500/30 sticky top-0 z-50 backdrop-blur-md">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row justify-between items-center gap-4">
               
               <div className="flex items-center space-x-3.5 cursor-pointer" onClick={() => setActiveTab('packages')}>
-                <EynsOfficialLogo logoUrl={logoUrl} className="w-12 h-12 drop-shadow-[0_4px_10px_rgba(212,175,55,0.25)]" />
+                <EynsOfficialLogo className="w-12 h-12 drop-shadow-[0_4px_10px_rgba(212,175,55,0.25)]" />
                 <div>
                   <h1 className="text-xl font-bold tracking-wide font-serif gold-gradient-text">
                     EYNS HOTEL & RESTAURANT
                   </h1>
-                  <p className="text-[10px] text-slate-300 tracking-widest uppercase">Creating Memorable Celebrations Since 1988</p>
+                  <p className="text-[10px] text-slate-300 tracking-widest uppercase">Creating Memorable Celebrations Since 1988 • Catanauan, Quezon</p>
                 </div>
               </div>
 
-              <nav className="flex bg-slate-900/80 p-1 rounded-xl border border-slate-700/50 text-xs font-medium">
+              <nav className="flex flex-wrap gap-2 text-xs font-medium">
                 <button
                   onClick={() => setActiveTab('packages')}
-                  className={`px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${
-                    activeTab === 'packages' ? 'bg-gold-500 text-slate-950 shadow-md font-bold' : 'text-slate-300 hover:text-white'
+                  className={`px-3.5 py-2 rounded-lg transition flex items-center gap-2 ${
+                    activeTab === 'packages'
+                      ? 'bg-gold-500 text-slate-950 font-bold shadow-md shadow-gold-500/20'
+                      : 'text-slate-200 hover:text-gold-400 hover:bg-burgundy-900'
                   }`}
                 >
-                  <i className="fa-solid fa-crown"></i> Official Packages
+                  <i className="fa-solid fa-crown"></i>
+                  Official Packages
                 </button>
                 <button
                   onClick={() => setActiveTab('quotation')}
-                  className={`px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${
-                    activeTab === 'quotation' ? 'bg-gold-500 text-slate-950 shadow-md font-bold' : 'text-slate-300 hover:text-white'
+                  className={`px-3.5 py-2 rounded-lg transition flex items-center gap-2 ${
+                    activeTab === 'quotation'
+                      ? 'bg-gold-500 text-slate-950 font-bold shadow-md shadow-gold-500/20'
+                      : 'text-slate-200 hover:text-gold-400 hover:bg-burgundy-900'
                   }`}
                 >
-                  <i className="fa-solid fa-calculator"></i> Quotation Builder
+                  <i className="fa-solid fa-file-invoice"></i>
+                  Quotation Builder
                 </button>
                 <button
                   onClick={() => setActiveTab('catalog')}
-                  className={`px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${
-                    activeTab === 'catalog' ? 'bg-gold-500 text-slate-950 shadow-md font-bold' : 'text-slate-300 hover:text-white'
+                  className={`px-3.5 py-2 rounded-lg transition flex items-center gap-2 ${
+                    activeTab === 'catalog'
+                      ? 'bg-gold-500 text-slate-950 font-bold shadow-md shadow-gold-500/20'
+                      : 'text-slate-200 hover:text-gold-400 hover:bg-burgundy-900'
                   }`}
                 >
-                  <i className="fa-solid fa-utensils"></i> A La Carte Catalog
+                  <i className="fa-solid fa-utensils"></i>
+                  A La Carte Menu Catalog
+                </button>
+                <button
+                  onClick={() => setActiveTab('rooms')}
+                  className={`px-3.5 py-2 rounded-lg transition flex items-center gap-2 ${
+                    activeTab === 'rooms'
+                      ? 'bg-gold-500 text-slate-950 font-bold shadow-md shadow-gold-500/20'
+                      : 'text-slate-200 hover:text-gold-400 hover:bg-burgundy-900'
+                  }`}
+                >
+                  <i className="fa-solid fa-bed"></i>
+                  Hotel Rooms
                 </button>
               </nav>
 
+              <a
+                href="tel:09178417553"
+                className="hidden lg:flex items-center gap-2 text-xs bg-burgundy-900 hover:bg-burgundy-800 text-gold-300 border border-gold-500/40 px-3 py-1.5 rounded-full transition"
+              >
+                <i className="fa-solid fa-phone"></i>
+                <span>Jem Medina (0917-841-7553)</span>
+              </a>
             </div>
           </header>
 
-          <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 no-print">
+          <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
             
-            {}
+            {/* TAB 1: OFFICIAL PACKAGES */}
             {activeTab === 'packages' && (
-              <div className="space-y-8 animate-[fadeIn_0.5s_ease-out]">
+              <div className="space-y-8 animate-[fadeIn_0.3s_ease-out]">
                 <div className="text-center max-w-3xl mx-auto space-y-2">
-                  <h2 className="text-3xl font-serif font-bold gold-gradient-text">Official Event & Seminar Packages</h2>
-                  <p className="text-sm text-slate-300">
-                    From grand weddings to intimate meetings, select a package below to start building your custom quotation.
+                  <h2 className="text-3xl font-serif font-bold gold-gradient-text">Official Catering & Styling Event Packages</h2>
+                  <p className="text-xs text-slate-300">
+                    Choose from our carefully curated event packages designed for weddings, debuts, anniversaries, corporate banquets, and seminars.
                   </p>
                 </div>
 
-                {/* Event Packages Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {OFFICIAL_PACKAGES.map(pkg => {
-                    let dynamicPkgPrice = 0;
-                    if (pkg.id === 'no_package') dynamicPkgPrice = 5000;
-                    else if (pkg.flatRate !== undefined) dynamicPkgPrice = pkg.flatRate;
-                    else {
-                      const count = Number(guestCount) || 50;
-                      const setupCost = pkg.tierRates[50] - (50 * 300);
-                      if (count <= 150) {
-                        dynamicPkgPrice = setupCost + (count * 300);
-                      } else {
-                        dynamicPkgPrice = pkg.tierRates[150] + ((count - 150) * pkg.excessRate);
-                      }
-                    }
-
-                    return (
-                      <div key={pkg.id} className="glass-card rounded-2xl p-6 flex flex-col justify-between transition-transform duration-300 hover:-translate-y-1">
-                        <div>
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <span className="text-[10px] font-mono text-gold-400 uppercase tracking-widest bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">
-                                {pkg.id === 'no_package' ? 'SEMINAR / A LA CARTE' : pkg.id === 'food_packs' ? 'FOOD PACKS' : pkg.id.toUpperCase()}
-                              </span>
-                              <h3 className="text-xl font-serif font-bold text-slate-100 mt-2">{pkg.name}</h3>
-                            </div>
-                            {pkg.popular && (
-                              <span className="bg-gold-500 text-slate-950 font-bold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-lg shadow-gold-500/20">
-                                Most Popular
-                              </span>
-                            )}
-                          </div>
-
-                          <p className="text-xs text-slate-300 mb-5 min-h-[32px]">{pkg.tagline}</p>
-
-                          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800/80 mb-5 text-center flex flex-col items-center justify-center">
-                            <span className="text-[11px] text-slate-400 uppercase tracking-wider mb-1">
-                              {pkg.id === 'no_package' ? 'Base Service Charge' : pkg.id === 'food_packs' ? 'Base Rate (Food Exclusive)' : `Est. Base for ${guestCount} Pax`}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {OFFICIAL_PACKAGES.map(pkg => (
+                    <div key={pkg.id} className="glass-card rounded-2xl p-6 border-gold-500/30 flex flex-col justify-between hover:border-gold-500/60 transition-all">
+                      <div>
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <span className="text-[10px] font-mono text-gold-400 uppercase tracking-widest bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">
+                              {pkg.id.toUpperCase()}
                             </span>
-                            <span className="text-2xl font-serif font-bold text-gold-400">₱{dynamicPkgPrice.toLocaleString()}</span>
-                            {(pkg.id === 'no_package' || pkg.id === 'food_packs') && <span className="text-[10px] text-emerald-400 mt-1">* Plus cost of custom food selections</span>}
+                            <h3 className="text-lg font-serif font-bold text-slate-100 mt-1">{pkg.name}</h3>
                           </div>
-
-                          <div className="space-y-3 mb-6">
-                            <h4 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Inclusions:</h4>
-                            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
-                              {pkg.inclusions.map((inc, i) => (
-                                <li key={i} className="flex items-start gap-2">
-                                  <i className="fa-solid fa-check text-gold-500 mt-0.5 text-[10px]"></i>
-                                  <span className="leading-tight">{inc}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
+                          {pkg.popular && (
+                            <span className="bg-gold-500 text-slate-950 font-bold text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                              Popular
+                            </span>
+                          )}
                         </div>
 
-                        <button
-                          onClick={() => {
-                            setSelectedPkgId(pkg.id);
-                            setActiveTab('quotation');
-                          }}
-                          className="w-full bg-slate-800 hover:bg-gold-500 text-white hover:text-slate-950 border border-slate-700 hover:border-gold-500 font-bold py-3 rounded-xl transition-all duration-300 text-xs flex items-center justify-center gap-2"
-                        >
-                          <span>Build Quote with {pkg.id === 'no_package' ? 'Seminar Mode' : pkg.id === 'food_packs' ? 'Food Packs' : pkg.name}</span>
-                          <i className="fa-solid fa-arrow-right"></i>
-                        </button>
+                        <p className="text-xs text-slate-300 mb-4">{pkg.tagline}</p>
+
+                        {pkg.tierRates ? (
+                          <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 mb-4 grid grid-cols-3 text-center text-xs">
+                            <div className="border-r border-slate-800">
+                              <span className="block text-slate-400 text-[9px]">50 Pax</span>
+                              <span className="font-bold text-gold-400">₱{pkg.tierRates[50].toLocaleString()}</span>
+                            </div>
+                            <div className="border-r border-slate-800">
+                              <span className="block text-slate-400 text-[9px]">100 Pax</span>
+                              <span className="font-bold text-gold-400">₱{pkg.tierRates[100].toLocaleString()}</span>
+                            </div>
+                            <div>
+                              <span className="block text-slate-400 text-[9px]">150 Pax</span>
+                              <span className="font-bold text-gold-400">₱{pkg.tierRates[150].toLocaleString()}</span>
+                            </div>
+                          </div>
+                        ) : pkg.flatRate ? (
+                          <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 mb-4 text-center text-xs">
+                            <span className="block text-slate-400 text-[9px]">Flat Package Rate</span>
+                            <span className="text-lg font-serif font-bold text-gold-400">₱{pkg.flatRate.toLocaleString()}</span>
+                          </div>
+                        ) : pkg.isFoodPacks ? (
+                          <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 mb-4 text-center text-xs">
+                            <span className="block text-slate-400 text-[9px]">Pricing Basis</span>
+                            <span className="text-sm font-serif font-bold text-gold-400">Priced per menu items chosen</span>
+                          </div>
+                        ) : (
+                          <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 mb-4 text-center text-xs">
+                            <span className="block text-slate-400 text-[9px]">Base Service Charge</span>
+                            <span className="text-lg font-serif font-bold text-gold-400">₱5,000 + Food Order</span>
+                          </div>
+                        )}
+
+                        <div className="space-y-2 mb-6">
+                          <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-300">Inclusions:</h4>
+                          <ul className="space-y-1 text-xs text-slate-300">
+                            {pkg.inclusions.map((inc, i) => (
+                              <li key={i} className="flex items-center gap-2">
+                                <i className="fa-solid fa-check text-gold-500 text-[10px]"></i>
+                                <span>{inc}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       </div>
-                    );
-                  })}
+
+                      <button
+                        onClick={() => {
+                          setSelectedPkgId(pkg.id);
+                          setActiveTab('quotation');
+                        }}
+                        className="w-full bg-gold-500 hover:bg-gold-400 text-slate-950 font-bold py-2.5 rounded-xl transition text-xs flex items-center justify-center gap-2"
+                      >
+                        <span>Select {pkg.name}</span>
+                        <i className="fa-solid fa-arrow-right"></i>
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            {}
+            {/* TAB 2: QUOTATION & SOA BUILDER */}
             {activeTab === 'quotation' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-[fadeIn_0.3s_ease-out]">
                 
                 <div className="lg:col-span-7 space-y-6">
                   
-                  {/* STEP 1: Details */}
+                  {/* STEP 1 */}
                   <div className="glass-card rounded-2xl p-6">
-                    <h3 className="text-lg font-serif font-bold text-slate-100 flex items-center gap-3 mb-5">
-                      <span className="w-7 h-7 rounded-full step-number text-sm flex items-center justify-center font-bold">1</span>
-                      Event Details
+                    <h3 className="text-lg font-serif font-bold text-slate-100 border-b border-slate-700/60 pb-3 mb-4 flex items-center gap-3">
+                      <span className="w-7 h-7 rounded-full bg-gold-500 text-slate-950 text-sm flex items-center justify-center font-bold">1</span>
+                      Document & Event Specifications
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                       <div>
-                        <label className="block text-slate-400 text-xs mb-1.5 uppercase tracking-wide">Client Name</label>
-                        <input type="text" value={clientName} onChange={(e) => setClientName(e.target.value)} className="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:border-gold-500 transition-colors" />
+                        <label className="block text-slate-300 mb-1 font-medium">Document Type</label>
+                        <select
+                          value={docType}
+                          onChange={(e) => setDocType(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-gold-500 font-bold text-gold-400"
+                        >
+                          <option value="Quotation">Official Quotation</option>
+                          <option value="SOA">Statement of Account (Billing)</option>
+                        </select>
                       </div>
+
                       <div>
-                        <label className="block text-slate-400 text-xs mb-1.5 uppercase tracking-wide">Occasion / Type</label>
-                        <select 
-                          value={eventType} 
-                          onChange={(e) => setEventType(e.target.value)} 
-                          className="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:border-gold-500 transition-colors cursor-pointer"
+                        <label className="block text-slate-300 mb-1 font-medium">Reference Code</label>
+                        <input
+                          type="text"
+                          value={quoteRef}
+                          onChange={(e) => setQuoteRef(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-gold-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 mb-1 font-medium">Client Name</label>
+                        <input
+                          type="text"
+                          value={clientName}
+                          onChange={(e) => setClientName(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-gold-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 mb-1 font-medium">Occasion / Event Type</label>
+                        <select
+                          value={eventType}
+                          onChange={(e) => setEventType(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-gold-500"
                         >
                           <option value="Wedding">Wedding</option>
                           <option value="Birthday">Birthday</option>
@@ -827,172 +805,80 @@ Please confirm availability and booking process. Thank you!`;
                           <option value="Seminar">Seminar</option>
                           <option value="Reunion">Reunion</option>
                           <option value="Corporate Event">Corporate Event</option>
-                          <option value="Christening">Christening</option>
-                          <option value="Food Packs">Food Packs</option>
-                          <option value="Other">Other...</option>
+                          <option value="Christening Food Packs">Christening Food Packs</option>
                         </select>
                       </div>
+
                       <div>
-                        <label className="block text-slate-400 text-xs mb-1.5 uppercase tracking-wide">Event Date</label>
-                        <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:border-gold-500 transition-colors" />
-                      </div>
-                      <div>
-                        <label className="block text-slate-400 text-xs mb-1.5 uppercase tracking-wide">Guest Count (Pax)</label>
-                        <div className="flex items-center gap-3 bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-1.5">
-                          <input type="range" min="20" max="300" step="5" value={guestCount} onChange={(e) => setGuestCount(Number(e.target.value))} className="w-full accent-gold-500" />
-                          <input type="number" min="20" value={guestCount} onChange={(e) => setGuestCount(Math.max(1, Number(e.target.value)))} className="w-16 bg-transparent text-center font-bold text-gold-400 focus:outline-none" />
+                        <label className="block text-slate-300 mb-1 font-medium">Target Guest Count (Pax): <strong className="text-gold-400 text-sm">{guestCount}</strong></label>
+                        <div className="flex items-center gap-3 mt-2">
+                          <input
+                            type="range"
+                            min="20"
+                            max="300"
+                            step="5"
+                            value={guestCount}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setGuestCount(val);
+                              setCustomMenuItems(prev => prev.map(item => ({ ...item, pax: val })));
+                            }}
+                            className="w-full accent-gold-500 cursor-pointer"
+                          />
+                          <input
+                            type="number"
+                            min="10"
+                            value={guestCount}
+                            onChange={(e) => {
+                              const val = Math.max(1, Number(e.target.value));
+                              setGuestCount(val);
+                              setCustomMenuItems(prev => prev.map(item => ({ ...item, pax: val })));
+                            }}
+                            className="w-20 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center text-gold-400 font-bold"
+                          />
                         </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 mb-1 font-medium">Event Date</label>
+                        <input
+                          type="date"
+                          value={eventDate}
+                          onChange={(e) => setEventDate(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-gold-500"
+                        />
                       </div>
                     </div>
                   </div>
 
-                  {/* STEP 2: Base Package */}
+                  {/* STEP 2 */}
                   <div className="glass-card rounded-2xl p-6">
-                    <div className="flex justify-between items-center mb-5">
-                      <h3 className="text-lg font-serif font-bold text-slate-100 flex items-center gap-3">
-                        <span className="w-7 h-7 rounded-full step-number text-sm flex items-center justify-center font-bold">2</span>
-                        Core Package / Setup
-                      </h3>
-                    </div>
-                    <select 
-                      value={selectedPkgId} 
-                      onChange={(e) => setSelectedPkgId(e.target.value)}
-                      className="w-full bg-slate-900 border border-gold-500/50 rounded-xl px-4 py-3 text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-gold-500/40 appearance-none cursor-pointer"
-                    >
-                      {OFFICIAL_PACKAGES.map(pkg => (
-                        <option key={pkg.id} value={pkg.id}>{pkg.name}</option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-slate-400 mt-2 pl-2">Current selection: {selectedPkg?.tagline}</p>
-                  </div>
+                    <h3 className="text-lg font-serif font-bold text-slate-100 border-b border-slate-700/60 pb-3 mb-4 flex items-center gap-3">
+                      <span className="w-7 h-7 rounded-full bg-gold-500 text-slate-950 text-sm flex items-center justify-center font-bold">2</span>
+                      Select Package Tier
+                    </h3>
 
-                  {/* STEP 3: Food Selection */}
-                  {selectedPkgId !== 'styling_only' && (
-                    <div className="glass-card rounded-2xl p-6">
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-5">
-                        <h3 className="text-lg font-serif font-bold text-slate-100 flex items-center gap-3">
-                          <span className="w-7 h-7 rounded-full step-number text-sm flex items-center justify-center font-bold">3</span>
-                          Food & Menu
-                        </h3>
-                        
-                        {/* Menu Mode Toggle */}
-                        {(selectedPkgId !== 'no_package' && selectedPkgId !== 'food_packs') && (
-                          <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 w-fit">
-                            <button 
-                              onClick={() => setIsCustomMenu(false)} 
-                              className={`px-3 py-1.5 text-xs rounded-md transition-colors ${!isCustomMenu ? 'bg-gold-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'}`}
-                            >
-                              Standard Tiers
-                            </button>
-                            <button 
-                              onClick={() => setIsCustomMenu(true)} 
-                              className={`px-3 py-1.5 text-xs rounded-md transition-colors ${isCustomMenu ? 'bg-gold-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'}`}
-                            >
-                              Build Custom Menu
-                            </button>
-                          </div>
-                        )}
-                        {(selectedPkgId === 'no_package' || selectedPkgId === 'food_packs') && (
-                          <span className="text-xs bg-burgundy-900 text-gold-300 px-3 py-1 rounded-full border border-gold-500/30">Custom Menu Required for this Package</span>
-                        )}
-                      </div>
-
-                      {/* Display based on menu mode */}
-                      {!isCustomMenu ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          {OFFICIAL_MENU_SELECTIONS.map(menu => (
-                            <div key={menu.id} onClick={() => setSelectedMenuTierId(menu.id)} className={`cursor-pointer p-4 rounded-xl border transition-all ${selectedMenuTierId === menu.id ? 'bg-gold-500/10 border-gold-500 ring-1 ring-gold-500' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}>
-                              <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-gold-400 mb-2 inline-block">{menu.badge}</span>
-                              <h4 className="font-bold text-slate-100 text-sm mb-2">{menu.name}</h4>
-                              <ul className="space-y-1 text-[10px] text-slate-400">
-                                {menu.dishes.slice(0,4).map((d, idx) => <li key={idx}>• {d}</li>)}
-                                {menu.dishes.length > 4 && <li>• ...and more</li>}
-                              </ul>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-4">
-                          <div className="flex justify-between items-center mb-4">
-                            <div>
-                              <h4 className="font-bold text-gold-400">A La Carte Selections</h4>
-                              <p className="text-xs text-slate-400">{selectedAlacarte.length} dishes selected (Total: ₱{alacarteSubtotal.toLocaleString()})</p>
-                            </div>
-                          </div>
-                          
-                          {/* Mini Inline Catalog Accordion Style */}
-                          <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
-                            {Object.entries(FULL_A_LA_CARTE_CATALOG).map(([cat, dishes]) => (
-                              <div key={cat} className="mb-2">
-                                <h5 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 sticky top-0 bg-slate-900 py-1 z-10 border-b border-slate-800">{cat}</h5>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                  {dishes.map(dish => {
-                                    const isSel = selectedAlacarte.includes(dish.name);
-                                    const dishPax = customMenuPax[dish.name] || guestCount;
-                                    return (
-                                      <div key={dish.name} className={`flex flex-col rounded-lg border transition-colors text-xs overflow-hidden ${isSel ? 'bg-gold-500/10 border-gold-500' : 'bg-slate-950 border-slate-800 hover:border-slate-600'}`}>
-                                        <div onClick={() => toggleAlacarte(dish.name)} className="flex justify-between items-center p-2 cursor-pointer">
-                                          <span className={`truncate pr-2 ${isSel ? 'text-white' : 'text-slate-400'}`}>{dish.name}</span>
-                                          <span className={`font-semibold shrink-0 ${isSel ? 'text-gold-300' : 'text-slate-500'}`}>₱{dish.price}/pax</span>
-                                        </div>
-                                        
-                                        {isSel && (
-                                          <div className="bg-slate-950/80 px-2 py-1.5 flex justify-between items-center border-t border-gold-500/30">
-                                            <span className="text-[10px] text-slate-400 uppercase tracking-wider">Target Pax:</span>
-                                            <div className="flex items-center gap-1">
-                                              <button onClick={() => updateDishPax(dish.name, dishPax - 1)} className="w-5 h-5 rounded bg-slate-800 text-slate-300 flex items-center justify-center hover:bg-slate-700">-</button>
-                                              <input type="number" value={dishPax} onChange={(e) => updateDishPax(dish.name, parseInt(e.target.value) || 1)} className="w-10 bg-transparent text-center text-white font-bold focus:outline-none" />
-                                              <button onClick={() => updateDishPax(dish.name, dishPax + 1)} className="w-5 h-5 rounded bg-slate-800 text-slate-300 flex items-center justify-center hover:bg-slate-700">+</button>
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* STEP 4: Add-ons */}
-                  <div className="glass-card rounded-2xl p-6">
-                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-5">
-                      <h3 className="text-lg font-serif font-bold text-slate-100 flex items-center gap-3">
-                        <span className="w-7 h-7 rounded-full step-number text-sm flex items-center justify-center font-bold">4</span>
-                        Enhancements & Add-ons
-                      </h3>
-                      <select 
-                        value={addonCategory} 
-                        onChange={(e) => setAddonCategory(e.target.value)}
-                        className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none"
-                      >
-                        {['All', 'Venue & Facilities', 'Live Food Station', 'Grazing Tables', 'Styling', 'Visuals & Sound', 'Entertainment', 'Services', 'Food'].map(c => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                      {OFFICIAL_ADDONS.filter(a => addonCategory === 'All' || a.cat === addonCategory).map(addon => {
-                        const isSel = selectedAddonIds.includes(addon.id);
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {OFFICIAL_PACKAGES.map(pkg => {
+                        const isSelected = selectedPkgId === pkg.id;
                         return (
-                          <div key={addon.id} onClick={() => toggleAddon(addon.id)} className={`cursor-pointer p-3 rounded-xl border text-xs transition-all flex flex-col justify-between ${isSel ? 'bg-gold-500/10 border-gold-500 ring-1 ring-gold-500/50' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}>
-                            <div className="flex justify-between items-start mb-1">
-                              <span className={`font-bold ${isSel ? 'text-white' : 'text-slate-300'}`}>{addon.name}</span>
-                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSel ? 'bg-gold-500 border-gold-500 text-slate-950' : 'border-slate-600'}`}>
-                                {isSel && <i className="fa-solid fa-check text-[10px]"></i>}
+                          <div
+                            key={pkg.id}
+                            onClick={() => setSelectedPkgId(pkg.id)}
+                            className={`cursor-pointer p-4 rounded-xl border text-xs transition flex flex-col justify-between ${
+                              isSelected
+                                ? 'bg-gold-500/15 border-gold-500 ring-1 ring-gold-500/50'
+                                : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
+                            }`}
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h4 className="font-bold text-slate-100 font-serif">{pkg.name}</h4>
+                                <p className="text-[10px] text-slate-400 mt-0.5">{pkg.tagline}</p>
                               </div>
-                            </div>
-                            <div className="flex justify-between items-end mt-2">
-                              <span className="text-[9px] text-slate-500 uppercase">{addon.cat}</span>
-                              <span className="font-bold text-gold-400">
-                                {addon.isStarting ? 'From ' : ''}₱{addon.price.toLocaleString()}
-                                {addon.perPax ? '/pax' : ''}
-                              </span>
+                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'bg-gold-500 border-gold-500 text-slate-950' : 'border-slate-600'}`}>
+                                {isSelected && <i className="fa-solid fa-check text-[10px]"></i>}
+                              </div>
                             </div>
                           </div>
                         );
@@ -1000,105 +886,361 @@ Please confirm availability and booking process. Thank you!`;
                     </div>
                   </div>
 
-                  {/* STEP 5: Tax Settings */}
-                  <div className="glass-card rounded-2xl p-6">
-                     <h3 className="text-lg font-serif font-bold text-slate-100 flex items-center gap-3 mb-4">
-                        <span className="w-7 h-7 rounded-full step-number text-sm flex items-center justify-center font-bold">5</span>
-                        Taxation & Billing
-                      </h3>
-                      <div className="flex flex-wrap gap-4 text-sm">
-                        <label className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
-                          <input type="radio" name="tax" checked={taxMode === 'none'} onChange={() => setTaxMode('none')} className="accent-gold-500 w-4 h-4" />
-                          No Additional Tax (Standard Receipt)
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
-                          <input type="radio" name="tax" checked={taxMode === 'vat12'} onChange={() => setTaxMode('vat12')} className="accent-gold-500 w-4 h-4" />
-                          12% VAT (Official Invoice)
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
-                          <input type="radio" name="tax" checked={taxMode === 'gov7'} onChange={() => setTaxMode('gov7')} className="accent-gold-500 w-4 h-4" />
-                          7% Government Tax
-                        </label>
+                  {/* STEP 3 */}
+                  {selectedPkgId !== 'styling_only' && (
+                    <div className="glass-card rounded-2xl p-6">
+                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-700/60 pb-3 mb-4">
+                        <h3 className="text-lg font-serif font-bold text-slate-100 flex items-center gap-3">
+                          <span className="w-7 h-7 rounded-full bg-gold-500 text-slate-950 text-sm flex items-center justify-center font-bold">3</span>
+                          Food Menu & A La Carte Calculator
+                        </h3>
+
+                        {!selectedPkg?.isNoPackage && !selectedPkg?.isFoodPacks && (
+                          <div className="flex bg-slate-950 rounded-lg p-1 border border-slate-800">
+                            <button
+                              onClick={() => setIsCustomMenu(false)}
+                              className={`px-3 py-1 rounded text-xs transition ${!isCustomMenu ? 'bg-gold-500 text-slate-950 font-bold' : 'text-slate-400'}`}
+                            >
+                              Standard Menu Package
+                            </button>
+                            <button
+                              onClick={() => setIsCustomMenu(true)}
+                              className={`px-3 py-1 rounded text-xs transition ${isCustomMenu ? 'bg-gold-500 text-slate-950 font-bold' : 'text-slate-400'}`}
+                            >
+                              Build Custom Menu
+                            </button>
+                          </div>
+                        )}
                       </div>
+
+                      {!isCustomMenu && !selectedPkg?.isFoodPacks ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {OFFICIAL_MENU_SELECTIONS.map(menu => {
+                            const isSelected = selectedMenuTierId === menu.id;
+                            return (
+                              <div
+                                key={menu.id}
+                                onClick={() => setSelectedMenuTierId(menu.id)}
+                                className={`cursor-pointer p-3.5 rounded-xl border text-xs transition flex flex-col justify-between ${
+                                  isSelected
+                                    ? 'bg-gold-500/20 border-gold-500 text-gold-100 ring-1 ring-gold-500/40'
+                                    : 'bg-slate-900/50 border-slate-800 text-slate-300 hover:border-slate-700'
+                                }`}
+                              >
+                                <div>
+                                  <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-gold-500/20 text-gold-300 border border-gold-500/30 block w-fit mb-2">
+                                    {menu.badge}
+                                  </span>
+                                  <h4 className="font-bold text-slate-100 text-xs mb-2 font-serif">{menu.name}</h4>
+                                  <ul className="space-y-1 text-[10px] text-slate-300">
+                                    {menu.dishes.map((d, idx) => (
+                                      <li key={idx}>• {d}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {foodCredit > 0 && (
+                            <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-3 text-xs text-emerald-300 flex items-center justify-between">
+                              <span><i className="fa-solid fa-circle-check mr-2"></i> Base Package Food Credit Applied (₱300 × {guestCount} pax)</span>
+                              <span className="font-bold">(-₱{foodCredit.toLocaleString()})</span>
+                            </div>
+                          )}
+
+                          {selectedPkg?.isFoodPacks && (
+                            <div className="bg-amber-950/40 border border-amber-500/40 rounded-xl p-3 text-xs text-amber-300">
+                              <i className="fa-solid fa-info-circle mr-2"></i> Food Packs Only: Total is calculated solely from your custom menu items below.
+                            </div>
+                          )}
+
+                          <p className="text-xs text-slate-300">Select dishes from the A La Carte categories below to add them to your custom event menu:</p>
+
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap gap-2 text-xs">
+                              {['All', ...Object.keys(FULL_A_LA_CARTE_CATALOG)].map(cat => (
+                                <button
+                                  key={cat}
+                                  onClick={() => setCatalogCategory(cat)}
+                                  className={`px-2.5 py-1 rounded border transition ${
+                                    catalogCategory === cat
+                                      ? 'bg-gold-500 text-slate-950 border-gold-400 font-bold'
+                                      : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'
+                                  }`}
+                                >
+                                  {cat}
+                                </button>
+                              ))}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                              {Object.entries(FULL_A_LA_CARTE_CATALOG)
+                                .filter(([cat]) => catalogCategory === 'All' || catalogCategory === cat)
+                                .flatMap(([cat, items]) => items)
+                                .map((dish, i) => {
+                                  return (
+                                    <div key={i} className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 flex justify-between items-center text-xs">
+                                      <div className="pr-2">
+                                        <span className="font-medium text-slate-200 block">{dish.name}</span>
+                                        <span className="text-[10px] text-gold-400">₱{dish.price}/pax</span>
+                                      </div>
+                                      <button
+                                        onClick={() => addCustomDish(dish.name, dish.price)}
+                                        className="bg-gold-500/20 hover:bg-gold-500 hover:text-slate-950 text-gold-400 border border-gold-500/40 px-2.5 py-1 rounded text-[11px] font-bold transition flex items-center gap-1"
+                                      >
+                                        <i className="fa-solid fa-plus"></i> Add
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+
+                          {customMenuItems.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-slate-800">
+                              <h4 className="text-xs font-bold text-gold-400 uppercase tracking-wider mb-2">Selected Custom Menu Items ({customMenuItems.length})</h4>
+                              <div className="space-y-2">
+                                {customMenuItems.map((item, index) => (
+                                  <div key={index} className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
+                                    <div>
+                                      <span className="font-semibold text-slate-100">{item.name}</span>
+                                      <span className="text-gold-400 ml-2">₱{item.price}/pax</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[10px] text-slate-400">Pax:</span>
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          value={item.pax}
+                                          onChange={(e) => updateDishPax(index, e.target.value)}
+                                          className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-center font-bold text-gold-400"
+                                        />
+                                      </div>
+                                      <span className="font-bold text-slate-200">₱{(item.price * item.pax).toLocaleString()}</span>
+                                      <button onClick={() => removeCustomDish(index)} className="text-red-400 hover:text-red-300 p-1">
+                                        <i className="fa-solid fa-trash-can"></i>
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* STEP 4 */}
+                  <div className="glass-card rounded-2xl p-6">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-700/60 pb-3 mb-4">
+                      <h3 className="text-lg font-serif font-bold text-slate-100 flex items-center gap-3">
+                        <span className="w-7 h-7 rounded-full bg-gold-500 text-slate-950 text-sm flex items-center justify-center font-bold">4</span>
+                        Add-Ons, Setup & Hotel Rooms
+                      </h3>
+
+                      <div className="flex flex-wrap gap-1 text-[11px]">
+                        {['All', 'Setups & Staff', 'Venue', 'Live Food Station', 'Grazing Tables', 'Styling', 'Visuals & Sound', 'Services'].map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => setAddonCategory(cat)}
+                            className={`px-2.5 py-1 rounded border transition ${
+                              addonCategory === cat
+                                ? 'bg-gold-500 text-slate-950 border-gold-400 font-bold'
+                                : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1 mb-6">
+                      {OFFICIAL_ADDONS
+                        .filter(addon => addonCategory === 'All' || addon.cat === addonCategory)
+                        .map(addon => {
+                          const isSelected = selectedAddonIds.includes(addon.id);
+                          return (
+                            <div
+                              key={addon.id}
+                              onClick={() => toggleAddon(addon.id)}
+                              className={`cursor-pointer p-3 rounded-xl border text-xs transition flex justify-between items-start ${
+                                isSelected
+                                  ? 'bg-gold-500/20 border-gold-500 text-gold-100'
+                                  : 'bg-slate-900/50 border-slate-800 text-slate-300 hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="pr-2">
+                                <span className="font-semibold text-slate-100 block">{addon.name}</span>
+                                <span className="text-[9px] text-gold-400/80 bg-gold-500/10 border border-gold-500/20 rounded px-1.5 py-0.5 mt-1 inline-block">
+                                  {addon.cat}
+                                </span>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <span className="font-bold text-gold-400 block">
+                                  ₱{addon.price.toLocaleString()}{addon.perPax ? '/pax' : ''}
+                                </span>
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {}}
+                                  className="accent-gold-500 mt-1 cursor-pointer"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+
+                    {/* Individual Hotel Rooms */}
+                    <h4 className="text-xs font-bold text-gold-400 uppercase tracking-wider mb-3 border-t border-slate-800 pt-4">Individual Hotel Accommodations</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1">
+                      {HOTEL_ROOMS.map(room => {
+                        const qty = roomCounts[room.id] || 0;
+                        const isSel = qty > 0;
+                        return (
+                          <div key={room.id} className={`p-3 rounded-xl border text-xs transition flex flex-col justify-between ${isSel ? 'bg-gold-500/15 border-gold-500' : 'bg-slate-900/50 border-slate-800'}`}>
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <span className="font-bold text-slate-200">{room.name}</span>
+                                <p className="text-[10px] text-slate-400">{room.desc}</p>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-end mt-2 pt-2 border-t border-slate-800">
+                              <span className="font-bold text-gold-400">₱{room.price.toLocaleString()}</span>
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center bg-slate-950 rounded border border-slate-800 p-0.5">
+                                  <button onClick={() => updateRoomQty(room.id, qty - 1)} className="w-5 h-5 rounded bg-slate-800 text-slate-300 flex items-center justify-center hover:bg-slate-700">-</button>
+                                  <span className="w-5 text-center font-bold text-xs text-white">{qty}</span>
+                                  <button onClick={() => updateRoomQty(room.id, qty + 1)} className="w-5 h-5 rounded bg-slate-800 text-slate-300 flex items-center justify-center hover:bg-slate-700">+</button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* STEP 5 */}
+                  <div className="glass-card rounded-2xl p-6">
+                    <h3 className="text-lg font-serif font-bold text-slate-100 border-b border-slate-700/60 pb-3 mb-4 flex items-center gap-3">
+                      <span className="w-7 h-7 rounded-full bg-gold-500 text-slate-950 text-sm flex items-center justify-center font-bold">5</span>
+                      Taxation & Billing (Downpayment)
+                    </h3>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <label className="block text-slate-300 mb-1 font-medium">Tax Option</label>
+                        <select
+                          value={taxMode}
+                          onChange={(e) => setTaxMode(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-gold-500"
+                        >
+                          <option value="none">No Tax / Net of Tax</option>
+                          <option value="vat">12% VAT Included</option>
+                          <option value="gov">7% Government Tax</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 mb-1 font-medium">Downpayment / Amount Paid (₱)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={amountPaid}
+                          onChange={(e) => setAmountPaid(Number(e.target.value))}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-gold-500 font-bold text-gold-400"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                 </div>
 
-                {}
+                {/* RIGHT COLUMN: STICKY RECEIPT SUMMARY */}
                 <div className="lg:col-span-5">
-                  <div className="sticky top-24">
-                    <div className="glass-card rounded-2xl p-6 border-t-4 border-t-gold-500 shadow-2xl bg-gradient-to-b from-slate-900 to-slate-950">
+                  <div className="sticky top-20 space-y-6">
+                    
+                    <div className="glass-card rounded-2xl p-6 border-gold-500/40 shadow-2xl bg-gradient-to-b from-burgundy-950/80 via-slate-950 to-slate-950">
                       
-                      <div className="text-center border-b border-slate-700/50 pb-5 mb-5">
-                        <div className="flex justify-center mb-3">
-                          <EynsOfficialLogo logoUrl={logoUrl} className="w-14 h-14" />
+                      <div className="text-center border-b border-slate-800 pb-4 mb-4">
+                        <div className="flex justify-center mb-2">
+                          <EynsOfficialLogo className="w-16 h-16 drop-shadow-lg" />
                         </div>
-                        <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded">REF: {quoteRef}</span>
-                        <h2 className="text-xl font-serif font-bold text-white mt-2">Quotation Summary</h2>
-                        <p className="text-xs text-gold-400 mt-1">{clientName} • {guestCount} Pax</p>
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-gold-400 bg-gold-500/10 px-2.5 py-0.5 rounded border border-gold-500/20">
+                          {quoteRef} • {docType.toUpperCase()}
+                        </span>
+                        <h2 className="text-lg font-serif font-bold text-slate-100 mt-2">{docType === 'SOA' ? 'Statement of Account' : 'Event Quotation Summary'}</h2>
+                        <p className="text-xs text-slate-400 mt-0.5">Client: <strong className="text-gold-300">{clientName}</strong></p>
                       </div>
 
-                      <div className="space-y-4 text-xs">
-                        
-                        {/* Base Package Line */}
-                        <div>
-                          <div className="flex justify-between text-slate-200 font-bold mb-1">
-                            <span>{selectedPkg?.id === 'no_package' ? 'Seminar / Service Charge' : selectedPkg?.name}</span>
-                            <span>₱{packageBasePrice.toLocaleString()}</span>
-                          </div>
-                          <p className="text-[10px] text-slate-500">Base rate for {guestCount} pax</p>
+                      <div className="space-y-3 text-xs border-b border-slate-800 pb-4">
+                        <div className="flex justify-between text-slate-300">
+                          <span>Event Date & Pax:</span>
+                          <span className="font-semibold text-slate-100">{eventDate || 'TBD'} ({guestCount} Pax)</span>
                         </div>
 
-                        {/* Food Line */}
-                        {selectedPkgId !== 'styling_only' && (
-                          <div className="pt-3 border-t border-slate-800 border-dashed">
-                            {isCustomMenu && selectedPkgId !== 'no_package' && selectedPkgId !== 'food_packs' && (
-                              <div className="flex justify-between text-emerald-400 font-bold mb-1">
-                                <span>Base Food Credit (-₱{BASE_FOOD_CREDIT_PER_PAX}/pax)</span>
-                                <span>- ₱{foodCredit.toLocaleString()}</span>
-                              </div>
-                            )}
-                            <div className="flex justify-between text-slate-200 font-bold mb-1">
-                              <span>
-                                {isCustomMenu || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' 
-                                  ? `Custom Menu (${selectedAlacarte.length} items)` 
-                                  : selectedMenuTier?.name}
-                              </span>
-                              <span>
-                                ₱{(isCustomMenu || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' ? alacarteSubtotal : menuUpgradeSubtotal).toLocaleString()}
-                              </span>
-                            </div>
-                            
-                            {(isCustomMenu || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs') && selectedAlacarte.length > 0 ? (
-                              <ul className="text-[10px] text-slate-500 space-y-0.5 mt-1">
-                                {selectedAlacarte.map(dishName => (
-                                  <li key={dishName} className="flex justify-between pl-1 border-l border-slate-700">
-                                    <span className="truncate pr-2">{customMenuPax[dishName] || guestCount}x {dishName}</span>
-                                    <span>₱{(getDishPrice(dishName) * (customMenuPax[dishName] || guestCount)).toLocaleString()}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p className="text-[10px] text-slate-500">
-                                {isCustomMenu || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' ? 'No custom dishes selected yet' : `Surcharge: +₱${selectedMenuTier?.surcharge}/pax`}
-                              </p>
-                            )}
+                        <div className="flex justify-between text-slate-300">
+                          <span>Package:</span>
+                          <span className="font-bold text-gold-400">{selectedPkg?.name}</span>
+                        </div>
+
+                        {!selectedPkg?.isFoodPacks && (
+                          <div className="flex justify-between pl-3 text-slate-400 text-[11px]">
+                            <span>Package Base:</span>
+                            <span>₱{packageBasePrice.toLocaleString()}</span>
                           </div>
                         )}
 
-                        {/* Addons Line */}
+                        {foodCredit > 0 && (
+                          <div className="flex justify-between pl-3 text-emerald-400 text-[11px]">
+                            <span>Custom Menu Credit:</span>
+                            <span>-₱{foodCredit.toLocaleString()}</span>
+                          </div>
+                        )}
+
+                        {menuUpgradeSubtotal > 0 && (
+                          <div className="flex justify-between pl-3 text-slate-400 text-[11px]">
+                            <span>Menu Surcharge ({selectedMenuTier?.name}):</span>
+                            <span>+₱{menuUpgradeSubtotal.toLocaleString()}</span>
+                          </div>
+                        )}
+
+                        {alacarteSubtotal > 0 && (
+                          <div className="pt-2 border-t border-slate-800">
+                            <div className="flex justify-between text-slate-300 font-bold mb-1">
+                              <span>Custom Menu Items ({customMenuItems.length})</span>
+                              <span>₱{alacarteSubtotal.toLocaleString()}</span>
+                            </div>
+                            <ul className="space-y-1 text-[10px] text-slate-400 pl-2">
+                              {customMenuItems.map((item, i) => (
+                                <li key={i} className="flex justify-between">
+                                  <span>{item.pax}x {item.name}</span>
+                                  <span>₱{(item.price * item.pax).toLocaleString()}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
                         {selectedAddonIds.length > 0 && (
-                          <div className="pt-3 border-t border-slate-800 border-dashed">
-                            <div className="flex justify-between text-slate-200 font-bold mb-2">
+                          <div className="pt-2 border-t border-slate-800">
+                            <div className="flex justify-between text-slate-300 font-bold mb-1">
                               <span>Add-ons ({selectedAddonIds.length})</span>
                               <span>₱{addonsSubtotal.toLocaleString()}</span>
                             </div>
-                            <ul className="space-y-1 text-[10px] text-slate-400 pl-2 border-l-2 border-slate-700">
+                            <ul className="space-y-1 text-[10px] text-slate-400 pl-2">
                               {selectedAddonIds.map(id => {
                                 const item = OFFICIAL_ADDONS.find(a => a.id === id);
                                 return (
                                   <li key={id} className="flex justify-between">
-                                    <span className="truncate pr-2">{item?.name}</span>
+                                    <span>{item?.name}</span>
                                     <span>₱{(item?.perPax ? item.price * guestCount : item?.price).toLocaleString()}</span>
                                   </li>
                                 );
@@ -1107,218 +1249,364 @@ Please confirm availability and booking process. Thank you!`;
                           </div>
                         )}
 
-                        {/* Subtotal & Tax */}
-                        <div className="pt-4 border-t border-slate-700">
-                          <div className="flex justify-between text-slate-400 mb-1">
-                            <span>Subtotal</span>
-                            <span>₱{subtotalBeforeTax.toLocaleString()}</span>
-                          </div>
-                          {taxMode !== 'none' && (
-                            <div className="flex justify-between text-slate-400">
-                              <span>{taxMode === 'vat12' ? '12% VAT' : '7% Gov Tax'}</span>
-                              <span>+ ₱{taxAmount.toLocaleString()}</span>
+                        {Object.keys(roomCounts).length > 0 && (
+                          <div className="pt-2 border-t border-slate-800">
+                            <div className="flex justify-between text-slate-300 font-bold mb-1">
+                              <span>Hotel Rooms</span>
+                              <span>₱{roomsSubtotal.toLocaleString()}</span>
                             </div>
-                          )}
+                            <ul className="space-y-1 text-[10px] text-slate-400 pl-2">
+                              {Object.entries(roomCounts).map(([id, qty]) => {
+                                const room = HOTEL_ROOMS.find(r => r.id === id);
+                                return (
+                                  <li key={id} className="flex justify-between">
+                                    <span>{qty}x {room?.name}</span>
+                                    <span>₱{(room?.price * qty).toLocaleString()}</span>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        )}
+
+                        <div className="pt-3 border-t border-slate-800 flex justify-between text-slate-300">
+                          <span>Subtotal:</span>
+                          <span className="font-bold">₱{subtotalBeforeTax.toLocaleString()}</span>
                         </div>
+
+                        {taxAmount > 0 && (
+                          <div className="flex justify-between text-slate-300">
+                            <span>{taxMode === 'vat' ? '12% VAT' : '7% Gov Tax'}:</span>
+                            <span>₱{taxAmount.toLocaleString()}</span>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="mt-6 pt-4 border-t-2 border-gold-500/30 text-center">
-                        <p className="text-[10px] uppercase tracking-widest text-slate-400">Estimated Total Investment</p>
-                        <h2 className="text-3xl font-serif font-extrabold text-gold-400 mt-1">
+                      <div className="pt-4 text-center space-y-1">
+                        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold">{docType === 'SOA' ? 'Total Statement Balance' : 'Estimated Grand Total'}</p>
+                        <h2 className="text-3xl font-serif font-extrabold gold-gradient-text">
                           ₱{grandTotal.toLocaleString()}
                         </h2>
+                        {amountPaid > 0 && (
+                          <div className="pt-2 text-xs text-slate-300 flex justify-between px-4 bg-slate-900 py-1.5 rounded-lg border border-slate-800 mt-2">
+                            <span>Amount Paid:</span>
+                            <span className="font-bold text-emerald-400">₱{amountPaid.toLocaleString()}</span>
+                          </div>
+                        )}
+                        {amountPaid > 0 && (
+                          <div className="text-xs text-slate-300 flex justify-between px-4 bg-burgundy-900/60 py-1.5 rounded-lg border border-burgundy-700 mt-1">
+                            <span>Remaining Balance:</span>
+                            <span className="font-bold text-gold-400">₱{balanceDue.toLocaleString()}</span>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="mt-6 space-y-3">
-                        <button onClick={handleSaveJpeg} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm shadow-lg shadow-blue-900/40">
-                          <i className="fa-solid fa-file-image text-lg"></i>
-                          Save as JPEG Image
-                        </button>
-                        <button onClick={handlePrint} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm">
-                          <i className="fa-solid fa-print"></i>
-                          Print Official Record
+                      <div className="mt-6 space-y-2.5">
+                        <button
+                          onClick={handleSaveJpeg}
+                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg"
+                        >
+                          <i className="fa-solid fa-download text-sm"></i>
+                          <span>Save as JPEG Image</span>
                         </button>
                       </div>
 
                     </div>
+
                   </div>
                 </div>
 
               </div>
             )}
 
-            {}
+            {/* TAB 3: A LA CARTE CATALOG */}
             {activeTab === 'catalog' && (
               <div className="space-y-6 animate-[fadeIn_0.3s_ease-out]">
-                <div className="text-center max-w-2xl mx-auto space-y-2 mb-8">
-                  <h2 className="text-3xl font-serif font-bold gold-gradient-text">Complete A La Carte Menu</h2>
-                  <p className="text-xs text-slate-300">Browse individual per-pax pricing for custom event catering and simple food orders.</p>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h2 className="text-2xl font-serif font-bold gold-gradient-text">Complete A La Carte Food Catalog</h2>
+                    <p className="text-xs text-slate-400 mt-0.5">Explore individual dishes across all 8 menu categories with per-pax pricing</p>
+                  </div>
+
+                  <div className="relative w-full md:w-72">
+                    <i className="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
+                    <input
+                      type="text"
+                      placeholder="Search dish name..."
+                      value={catalogSearch}
+                      onChange={(e) => setCatalogSearch(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-gold-500"
+                    />
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap justify-center gap-2 text-xs mb-8">
+                <div className="flex flex-wrap gap-2 text-xs">
                   {['All', ...Object.keys(FULL_A_LA_CARTE_CATALOG)].map(cat => (
-                    <button key={cat} onClick={() => setCatalogCategory(cat)} className={`px-4 py-2 rounded-full border transition-all ${catalogCategory === cat ? 'bg-gold-500 text-slate-950 border-gold-400 font-bold shadow-md' : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-gold-500/50'}`}>
+                    <button
+                      key={cat}
+                      onClick={() => setCatalogCategory(cat)}
+                      className={`px-3 py-1.5 rounded-lg border transition ${
+                        catalogCategory === cat
+                          ? 'bg-gold-500 text-slate-950 border-gold-400 font-bold'
+                          : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-gold-500/50'
+                      }`}
+                    >
                       {cat}
                     </button>
                   ))}
                 </div>
 
-                <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
+                <div className="space-y-6">
                   {Object.entries(FULL_A_LA_CARTE_CATALOG)
-                    .filter(([cat]) => catalogCategory === 'All' || catalogCategory === cat)
-                    .map(([category, items]) => (
-                      <div key={category} className="glass-card rounded-2xl p-5 break-inside-avoid">
-                        <h3 className="text-lg font-serif font-bold text-gold-400 border-b border-slate-700/50 pb-2 mb-4">{category}</h3>
-                        <div className="space-y-2">
-                          {items.map((dish, i) => (
-                            <div key={i} className="flex justify-between items-center text-sm group">
-                              <span className="text-slate-300 group-hover:text-white transition-colors">{dish.name}</span>
-                              <span className="font-mono text-gold-400">₱{dish.price}</span>
-                            </div>
-                          ))}
+                    .filter(([category]) => catalogCategory === 'All' || catalogCategory === category)
+                    .map(([category, items]) => {
+                      const filteredItems = items.filter(item =>
+                        item.name.toLowerCase().includes(catalogSearch.toLowerCase())
+                      );
+
+                      if (filteredItems.length === 0) return null;
+
+                      return (
+                        <div key={category} className="glass-card rounded-2xl p-5">
+                          <h3 className="text-lg font-serif font-bold text-gold-400 border-b border-slate-800 pb-2 mb-4 flex items-center justify-between">
+                            <span>{category} Selections</span>
+                            <span className="text-xs font-sans text-slate-500 font-normal">{filteredItems.length} items</span>
+                          </h3>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {filteredItems.map((dish, i) => (
+                              <div
+                                key={i}
+                                className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs hover:border-gold-500/40 transition"
+                              >
+                                <span className="font-medium text-slate-200">{dish.name}</span>
+                                <span className="font-bold text-gold-400 bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">
+                                  ₱{dish.price}/pax
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                  ))}
+                      );
+                    })}
                 </div>
+              </div>
+            )}
+
+            {/* TAB 4: HOTEL ROOM RATES */}
+            {activeTab === 'rooms' && (
+              <div className="space-y-8 animate-[fadeIn_0.3s_ease-out]">
+                 <header className="text-center mb-10">
+                     <h2 className="text-3xl font-serif font-bold gold-gradient-text">Eyns' Hotel Accommodations</h2>
+                     <p className="text-xs text-slate-300 mt-2">Individual room listings with precise reservation control.</p>
+                 </header>
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {HOTEL_ROOMS.map(room => (
+                       <div key={room.id} className="glass-card rounded-2xl overflow-hidden flex flex-col hover:shadow-lg transition-all duration-300 border border-slate-700 hover:border-gold-500/50 relative">
+                          {room.badge && (
+                              <div className="absolute top-4 right-4 bg-gold-500 text-slate-950 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider z-20 shadow-md">{room.badge}</div>
+                          )}
+                          <div className="relative h-56 w-full bg-slate-950 group">
+                              <div className="flex h-full overflow-x-auto snap-x snap-mandatory">
+                                  {room.images.map((img, idx) => (
+                                      <img key={idx} src={img} alt={room.name} className="w-full h-full object-cover shrink-0 snap-center" onError={(e) => {e.target.onerror = null; e.target.src="https://placehold.co/600x400/0f172a/d4af37?text=Room"}} />
+                                  ))}
+                              </div>
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/20 to-transparent pointer-events-none"></div>
+                              <div className="absolute bottom-4 left-6 text-white pointer-events-none">
+                                  <div className="text-2xl font-bold font-serif mb-1 text-gold-400">₱{room.price.toLocaleString()}</div>
+                                  <div className="text-slate-300 text-xs font-medium">{room.name}</div>
+                              </div>
+                          </div>
+                          <div className="p-6 flex-grow flex flex-col justify-between">
+                              <ul className="space-y-3 text-slate-300 mb-6 text-xs">
+                                  {room.features.map((feat, idx) => (
+                                      <li key={idx} className="flex items-start">
+                                          <i className="fas fa-bed mt-0.5 mr-3 text-gold-500 w-4 text-center"></i>
+                                          <span>{feat}</span>
+                                      </li>
+                                  ))}
+                              </ul>
+                              <div className="pt-4 border-t border-slate-700/50 flex items-center text-xs font-semibold text-slate-400">
+                                  <i className={`fas ${room.paxIcon} mr-2`}></i> Recommended for {room.pax}
+                              </div>
+                          </div>
+                       </div>
+                    ))}
+                 </div>
               </div>
             )}
 
           </main>
 
-          {}
-          <div className="hidden print-only p-8 text-black bg-white max-w-4xl mx-auto font-sans">
+          {/* HIDDEN A4 PRINTABLE SHEET FOR JPEG CAPTURE */}
+          <div id="print-quotation-sheet" className="print-only p-8 text-black bg-white max-w-[800px] mx-auto font-sans">
             <div className="border-b-2 border-burgundy-900 pb-4 mb-4 flex justify-between items-center">
               <div className="flex items-center gap-4">
-                <EynsOfficialLogo logoUrl={logoUrl} className="w-20 h-20" />
+                <EynsOfficialLogo className="w-20 h-20" />
                 <div>
                   <h1 className="text-2xl font-serif font-bold tracking-tight text-burgundy-900">EYNS HOTEL & RESTAURANT</h1>
-                  <p className="text-xs uppercase tracking-widest font-semibold text-amber-800">Catering Services & Event Styling Quotation</p>
+                  <p className="text-xs uppercase tracking-widest font-semibold text-amber-800">{docType === 'SOA' ? 'Statement of Account (Billing)' : 'Catering Services & Event Styling Quotation'}</p>
                   <p className="text-[11px] text-gray-600">Creating Memorable Celebrations Since 1988 • Catanauan, Quezon</p>
                 </div>
               </div>
-              <div className="text-right text-xs bg-gray-100 p-3 rounded border border-gray-300 shadow-sm">
-                <p><strong>QUOTE REF:</strong> {quoteRef}</p>
+              <div className="text-right text-xs bg-gray-100 p-3 rounded border">
+                <p><strong>REF:</strong> {quoteRef}</p>
                 <p><strong>DATE:</strong> {new Date().toLocaleDateString()}</p>
-                <p><strong>CONTACT:</strong> Jem Medina (0917-841-7553)</p>
+                <p><strong>CONTACT:</strong> 0917-841-7553</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 bg-burgundy-900 text-white p-3 rounded-md text-xs mb-6 shadow-sm">
-              <div><strong className="text-gold-300">PREPARED FOR:</strong><br/>{clientName}</div>
-              <div><strong className="text-gold-300">EVENT DATE & PAX:</strong><br/>{eventDate || 'TBD'} ({guestCount} Pax)</div>
-              <div className="text-right"><strong className="text-gold-300">EVENT TYPE:</strong><br/>{eventType}</div>
+            <div className="grid grid-cols-3 gap-2 bg-burgundy-900 text-white p-2.5 rounded text-xs mb-6">
+              <div><strong>CLIENT:</strong> {clientName}</div>
+              <div><strong>DATE & PAX:</strong> {eventDate || 'TBD'} ({guestCount} Pax)</div>
+              <div className="text-right"><strong>EVENT:</strong> {eventType}</div>
             </div>
 
-            <div className="space-y-6">
-              
-              {/* Package Details */}
-              <div>
-                <h3 className="font-bold text-xs uppercase bg-gray-200 p-2 border border-gray-300 mb-2 rounded-t-md">1. Base Package Allocation</h3>
-                <div className="p-3 border rounded-b-md text-sm">
-                  <div className="flex justify-between font-bold text-burgundy-900 mb-1">
-                    <span>{selectedPkg?.id === 'no_package' ? 'Seminar / Service Charge' : selectedPkg?.id === 'food_packs' ? 'Food Packs (No Setup)' : selectedPkg?.name}</span>
-                    <span>₱{packageBasePrice.toLocaleString()}</span>
+            <div className="mb-6">
+              <h3 className="font-bold text-xs uppercase bg-gray-200 p-1.5 border border-gray-300 mb-2">1. Selected Package Tier</h3>
+              <div className="p-3 border rounded text-xs space-y-1">
+                <div className="flex justify-between font-bold text-sm">
+                  <span>{selectedPkg?.name}</span>
+                  <span>{!selectedPkg?.isFoodPacks ? `₱${packageBasePrice.toLocaleString()}` : 'Priced per items'}</span>
+                </div>
+                <p className="text-gray-600 text-[11px]">{selectedPkg?.tagline}</p>
+              </div>
+            </div>
+
+            {selectedPkgId !== 'styling_only' && !isCustomMenu && !selectedPkg?.isFoodPacks && (
+              <div className="mb-6">
+                <h3 className="font-bold text-xs uppercase bg-gray-200 p-1.5 border border-gray-300 mb-2">2. Buffet Menu Selection</h3>
+                <div className="p-3 border rounded text-xs space-y-1">
+                  <div className="flex justify-between font-bold">
+                    <span>{selectedMenuTier?.name}</span>
+                    <span>₱{menuUpgradeSubtotal.toLocaleString()}</span>
                   </div>
-                  <p className="text-gray-600 text-xs italic mb-2">{selectedPkg?.tagline}</p>
-                  <div className="text-[11px] text-gray-700"><strong>Included:</strong> {selectedPkg?.inclusions.join(' • ')}</div>
+                  <p className="text-gray-700 text-[11px] mt-1">
+                    <strong>Dishes Included:</strong> {selectedMenuTier?.dishes.join(' • ')}
+                  </p>
                 </div>
               </div>
+            )}
 
-              {/* Food Details */}
-              {selectedPkgId !== 'styling_only' && (
-                <div>
-                  <h3 className="font-bold text-xs uppercase bg-gray-200 p-2 border border-gray-300 mb-2 rounded-t-md">2. Food & Beverage Selection</h3>
-                  <div className="p-3 border rounded-b-md text-sm">
-                    {isCustomMenu && selectedPkgId !== 'no_package' && selectedPkgId !== 'food_packs' && (
-                      <div className="flex justify-between font-bold text-green-700 mb-1 pb-1 border-b border-gray-200">
-                        <span>Base Package Food Credit (-₱{BASE_FOOD_CREDIT_PER_PAX}/pax)</span>
-                        <span>- ₱{foodCredit.toLocaleString()}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between font-bold text-burgundy-900 mb-1 mt-1">
-                      <span>{isCustomMenu || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' ? 'Custom A La Carte Menu' : selectedMenuTier?.name}</span>
-                      <span>₱{(isCustomMenu || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' ? alacarteSubtotal : menuUpgradeSubtotal).toLocaleString()}</span>
-                    </div>
-                    {isCustomMenu || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' ? (
-                      <div className="text-[11px] text-gray-700 mt-2">
-                        <strong>Selected Dishes:</strong>
-                        <ul className="mt-1 space-y-1">
-                          {selectedAlacarte.map(dishName => (
-                            <li key={dishName} className="flex justify-between">
-                              <span>- {dishName} (@ ₱{getDishPrice(dishName)} x {customMenuPax[dishName] || guestCount} pax)</span>
-                              <span>₱{(getDishPrice(dishName) * (customMenuPax[dishName] || guestCount)).toLocaleString()}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : (
-                      <p className="text-[11px] text-gray-700"><strong>Included Dishes (+₱{selectedMenuTier?.surcharge}/pax):</strong> {selectedMenuTier?.dishes.join(' • ')}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Addons Details */}
-              {selectedAddonIds.length > 0 && (
-                <div>
-                  <h3 className="font-bold text-xs uppercase bg-gray-200 p-2 border border-gray-300 mb-2 rounded-t-md">3. Venue Enhancements & Add-Ons</h3>
-                  <table className="w-full text-xs border-collapse border rounded-b-md overflow-hidden">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="border p-2 text-left">Item / Service</th>
-                        <th className="border p-2 text-left">Category</th>
-                        <th className="border p-2 text-right">Price</th>
+            {(isCustomMenu || selectedPkg?.isFoodPacks) && customMenuItems.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold text-xs uppercase bg-gray-200 p-1.5 border border-gray-300 mb-2">2. Custom A La Carte Menu</h3>
+                <table className="w-full text-xs border-collapse border">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border p-1.5 text-left">Dish Name</th>
+                      <th className="border p-1.5 text-center">Pax</th>
+                      <th className="border p-1.5 text-right">Price/Pax</th>
+                      <th className="border p-1.5 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customMenuItems.map((item, idx) => (
+                      <tr key={idx}>
+                        <td className="border p-1.5">{item.name}</td>
+                        <td className="border p-1.5 text-center">{item.pax}</td>
+                        <td className="border p-1.5 text-right">₱{item.price}</td>
+                        <td className="border p-1.5 text-right">₱{(item.price * item.pax).toLocaleString()}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {selectedAddonIds.map(id => {
-                        const item = OFFICIAL_ADDONS.find(a => a.id === id);
-                        return (
-                          <tr key={id}>
-                            <td className="border p-2 font-medium">{item?.name}</td>
-                            <td className="border p-2 text-gray-600">{item?.cat}</td>
-                            <td className="border p-2 text-right">₱{(item?.perPax ? item.price * guestCount : item?.price).toLocaleString()}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {selectedAddonIds.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold text-xs uppercase bg-gray-200 p-1.5 border border-gray-300 mb-2">3. Add-Ons & Enhancements</h3>
+                <table className="w-full text-xs border-collapse border">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border p-1.5 text-left">Service Item</th>
+                      <th className="border p-1.5 text-right">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedAddonIds.map(id => {
+                      const item = OFFICIAL_ADDONS.find(a => a.id === id);
+                      return (
+                        <tr key={id}>
+                          <td className="border p-1.5">{item?.name}</td>
+                          <td className="border p-1.5 text-right">₱{(item?.perPax ? item.price * guestCount : item?.price).toLocaleString()}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {Object.keys(roomCounts).length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold text-xs uppercase bg-gray-200 p-1.5 border border-gray-300 mb-2">4. Hotel Accommodations</h3>
+                <table className="w-full text-xs border-collapse border">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border p-1.5 text-left">Room Type</th>
+                      <th className="border p-1.5 text-center">Qty</th>
+                      <th className="border p-1.5 text-right">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(roomCounts).map(([id, qty]) => {
+                      const room = HOTEL_ROOMS.find(r => r.id === id);
+                      return (
+                        <tr key={id}>
+                          <td className="border p-1.5">{room?.name}</td>
+                          <td className="border p-1.5 text-center">{qty}</td>
+                          <td className="border p-1.5 text-right">₱{(room?.price * qty).toLocaleString()}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="border-t-2 border-black pt-4 text-right space-y-1">
+              <p className="text-xs">Subtotal: ₱{subtotalBeforeTax.toLocaleString()}</p>
+              {taxAmount > 0 && <p className="text-xs">{taxMode === 'vat' ? '12% VAT' : '7% Gov Tax'}: ₱{taxAmount.toLocaleString()}</p>}
+              <h2 className="text-lg font-bold text-burgundy-900">GRAND TOTAL: ₱{grandTotal.toLocaleString()}</h2>
+              {amountPaid > 0 && (
+                <>
+                  <p className="text-xs text-emerald-700">Amount Paid: ₱{amountPaid.toLocaleString()}</p>
+                  <p className="text-sm font-bold text-burgundy-900">BALANCE DUE: ₱{balanceDue.toLocaleString()}</p>
+                </>
               )}
             </div>
 
-            <div className="mt-6 border-t-2 border-black pt-4 w-1/2 ml-auto">
-              <div className="flex justify-between text-xs mb-1">
-                <span>Subtotal:</span>
-                <span>₱{subtotalBeforeTax.toLocaleString()}</span>
-              </div>
-              {taxMode !== 'none' && (
-                <div className="flex justify-between text-xs mb-2">
-                  <span>{taxMode === 'vat12' ? '12% VAT:' : '7% Gov Tax:'}</span>
-                  <span>₱{taxAmount.toLocaleString()}</span>
-                </div>
-              )}
-              <div className="flex justify-between items-end border-t border-gray-300 pt-2 mt-2">
-                <span className="font-bold text-sm text-burgundy-900 uppercase">Grand Total:</span>
-                <span className="text-xl font-bold text-burgundy-900">₱{grandTotal.toLocaleString()}</span>
-              </div>
-            </div>
-
-            <p className="text-[10px] text-gray-500 italic mt-8 text-center">
-              * Valid for 30 days. Transportation fee for out-of-town events varies by distance. Official receipt issued upon final booking confirmation.
-            </p>
-
-            <div className="mt-16 pt-8 flex justify-between text-xs text-center px-12">
+            <div className="mt-12 pt-8 flex justify-between text-xs text-center">
               <div className="w-48">
                 <p className="border-b border-black mb-1"></p>
-                <p>Client Signature over Printed Name</p>
+                <p>Client Signature / Date</p>
               </div>
               <div className="w-48">
                 <p className="border-b border-black mb-1 font-bold">Jem Medina</p>
-                <p>EYNS Hotel & Restaurant Representative</p>
+                <p>EYNS Hotel & Restaurant</p>
               </div>
             </div>
           </div>
+
+          <footer className="no-print bg-burgundy-950 border-t border-slate-800 text-slate-400 py-6 mt-auto">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
+              <div className="flex items-center gap-3">
+                <EynsOfficialLogo className="w-10 h-10" />
+                <div>
+                  <h4 className="font-serif text-slate-200 font-bold text-sm">EYNS HOTEL & RESTAURANT</h4>
+                  <p className="mt-0.5 text-slate-400">Creating Memorable Celebrations Since 1988 • Catanauan, Quezon</p>
+                </div>
+              </div>
+              <div className="text-center md:text-right">
+                <p className="text-gold-400 font-semibold">Contact Person: Jem Medina (0917-841-7553)</p>
+                <p>Email: eyns.hnr@gmail.com</p>
+              </div>
+            </div>
+          </footer>
 
         </div>
       );
