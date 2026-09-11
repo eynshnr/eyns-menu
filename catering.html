@@ -371,7 +371,7 @@
       ]
     };
 
-    const EynsOfficialLogo = ({ className = "w-12 h-12", logoUrl = "logo.jpg" }) => {
+    const EynsOfficialLogo = ({ className = "w-12 h-12", logoUrl = "assets/logo.jpg" }) => {
       const [imgError, setImgError] = React.useState(false);
       if (logoUrl && !imgError) {
         return (
@@ -398,7 +398,7 @@
     function App() {
       // Set to packages first
       const [activeTab, setActiveTab] = useState('packages'); 
-      const [logoUrl, setLogoUrl] = useState('logo.jpg');
+      const [logoUrl, setLogoUrl] = useState('assets/logo.jpg');
       
       // Builder State
       const [clientName, setClientName] = useState('Valued Client');
