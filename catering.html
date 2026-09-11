@@ -48,6 +48,9 @@
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
+  <!-- html2canvas for JPEG saving -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
   <!-- React & Babel -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -133,11 +136,11 @@
       {
         id: 'no_package',
         name: 'SEMINAR/MEETINGS/TABLE RESERVATION',
-        tagline: 'Ideal for meetings, seminars, & simple food orders (Food + ₱3,000 Service Charge)',
+        tagline: 'Ideal for meetings, seminars, & simple food orders (Food + ₱5,000 Service Charge)',
         flatRate: 0,
         inclusions: [
           'Food Orders / A La Carte Selection',
-          'Standard Service Charge (₱3,000)',
+          'Standard Service Charge (₱5,000)',
           'Optional Venue Rental / Add-ons'
         ]
       },
@@ -206,6 +209,17 @@
           'Themed Tables & Chairs Setup',
           'Complete Buffet / Cake / Souvenir Tables',
           'Professional Lights & Sound System'
+        ]
+      },
+      {
+        id: 'food_packs',
+        name: 'FOOD PACKS ONLY',
+        tagline: 'Individually packed meals for events & seminars (No setup)',
+        flatRate: 0,
+        inclusions: [
+          'Food Orders / A La Carte Selection',
+          'Take-out Packaging',
+          'No Venue Setup or Styling'
         ]
       }
     ];
@@ -402,7 +416,7 @@
       
       // Builder State
       const [clientName, setClientName] = useState('Valued Client');
-      const [eventType, setEventType] = useState('Wedding / Banquet');
+      const [eventType, setEventType] = useState('Wedding');
       const [eventDate, setEventDate] = useState('2026-12-18');
       const [guestCount, setGuestCount] = useState(100);
       const [quoteRef, setQuoteRef] = useState(`EYNS-${new Date().getFullYear()}-QT`);
@@ -413,6 +427,7 @@
       const [selectedMenuTierId, setSelectedMenuTierId] = useState('menu_a');
       const [selectedAddonIds, setSelectedAddonsIds] = useState([]); 
       const [selectedAlacarte, setSelectedAlacarte] = useState([]); 
+      const [customMenuPax, setCustomMenuPax] = useState({}); // Track pax per dish
       const [taxMode, setTaxMode] = useState('none'); 
       
       // UI State for Filters
@@ -421,7 +436,7 @@
 
       // Auto-logic for selections
       useEffect(() => {
-        if (selectedPkgId === 'no_package') {
+        if (selectedPkgId === 'no_package' || selectedPkgId === 'food_packs') {
           setIsCustomMenu(true);
         }
       }, [selectedPkgId]);
@@ -440,8 +455,8 @@
 
       const packageBasePrice = useMemo(() => {
         if (!selectedPkg) return 0;
-        if (selectedPkgId === 'no_package') return 3000; // 3k Service charge
-        if (selectedPkg.flatRate) return selectedPkg.flatRate;
+        if (selectedPkgId === 'no_package') return 5000; // 5k Service charge
+        if (selectedPkg.flatRate !== undefined) return selectedPkg.flatRate;
 
         const count = Number(guestCount) || 50;
         const setupCost = selectedPkg.tierRates[50] - (50 * 300); // Extract pure setup cost (Food is exactly 300/head up to 150 pax)
@@ -456,21 +471,22 @@
       }, [selectedPkg, selectedPkgId, guestCount]);
 
       const menuUpgradeSubtotal = useMemo(() => {
-        if (selectedPkgId === 'styling_only' || selectedPkgId === 'no_package' || isCustomMenu) return 0;
+        if (selectedPkgId === 'styling_only' || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' || isCustomMenu) return 0;
         return (selectedMenuTier?.surcharge || 0) * guestCount;
       }, [selectedPkgId, isCustomMenu, selectedMenuTier, guestCount]);
 
-      const alacartePricePerPax = useMemo(() => {
-        return selectedAlacarte.reduce((sum, dishName) => sum + getDishPrice(dishName), 0);
-      }, [selectedAlacarte]);
-
-      const alacarteSubtotal = alacartePricePerPax * guestCount;
+      const alacarteSubtotal = useMemo(() => {
+        return selectedAlacarte.reduce((sum, dishName) => {
+          const pax = customMenuPax[dishName] || guestCount;
+          return sum + (getDishPrice(dishName) * pax);
+        }, 0);
+      }, [selectedAlacarte, customMenuPax, guestCount]);
 
       const BASE_FOOD_CREDIT_PER_PAX = 300; // Deducted when clients opt out of the standard package menu
 
       const foodCredit = useMemo(() => {
-        // No credit for styling only (no food) or seminar (which is just a service charge)
-        if (selectedPkgId === 'styling_only' || selectedPkgId === 'no_package') return 0; 
+        // No credit for styling only, seminar, or food packs
+        if (selectedPkgId === 'styling_only' || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs') return 0; 
         if (!isCustomMenu) return 0;
         return BASE_FOOD_CREDIT_PER_PAX * guestCount;
       }, [selectedPkgId, isCustomMenu, guestCount]);
@@ -498,7 +514,58 @@
       };
 
       const toggleAlacarte = (dishName) => {
-        setSelectedAlacarte(prev => prev.includes(dishName) ? prev.filter(name => name !== dishName) : [...prev, dishName]);
+        setSelectedAlacarte(prev => {
+          if (prev.includes(dishName)) {
+            const newPax = { ...customMenuPax };
+            delete newPax[dishName];
+            setCustomMenuPax(newPax);
+            return prev.filter(name => name !== dishName);
+          } else {
+            setCustomMenuPax(p => ({ ...p, [dishName]: guestCount }));
+            return [...prev, dishName];
+          }
+        });
+      };
+
+      const updateDishPax = (dishName, pax) => {
+        setCustomMenuPax(prev => ({ ...prev, [dishName]: Math.max(1, pax) }));
+      };
+
+      const handleSaveJpeg = async (e) => {
+        e.preventDefault();
+        
+        const printContent = document.querySelector('.print-only');
+        if (!printContent) return;
+
+        if (typeof html2canvas === 'undefined') {
+          alert("Image generation library is still loading. Please try again in a few seconds.");
+          return;
+        }
+
+        // Temporarily display the print container off-screen to render it
+        const originalStyle = printContent.getAttribute('style') || '';
+        printContent.setAttribute('style', 'display: block !important; position: absolute; left: -9999px; top: -9999px; width: 800px; background: white; color: black;');
+
+        try {
+          const canvas = await html2canvas(printContent, {
+            scale: 2, // High resolution
+            useCORS: true,
+            backgroundColor: '#ffffff'
+          });
+
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          const link = document.createElement('a');
+          const cleanName = clientName.replace(/[^a-zA-Z0-9]/g, '_') || 'Client';
+          link.download = `EYNS_Quotation_${cleanName}.jpg`;
+          link.href = dataUrl;
+          link.click();
+        } catch (err) {
+          console.error("Failed to generate JPEG:", err);
+          alert("There was an issue saving the image. Please try printing instead.");
+        } finally {
+          // Restore original hidden state
+          printContent.setAttribute('style', originalStyle);
+        }
       };
 
       const handlePrint = (e) => {
@@ -510,46 +577,56 @@
           return;
         }
 
-        // Open a new popup window to safely trigger the print dialog, bypassing iframe restrictions
-        const printWindow = window.open('', '_blank', 'width=800,height=900');
+        // Use a hidden iframe to bypass mobile/tablet popup blockers (specifically for Samsung/Android browsers)
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>EYNS Quotation - ${clientName}</title>
+              <script src="https://cdn.tailwindcss.com"><\/script>
+              <style>
+                @page { size: A4 portrait; margin: 15mm; }
+                body { 
+                  font-family: 'Plus Jakarta Sans', sans-serif; 
+                  -webkit-print-color-adjust: exact; 
+                  print-color-adjust: exact; 
+                  background: white; 
+                  color: black; 
+                }
+              </style>
+            </head>
+            <body>
+              <div style="max-width: 4xl; margin: auto;">
+                ${printContent.innerHTML}
+              </div>
+              <script>
+                // Give Tailwind time to render CSS rules inside the hidden iframe before calling print
+                setTimeout(() => {
+                  window.print();
+                }, 800);
+              <\/script>
+            </body>
+          </html>
+        `);
+        doc.close();
         
-        if (printWindow) {
-          printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-              <head>
-                <title>EYNS Quotation - ${clientName}</title>
-                <script src="https://cdn.tailwindcss.com"><\/script>
-                <style>
-                  @page { size: A4 portrait; margin: 15mm; }
-                  body { 
-                    font-family: 'Plus Jakarta Sans', sans-serif; 
-                    -webkit-print-color-adjust: exact; 
-                    print-color-adjust: exact; 
-                    background: white; 
-                    color: black; 
-                  }
-                </style>
-              </head>
-              <body>
-                <div style="max-width: 4xl; margin: auto;">
-                  ${printContent.innerHTML}
-                </div>
-                <script>
-                  // Wait briefly for Tailwind CSS to inject its styles before printing
-                  setTimeout(() => {
-                    window.print();
-                    window.close();
-                  }, 800);
-                <\/script>
-              </body>
-            </html>
-          `);
-          printWindow.document.close();
-        } else {
-          // Fallback if user's browser blocked the popup
-          window.print();
-        }
+        // Clean up the iframe after a safe delay
+        setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+        }, 5000);
       };
 
       const handleMessengerClick = (e) => {
@@ -558,10 +635,10 @@
         let menuText = '';
         if (selectedPkgId === 'styling_only') {
           menuText = '\n- Food: Excluded';
-        } else if (selectedPkgId === 'no_package') {
-          menuText = `\n- Custom Food Menu (${selectedAlacarte.length} dishes): ₱${alacarteSubtotal.toLocaleString()} (₱${alacartePricePerPax}/pax x ${guestCount} pax)`;
+        } else if (selectedPkgId === 'no_package' || selectedPkgId === 'food_packs') {
+          menuText = `\n- Custom Food Menu (${selectedAlacarte.length} dishes): ₱${alacarteSubtotal.toLocaleString()}`;
         } else if (isCustomMenu) {
-          menuText = `\n- Base Food Credit: -₱${foodCredit.toLocaleString()}\n- Custom Food Menu (${selectedAlacarte.length} dishes): ₱${alacarteSubtotal.toLocaleString()} (₱${alacartePricePerPax}/pax x ${guestCount} pax)`;
+          menuText = `\n- Base Food Credit: -₱${foodCredit.toLocaleString()}\n- Custom Food Menu (${selectedAlacarte.length} dishes): ₱${alacarteSubtotal.toLocaleString()}`;
         } else {
           menuText = `\n- Menu Package: ${selectedMenuTier?.name} (+₱${menuUpgradeSubtotal.toLocaleString()})`;
         }
@@ -651,8 +728,8 @@ Please confirm availability and booking process. Thank you!`;
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {OFFICIAL_PACKAGES.map(pkg => {
                     let dynamicPkgPrice = 0;
-                    if (pkg.id === 'no_package') dynamicPkgPrice = 3000;
-                    else if (pkg.flatRate) dynamicPkgPrice = pkg.flatRate;
+                    if (pkg.id === 'no_package') dynamicPkgPrice = 5000;
+                    else if (pkg.flatRate !== undefined) dynamicPkgPrice = pkg.flatRate;
                     else {
                       const count = Number(guestCount) || 50;
                       const setupCost = pkg.tierRates[50] - (50 * 300);
@@ -669,7 +746,7 @@ Please confirm availability and booking process. Thank you!`;
                           <div className="flex justify-between items-start mb-3">
                             <div>
                               <span className="text-[10px] font-mono text-gold-400 uppercase tracking-widest bg-gold-500/10 px-2 py-0.5 rounded border border-gold-500/20">
-                                {pkg.id === 'no_package' ? 'SEMINAR / A LA CARTE' : pkg.id.toUpperCase()}
+                                {pkg.id === 'no_package' ? 'SEMINAR / A LA CARTE' : pkg.id === 'food_packs' ? 'FOOD PACKS' : pkg.id.toUpperCase()}
                               </span>
                               <h3 className="text-xl font-serif font-bold text-slate-100 mt-2">{pkg.name}</h3>
                             </div>
@@ -684,10 +761,10 @@ Please confirm availability and booking process. Thank you!`;
 
                           <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800/80 mb-5 text-center flex flex-col items-center justify-center">
                             <span className="text-[11px] text-slate-400 uppercase tracking-wider mb-1">
-                              {pkg.id === 'no_package' ? 'Base Service Charge' : `Est. Base for ${guestCount} Pax`}
+                              {pkg.id === 'no_package' ? 'Base Service Charge' : pkg.id === 'food_packs' ? 'Base Rate (Food Exclusive)' : `Est. Base for ${guestCount} Pax`}
                             </span>
                             <span className="text-2xl font-serif font-bold text-gold-400">₱{dynamicPkgPrice.toLocaleString()}</span>
-                            {pkg.id === 'no_package' && <span className="text-[10px] text-emerald-400 mt-1">* Plus cost of custom food selections</span>}
+                            {(pkg.id === 'no_package' || pkg.id === 'food_packs') && <span className="text-[10px] text-emerald-400 mt-1">* Plus cost of custom food selections</span>}
                           </div>
 
                           <div className="space-y-3 mb-6">
@@ -710,7 +787,7 @@ Please confirm availability and booking process. Thank you!`;
                           }}
                           className="w-full bg-slate-800 hover:bg-gold-500 text-white hover:text-slate-950 border border-slate-700 hover:border-gold-500 font-bold py-3 rounded-xl transition-all duration-300 text-xs flex items-center justify-center gap-2"
                         >
-                          <span>Build Quote with {pkg.id === 'no_package' ? 'Seminar Mode' : pkg.name}</span>
+                          <span>Build Quote with {pkg.id === 'no_package' ? 'Seminar Mode' : pkg.id === 'food_packs' ? 'Food Packs' : pkg.name}</span>
                           <i className="fa-solid fa-arrow-right"></i>
                         </button>
                       </div>
@@ -739,7 +816,21 @@ Please confirm availability and booking process. Thank you!`;
                       </div>
                       <div>
                         <label className="block text-slate-400 text-xs mb-1.5 uppercase tracking-wide">Occasion / Type</label>
-                        <input type="text" value={eventType} onChange={(e) => setEventType(e.target.value)} className="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:border-gold-500 transition-colors" />
+                        <select 
+                          value={eventType} 
+                          onChange={(e) => setEventType(e.target.value)} 
+                          className="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:border-gold-500 transition-colors cursor-pointer"
+                        >
+                          <option value="Wedding">Wedding</option>
+                          <option value="Birthday">Birthday</option>
+                          <option value="Intimate Gathering">Intimate Gathering</option>
+                          <option value="Seminar">Seminar</option>
+                          <option value="Reunion">Reunion</option>
+                          <option value="Corporate Event">Corporate Event</option>
+                          <option value="Christening">Christening</option>
+                          <option value="Food Packs">Food Packs</option>
+                          <option value="Other">Other...</option>
+                        </select>
                       </div>
                       <div>
                         <label className="block text-slate-400 text-xs mb-1.5 uppercase tracking-wide">Event Date</label>
@@ -785,7 +876,7 @@ Please confirm availability and booking process. Thank you!`;
                         </h3>
                         
                         {/* Menu Mode Toggle */}
-                        {selectedPkgId !== 'no_package' && (
+                        {(selectedPkgId !== 'no_package' && selectedPkgId !== 'food_packs') && (
                           <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 w-fit">
                             <button 
                               onClick={() => setIsCustomMenu(false)} 
@@ -801,8 +892,8 @@ Please confirm availability and booking process. Thank you!`;
                             </button>
                           </div>
                         )}
-                        {selectedPkgId === 'no_package' && (
-                          <span className="text-xs bg-burgundy-900 text-gold-300 px-3 py-1 rounded-full border border-gold-500/30">Custom Menu Required for Seminars</span>
+                        {(selectedPkgId === 'no_package' || selectedPkgId === 'food_packs') && (
+                          <span className="text-xs bg-burgundy-900 text-gold-300 px-3 py-1 rounded-full border border-gold-500/30">Custom Menu Required for this Package</span>
                         )}
                       </div>
 
@@ -825,7 +916,7 @@ Please confirm availability and booking process. Thank you!`;
                           <div className="flex justify-between items-center mb-4">
                             <div>
                               <h4 className="font-bold text-gold-400">A La Carte Selections</h4>
-                              <p className="text-xs text-slate-400">{selectedAlacarte.length} dishes selected (₱{alacartePricePerPax}/pax)</p>
+                              <p className="text-xs text-slate-400">{selectedAlacarte.length} dishes selected (Total: ₱{alacarteSubtotal.toLocaleString()})</p>
                             </div>
                           </div>
                           
@@ -837,10 +928,24 @@ Please confirm availability and booking process. Thank you!`;
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                   {dishes.map(dish => {
                                     const isSel = selectedAlacarte.includes(dish.name);
+                                    const dishPax = customMenuPax[dish.name] || guestCount;
                                     return (
-                                      <div key={dish.name} onClick={() => toggleAlacarte(dish.name)} className={`flex justify-between items-center p-2 rounded-lg border cursor-pointer transition-colors text-xs ${isSel ? 'bg-gold-500/20 border-gold-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600'}`}>
-                                        <span className="truncate pr-2">{dish.name}</span>
-                                        <span className={`font-semibold shrink-0 ${isSel ? 'text-gold-300' : 'text-slate-500'}`}>+₱{dish.price}</span>
+                                      <div key={dish.name} className={`flex flex-col rounded-lg border transition-colors text-xs overflow-hidden ${isSel ? 'bg-gold-500/10 border-gold-500' : 'bg-slate-950 border-slate-800 hover:border-slate-600'}`}>
+                                        <div onClick={() => toggleAlacarte(dish.name)} className="flex justify-between items-center p-2 cursor-pointer">
+                                          <span className={`truncate pr-2 ${isSel ? 'text-white' : 'text-slate-400'}`}>{dish.name}</span>
+                                          <span className={`font-semibold shrink-0 ${isSel ? 'text-gold-300' : 'text-slate-500'}`}>₱{dish.price}/pax</span>
+                                        </div>
+                                        
+                                        {isSel && (
+                                          <div className="bg-slate-950/80 px-2 py-1.5 flex justify-between items-center border-t border-gold-500/30">
+                                            <span className="text-[10px] text-slate-400 uppercase tracking-wider">Target Pax:</span>
+                                            <div className="flex items-center gap-1">
+                                              <button onClick={() => updateDishPax(dish.name, dishPax - 1)} className="w-5 h-5 rounded bg-slate-800 text-slate-300 flex items-center justify-center hover:bg-slate-700">-</button>
+                                              <input type="number" value={dishPax} onChange={(e) => updateDishPax(dish.name, parseInt(e.target.value) || 1)} className="w-10 bg-transparent text-center text-white font-bold focus:outline-none" />
+                                              <button onClick={() => updateDishPax(dish.name, dishPax + 1)} className="w-5 h-5 rounded bg-slate-800 text-slate-300 flex items-center justify-center hover:bg-slate-700">+</button>
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
                                     );
                                   })}
@@ -947,7 +1052,7 @@ Please confirm availability and booking process. Thank you!`;
                         {/* Food Line */}
                         {selectedPkgId !== 'styling_only' && (
                           <div className="pt-3 border-t border-slate-800 border-dashed">
-                            {isCustomMenu && selectedPkgId !== 'no_package' && (
+                            {isCustomMenu && selectedPkgId !== 'no_package' && selectedPkgId !== 'food_packs' && (
                               <div className="flex justify-between text-emerald-400 font-bold mb-1">
                                 <span>Base Food Credit (-₱{BASE_FOOD_CREDIT_PER_PAX}/pax)</span>
                                 <span>- ₱{foodCredit.toLocaleString()}</span>
@@ -955,19 +1060,29 @@ Please confirm availability and booking process. Thank you!`;
                             )}
                             <div className="flex justify-between text-slate-200 font-bold mb-1">
                               <span>
-                                {isCustomMenu || selectedPkgId === 'no_package' 
+                                {isCustomMenu || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' 
                                   ? `Custom Menu (${selectedAlacarte.length} items)` 
                                   : selectedMenuTier?.name}
                               </span>
                               <span>
-                                ₱{(isCustomMenu || selectedPkgId === 'no_package' ? alacarteSubtotal : menuUpgradeSubtotal).toLocaleString()}
+                                ₱{(isCustomMenu || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' ? alacarteSubtotal : menuUpgradeSubtotal).toLocaleString()}
                               </span>
                             </div>
-                            <p className="text-[10px] text-slate-500">
-                              {isCustomMenu || selectedPkgId === 'no_package' 
-                                ? `₱${alacartePricePerPax}/pax x ${guestCount} pax` 
-                                : `Surcharge: +₱${selectedMenuTier?.surcharge}/pax`}
-                            </p>
+                            
+                            {(isCustomMenu || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs') && selectedAlacarte.length > 0 ? (
+                              <ul className="text-[10px] text-slate-500 space-y-0.5 mt-1">
+                                {selectedAlacarte.map(dishName => (
+                                  <li key={dishName} className="flex justify-between pl-1 border-l border-slate-700">
+                                    <span className="truncate pr-2">{customMenuPax[dishName] || guestCount}x {dishName}</span>
+                                    <span>₱{(getDishPrice(dishName) * (customMenuPax[dishName] || guestCount)).toLocaleString()}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-[10px] text-slate-500">
+                                {isCustomMenu || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' ? 'No custom dishes selected yet' : `Surcharge: +₱${selectedMenuTier?.surcharge}/pax`}
+                              </p>
+                            )}
                           </div>
                         )}
 
@@ -1015,9 +1130,9 @@ Please confirm availability and booking process. Thank you!`;
                       </div>
 
                       <div className="mt-6 space-y-3">
-                        <button onClick={handleMessengerClick} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm shadow-lg shadow-blue-900/40">
-                          <i className="fa-brands fa-facebook-messenger text-lg"></i>
-                          Copy & Send via Messenger
+                        <button onClick={handleSaveJpeg} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm shadow-lg shadow-blue-900/40">
+                          <i className="fa-solid fa-file-image text-lg"></i>
+                          Save as JPEG Image
                         </button>
                         <button onClick={handlePrint} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm">
                           <i className="fa-solid fa-print"></i>
@@ -1101,7 +1216,7 @@ Please confirm availability and booking process. Thank you!`;
                 <h3 className="font-bold text-xs uppercase bg-gray-200 p-2 border border-gray-300 mb-2 rounded-t-md">1. Base Package Allocation</h3>
                 <div className="p-3 border rounded-b-md text-sm">
                   <div className="flex justify-between font-bold text-burgundy-900 mb-1">
-                    <span>{selectedPkg?.id === 'no_package' ? 'Seminar / Service Charge' : selectedPkg?.name}</span>
+                    <span>{selectedPkg?.id === 'no_package' ? 'Seminar / Service Charge' : selectedPkg?.id === 'food_packs' ? 'Food Packs (No Setup)' : selectedPkg?.name}</span>
                     <span>₱{packageBasePrice.toLocaleString()}</span>
                   </div>
                   <p className="text-gray-600 text-xs italic mb-2">{selectedPkg?.tagline}</p>
@@ -1114,18 +1229,28 @@ Please confirm availability and booking process. Thank you!`;
                 <div>
                   <h3 className="font-bold text-xs uppercase bg-gray-200 p-2 border border-gray-300 mb-2 rounded-t-md">2. Food & Beverage Selection</h3>
                   <div className="p-3 border rounded-b-md text-sm">
-                    {isCustomMenu && selectedPkgId !== 'no_package' && (
+                    {isCustomMenu && selectedPkgId !== 'no_package' && selectedPkgId !== 'food_packs' && (
                       <div className="flex justify-between font-bold text-green-700 mb-1 pb-1 border-b border-gray-200">
                         <span>Base Package Food Credit (-₱{BASE_FOOD_CREDIT_PER_PAX}/pax)</span>
                         <span>- ₱{foodCredit.toLocaleString()}</span>
                       </div>
                     )}
                     <div className="flex justify-between font-bold text-burgundy-900 mb-1 mt-1">
-                      <span>{isCustomMenu || selectedPkgId === 'no_package' ? 'Custom A La Carte Menu' : selectedMenuTier?.name}</span>
-                      <span>₱{(isCustomMenu || selectedPkgId === 'no_package' ? alacarteSubtotal : menuUpgradeSubtotal).toLocaleString()}</span>
+                      <span>{isCustomMenu || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' ? 'Custom A La Carte Menu' : selectedMenuTier?.name}</span>
+                      <span>₱{(isCustomMenu || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' ? alacarteSubtotal : menuUpgradeSubtotal).toLocaleString()}</span>
                     </div>
-                    {isCustomMenu || selectedPkgId === 'no_package' ? (
-                      <p className="text-[11px] text-gray-700"><strong>Selected Dishes (₱{alacartePricePerPax}/pax):</strong> {selectedAlacarte.join(', ') || 'None selected'}</p>
+                    {isCustomMenu || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' ? (
+                      <div className="text-[11px] text-gray-700 mt-2">
+                        <strong>Selected Dishes:</strong>
+                        <ul className="mt-1 space-y-1">
+                          {selectedAlacarte.map(dishName => (
+                            <li key={dishName} className="flex justify-between">
+                              <span>- {dishName} (@ ₱{getDishPrice(dishName)} x {customMenuPax[dishName] || guestCount} pax)</span>
+                              <span>₱{(getDishPrice(dishName) * (customMenuPax[dishName] || guestCount)).toLocaleString()}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     ) : (
                       <p className="text-[11px] text-gray-700"><strong>Included Dishes (+₱{selectedMenuTier?.surcharge}/pax):</strong> {selectedMenuTier?.dishes.join(' • ')}</p>
                     )}
