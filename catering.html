@@ -205,6 +205,17 @@
           'Basic Sound / Setup Support',
           'Professional Staffing'
         ]
+      },
+      {
+        id: 'from_scratch',
+        name: 'CUSTOM / BUILD FROM SCRATCH',
+        tagline: 'Fully tailored quote with zero preset bundles & ad-hoc custom line items',
+        isScratch: true,
+        inclusions: [
+          'Complete pricing flexibility with ₱0 preset base rate',
+          'Add custom line items (equipment, extensions, ad-hoc fees)',
+          'Select dishes freely or build a purely custom breakdown'
+        ]
       }
     ];
 
@@ -354,6 +365,16 @@
         { name: 'Buko Pandan', price: 50 },
         { name: 'Coffee Jelly', price: 35 },
         { name: 'Macarons / Brownies / Caramel Bar', price: 35 }
+      ],
+      'Juices & Beverages': [
+        { name: 'Bottomless Iced Tea', price: 35 },
+        { name: 'Fresh Honey Calamansi Juice', price: 35 },
+        { name: 'Calumpit Juice', price: 35 },
+        { name: 'Cucumber Lemonade', price: 30 },
+        { name: 'Fresh Pineapple Juice', price: 35 },
+        { name: 'Four Seasons Juice', price: 35 },
+        { name: 'Brewed Barako Coffee', price: 30 },
+        { name: 'Soda / Softdrinks in Can', price: 50 }
       ]
     };
 
@@ -430,6 +451,13 @@
       const [isCustomMenu, setIsCustomMenu] = useState(false);
       const [customMenuItems, setCustomMenuItems] = useState([]);
 
+      // Custom Ad-Hoc Line Items State (For Build From Scratch / Custom Fees)
+      const [adhocItems, setAdhocItems] = useState([]);
+      const [newAdhocName, setNewAdhocName] = useState('');
+      const [newAdhocPrice, setNewAdhocPrice] = useState('');
+      const [newAdhocQty, setNewAdhocQty] = useState(1);
+      const [newAdhocPerPax, setNewAdhocPerPax] = useState(false);
+
       const selectedPkg = useMemo(() => {
         return OFFICIAL_PACKAGES.find(p => p.id === selectedPkgId) || OFFICIAL_PACKAGES[1];
       }, [selectedPkgId]);
@@ -440,6 +468,7 @@
 
       const packageBasePrice = useMemo(() => {
         if (!selectedPkg) return 0;
+        if (selectedPkg.isScratch) return 0; // Build from Scratch starts at ₱0 base
         if (selectedPkg.flatRate) return selectedPkg.flatRate;
         if (selectedPkg.isNoPackage) return selectedPkg.serviceCharge; // 5000 service charge
         if (selectedPkg.isFoodPacks) return 0; // Food Packs Only price depends solely on chosen menu items
@@ -462,7 +491,7 @@
 
       // Dynamic Food Credit: ₱300 per pax deducted if custom menu is built on a food-inclusive package
       const foodCredit = useMemo(() => {
-        if (isCustomMenu && selectedPkg && !selectedPkg.isNoPackage && !selectedPkg.isFoodPacks && !selectedPkg.flatRate) {
+        if (isCustomMenu && selectedPkg && !selectedPkg.isNoPackage && !selectedPkg.isFoodPacks && !selectedPkg.flatRate && !selectedPkg.isScratch) {
           return 300 * guestCount;
         }
         return 0;
@@ -470,7 +499,7 @@
 
       // Auto-scaling additional operational fees (Triggers ONLY at 101+ guests: +1 station & +1 team for every additional 100 pax)
       const additionalTiers = useMemo(() => {
-        if (selectedPkgId === 'food_packs' || selectedPkgId === 'styling_only') return 0;
+        if (selectedPkgId === 'food_packs' || selectedPkgId === 'styling_only' || selectedPkgId === 'from_scratch') return 0;
         return Math.max(0, Math.ceil(guestCount / 100) - 1);
       }, [selectedPkgId, guestCount]);
 
@@ -478,12 +507,12 @@
       const autoStaffingFee = useMemo(() => additionalTiers * 7500, [additionalTiers]);
 
       const menuUpgradeSubtotal = useMemo(() => {
-        if (selectedPkgId === 'styling_only' || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' || isCustomMenu) return 0;
+        if (selectedPkgId === 'styling_only' || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' || selectedPkgId === 'from_scratch' || isCustomMenu) return 0;
         return (selectedMenuTier?.surcharge || 0) * guestCount;
       }, [selectedPkgId, selectedMenuTier, guestCount, isCustomMenu]);
 
       const alacarteSubtotal = useMemo(() => {
-        if (!isCustomMenu && selectedPkgId !== 'food_packs') return 0;
+        if (!isCustomMenu && selectedPkgId !== 'food_packs' && selectedPkgId !== 'from_scratch') return 0;
         return customMenuItems.reduce((sum, item) => sum + (item.price * item.pax), 0);
       }, [isCustomMenu, selectedPkgId, customMenuItems]);
 
@@ -495,6 +524,12 @@
         }, 0);
       }, [selectedAddonIds, guestCount]);
 
+      const adhocSubtotal = useMemo(() => {
+        return adhocItems.reduce((sum, item) => {
+          return sum + (item.price * (item.perPax ? item.qty * guestCount : item.qty));
+        }, 0);
+      }, [adhocItems, guestCount]);
+
       const roomsSubtotal = useMemo(() => {
         return Object.entries(roomCounts).reduce((sum, [id, qty]) => {
           const room = HOTEL_ROOMS.find(r => r.id === id);
@@ -502,7 +537,7 @@
         }, 0);
       }, [roomCounts]);
 
-      const subtotalBeforeTax = packageBasePrice - foodCredit + autoBuffetFee + autoStaffingFee + menuUpgradeSubtotal + alacarteSubtotal + addonsSubtotal + roomsSubtotal;
+      const subtotalBeforeTax = packageBasePrice - foodCredit + autoBuffetFee + autoStaffingFee + menuUpgradeSubtotal + alacarteSubtotal + addonsSubtotal + roomsSubtotal + adhocSubtotal;
 
       const [taxMode, setTaxMode] = useState('none');
       const taxAmount = useMemo(() => {
@@ -546,6 +581,28 @@
           updated[index].pax = Math.max(1, Number(pax) || 1);
           return updated;
         });
+      };
+
+      const addAdhocItem = () => {
+        if (!newAdhocName.trim() || isNaN(newAdhocPrice) || Number(newAdhocPrice) <= 0) return;
+        setAdhocItems(prev => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            name: newAdhocName.trim(),
+            price: Number(newAdhocPrice),
+            qty: Math.max(1, Number(newAdhocQty) || 1),
+            perPax: newAdhocPerPax
+          }
+        ]);
+        setNewAdhocName('');
+        setNewAdhocPrice('');
+        setNewAdhocQty(1);
+        setNewAdhocPerPax(false);
+      };
+
+      const removeAdhocItem = (id) => {
+        setAdhocItems(prev => prev.filter(item => item.id !== id));
       };
 
       const handleSaveJpeg = async () => {
@@ -1074,7 +1131,7 @@
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-700/60 pb-3 mb-4">
                       <h3 className="text-lg font-serif font-bold text-slate-100 flex items-center gap-3">
                         <span className="w-7 h-7 rounded-full bg-gold-500 text-slate-950 text-sm flex items-center justify-center font-bold">4</span>
-                        Add-Ons, Setup & Hotel Rooms
+                        Add-Ons, Setup & Custom Ad-Hoc Items
                       </h3>
 
                       <div className="flex flex-wrap gap-1 text-[11px]">
@@ -1129,6 +1186,85 @@
                             </div>
                           );
                         })}
+                    </div>
+
+                    {/* AD-HOC CUSTOM LINE ITEM BUILDER */}
+                    <div className="bg-slate-950/80 border border-gold-500/30 rounded-xl p-4 mb-6">
+                      <h4 className="text-xs font-bold text-gold-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <i className="fa-solid fa-plus-circle"></i>
+                        Add Custom Ad-Hoc Fee / Line Item
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mb-3">Ideal for custom venue rentals, special equipment, corkage, or custom services not listed above.</p>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 text-xs">
+                        <input
+                          type="text"
+                          placeholder="Item Description (e.g., Lawn Venue Extension Fee)"
+                          value={newAdhocName}
+                          onChange={(e) => setNewAdhocName(e.target.value)}
+                          className="sm:col-span-5 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-gold-500"
+                        />
+                        <input
+                          type="number"
+                          placeholder="Price (₱)"
+                          min="0"
+                          value={newAdhocPrice}
+                          onChange={(e) => setNewAdhocPrice(e.target.value)}
+                          className="sm:col-span-3 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-gold-500"
+                        />
+                        <input
+                          type="number"
+                          placeholder="Qty"
+                          min="1"
+                          value={newAdhocQty}
+                          onChange={(e) => setNewAdhocQty(e.target.value)}
+                          className="sm:col-span-2 bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-slate-100 focus:outline-none focus:border-gold-500 text-center"
+                        />
+                        <button
+                          onClick={addAdhocItem}
+                          className="sm:col-span-2 bg-gold-500 hover:bg-gold-400 text-slate-950 font-bold py-2 rounded-lg transition text-xs"
+                        >
+                          + Add Item
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-2.5">
+                        <input
+                          type="checkbox"
+                          id="adhocPerPax"
+                          checked={newAdhocPerPax}
+                          onChange={(e) => setNewAdhocPerPax(e.target.checked)}
+                          className="accent-gold-500 cursor-pointer"
+                        />
+                        <label htmlFor="adhocPerPax" className="text-[11px] text-slate-300 cursor-pointer">
+                          Multiply price by total guest count ({guestCount} pax)
+                        </label>
+                      </div>
+
+                      {adhocItems.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-slate-800 space-y-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Custom Added Line Items ({adhocItems.length}):</span>
+                          {adhocItems.map(item => {
+                            const lineTotal = item.price * (item.perPax ? item.qty * guestCount : item.qty);
+                            return (
+                              <div key={item.id} className="bg-slate-900 p-2.5 rounded-lg border border-slate-800 flex justify-between items-center text-xs">
+                                <div>
+                                  <span className="font-semibold text-slate-200">{item.name}</span>
+                                  <span className="text-[10px] text-slate-400 block">
+                                    {item.qty}x @ ₱{item.price.toLocaleString()} {item.perPax ? `x ${guestCount} pax` : ''}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className="font-bold text-gold-400">₱{lineTotal.toLocaleString()}</span>
+                                  <button onClick={() => removeAdhocItem(item.id)} className="text-red-400 hover:text-red-300 p-1">
+                                    <i className="fa-solid fa-trash-can"></i>
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
 
                     <h4 className="text-xs font-bold text-gold-400 uppercase tracking-wider mb-3 border-t border-slate-800 pt-4">Individual Hotel Accommodations</h4>
@@ -1220,14 +1356,21 @@
                         </div>
 
                         <div className="flex justify-between text-slate-300">
-                          <span>Package:</span>
+                          <span>Package / Service:</span>
                           <span className="font-bold text-gold-400">{selectedPkg?.name}</span>
                         </div>
 
-                        {!selectedPkg?.isFoodPacks && (
+                        {!selectedPkg?.isFoodPacks && !selectedPkg?.isScratch && (
                           <div className="flex justify-between pl-3 text-slate-400 text-[11px]">
                             <span>Package Base Rate:</span>
                             <span>₱{packageBasePrice.toLocaleString()}</span>
+                          </div>
+                        )}
+
+                        {selectedPkg?.isScratch && (
+                          <div className="flex justify-between pl-3 text-gold-300 text-[11px] italic">
+                            <span>Base Service Rate:</span>
+                            <span className="font-bold">₱0 (Pure Custom Line Items)</span>
                           </div>
                         )}
 
@@ -1259,6 +1402,18 @@
                           </div>
                         )}
 
+                        {/* Standard Menu Itemized Details */}
+                        {!selectedPkg?.isFoodPacks && !selectedPkg?.isScratch && !isCustomMenu && selectedPkgId !== 'styling_only' && selectedMenuTier && (
+                          <div className="pt-2 border-t border-slate-800">
+                            <span className="text-[10px] text-gold-400 uppercase tracking-wider font-bold block mb-1">Included Menu Dishes ({selectedMenuTier.name}):</span>
+                            <ul className="space-y-0.5 text-[10px] text-slate-300 pl-2">
+                              {selectedMenuTier.dishes.map((dish, i) => (
+                                <li key={i} className="text-slate-400">• {dish}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
                         {alacarteSubtotal > 0 && (
                           <div className="pt-2 border-t border-slate-800">
                             <div className="flex justify-between text-slate-300 font-bold mb-1">
@@ -1268,7 +1423,7 @@
                             <ul className="space-y-1 text-[10px] text-slate-300 pl-2">
                               {customMenuItems.map((item, i) => (
                                 <li key={i} className="flex justify-between border-b border-slate-900 pb-0.5">
-                                  <span>{item.name} ({item.pax} pax @ ₱{item.price})</span>
+                                  <span>{item.name} ({item.pax} pax @ ₱{item.price}/pax)</span>
                                   <span className="font-semibold text-gold-300">₱{(item.price * item.pax).toLocaleString()}</span>
                                 </li>
                               ))}
@@ -1288,7 +1443,27 @@
                                 const lineTotal = item?.perPax ? item.price * guestCount : item?.price;
                                 return (
                                   <li key={id} className="flex justify-between border-b border-slate-900 pb-0.5">
-                                    <span>{item?.name} {item?.perPax ? `(${guestCount} pax @ ₱${item.price})` : ''}</span>
+                                    <span>{item?.name} {item?.perPax ? `(${guestCount} pax @ ₱${item.price})` : '(Flat Rate)'}</span>
+                                    <span className="font-semibold text-gold-300">₱{lineTotal.toLocaleString()}</span>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        )}
+
+                        {adhocItems.length > 0 && (
+                          <div className="pt-2 border-t border-slate-800">
+                            <div className="flex justify-between text-slate-300 font-bold mb-1">
+                              <span>Ad-Hoc Custom Charges ({adhocItems.length})</span>
+                              <span>₱{adhocSubtotal.toLocaleString()}</span>
+                            </div>
+                            <ul className="space-y-1 text-[10px] text-slate-300 pl-2">
+                              {adhocItems.map(item => {
+                                const lineTotal = item.price * (item.perPax ? item.qty * guestCount : item.qty);
+                                return (
+                                  <li key={item.id} className="flex justify-between border-b border-slate-900 pb-0.5">
+                                    <span>{item.name} ({item.qty}x {item.perPax ? `@ ₱${item.price}/pax × ${guestCount} pax` : `@ ₱${item.price}`})</span>
                                     <span className="font-semibold text-gold-300">₱{lineTotal.toLocaleString()}</span>
                                   </li>
                                 );
@@ -1308,7 +1483,7 @@
                                 const room = HOTEL_ROOMS.find(r => r.id === id);
                                 return (
                                   <li key={id} className="flex justify-between border-b border-slate-900 pb-0.5">
-                                    <span>{qty}x {room?.roomNo} - {room?.name}</span>
+                                    <span>{qty}x {room?.roomNo} ({room?.name}) @ ₱{room?.price.toLocaleString()}/night</span>
                                     <span className="font-semibold text-gold-300">₱{(room?.price * qty).toLocaleString()}</span>
                                   </li>
                                 );
@@ -1521,12 +1696,12 @@
 
             {/* ITEMIZED SECTION 1: PACKAGE & AUTOMATED OPERATIONS */}
             <div className="mb-6">
-              <h3 className="font-bold text-xs uppercase bg-gray-200 p-1.5 border border-gray-300 mb-2">1. Package & Operational Setup</h3>
+              <h3 className="font-bold text-xs uppercase bg-gray-200 p-1.5 border border-gray-300 mb-2">1. Package & Base Service Setup</h3>
               <table className="w-full text-xs border-collapse border">
                 <thead>
                   <tr className="bg-gray-100 font-bold text-left">
                     <th className="border p-1.5">Description</th>
-                    <th className="border p-1.5 text-center">Qty / Tier</th>
+                    <th className="border p-1.5 text-center">Qty / Pax</th>
                     <th className="border p-1.5 text-right">Unit Rate</th>
                     <th className="border p-1.5 text-right">Subtotal</th>
                   </tr>
@@ -1535,7 +1710,7 @@
                   <tr>
                     <td className="border p-1.5 font-semibold">{selectedPkg?.name}</td>
                     <td className="border p-1.5 text-center">{guestCount} Pax</td>
-                    <td className="border p-1.5 text-right">{selectedPkg?.flatRate ? 'Flat' : 'Tiered'}</td>
+                    <td className="border p-1.5 text-right">{selectedPkg?.isScratch ? 'Custom ₱0' : selectedPkg?.flatRate ? 'Flat' : 'Tiered'}</td>
                     <td className="border p-1.5 text-right">₱{packageBasePrice.toLocaleString()}</td>
                   </tr>
                   {foodCredit > 0 && (
@@ -1551,13 +1726,13 @@
                       <tr>
                         <td className="border p-1.5">Additional Buffet Line Setup (101+ Pax Tier)</td>
                         <td className="border p-1.5 text-center">{additionalTiers} Extra Line(s)</td>
-                        <td className="border p-1.5 text-right">₱3,500</td>
+                        <td className="border p-1.5 text-right">₱3,500 / line</td>
                         <td className="border p-1.5 text-right">₱{autoBuffetFee.toLocaleString()}</td>
                       </tr>
                       <tr>
                         <td className="border p-1.5">Additional Service Staffing (101+ Pax Tier)</td>
                         <td className="border p-1.5 text-center">{additionalTiers} Extra Team(s)</td>
-                        <td className="border p-1.5 text-right">₱7,500</td>
+                        <td className="border p-1.5 text-right">₱7,500 / team</td>
                         <td className="border p-1.5 text-right">₱{autoStaffingFee.toLocaleString()}</td>
                       </tr>
                     </>
@@ -1609,14 +1784,14 @@
             )}
 
             {/* ITEMIZED SECTION 3: ADD-ONS & ENHANCEMENTS */}
-            {selectedAddonIds.length > 0 && (
+            {(selectedAddonIds.length > 0 || adhocItems.length > 0) && (
               <div className="mb-6">
-                <h3 className="font-bold text-xs uppercase bg-gray-200 p-1.5 border border-gray-300 mb-2">3. Add-Ons & Event Enhancements</h3>
+                <h3 className="font-bold text-xs uppercase bg-gray-200 p-1.5 border border-gray-300 mb-2">3. Add-Ons, Custom Charges & Enhancements</h3>
                 <table className="w-full text-xs border-collapse border">
                   <thead>
                     <tr className="bg-gray-100 font-bold">
                       <th className="border p-1.5 text-left">Service Item</th>
-                      <th className="border p-1.5 text-center">Category</th>
+                      <th className="border p-1.5 text-center">Category / Type</th>
                       <th className="border p-1.5 text-right">Billing Type</th>
                       <th className="border p-1.5 text-right">Subtotal</th>
                     </tr>
@@ -1630,6 +1805,17 @@
                           <td className="border p-1.5 font-medium">{item?.name}</td>
                           <td className="border p-1.5 text-center">{item?.cat}</td>
                           <td className="border p-1.5 text-right">{item?.perPax ? `${guestCount} pax @ ₱${item.price}` : 'Flat Rate'}</td>
+                          <td className="border p-1.5 text-right font-semibold">₱{lineTotal.toLocaleString()}</td>
+                        </tr>
+                      );
+                    })}
+                    {adhocItems.map(item => {
+                      const lineTotal = item.price * (item.perPax ? item.qty * guestCount : item.qty);
+                      return (
+                        <tr key={item.id}>
+                          <td className="border p-1.5 font-medium">{item.name}</td>
+                          <td className="border p-1.5 text-center">Ad-Hoc Line Item</td>
+                          <td className="border p-1.5 text-right">{item.perPax ? `${item.qty}x (${guestCount} pax @ ₱${item.price})` : `${item.qty}x @ ₱${item.price}`}</td>
                           <td className="border p-1.5 text-right font-semibold">₱{lineTotal.toLocaleString()}</td>
                         </tr>
                       );
