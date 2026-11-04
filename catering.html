@@ -458,6 +458,9 @@
       const [newAdhocQty, setNewAdhocQty] = useState(1);
       const [newAdhocPerPax, setNewAdhocPerPax] = useState(false);
 
+      // Operational Auto-Scaling Toggle
+      const [autoScaleOps, setAutoScaleOps] = useState(true);
+
       const selectedPkg = useMemo(() => {
         return OFFICIAL_PACKAGES.find(p => p.id === selectedPkgId) || OFFICIAL_PACKAGES[1];
       }, [selectedPkgId]);
@@ -503,8 +506,8 @@
         return Math.max(0, Math.ceil(guestCount / 100) - 1);
       }, [selectedPkgId, guestCount]);
 
-      const autoBuffetFee = useMemo(() => additionalTiers * 3500, [additionalTiers]);
-      const autoStaffingFee = useMemo(() => additionalTiers * 7500, [additionalTiers]);
+      const autoBuffetFee = useMemo(() => autoScaleOps ? additionalTiers * 3500 : 0, [additionalTiers, autoScaleOps]);
+      const autoStaffingFee = useMemo(() => autoScaleOps ? additionalTiers * 7500 : 0, [additionalTiers, autoScaleOps]);
 
       const menuUpgradeSubtotal = useMemo(() => {
         if (selectedPkgId === 'styling_only' || selectedPkgId === 'no_package' || selectedPkgId === 'food_packs' || selectedPkgId === 'from_scratch' || isCustomMenu) return 0;
@@ -1151,6 +1154,31 @@
                       </div>
                     </div>
 
+                    {/* AUTO-SCALE OVERRIDE TOGGLE */}
+                    {guestCount > 100 && selectedPkgId !== 'food_packs' && selectedPkgId !== 'styling_only' && selectedPkgId !== 'from_scratch' && (
+                      <div className="bg-slate-900 p-3 rounded-xl border border-slate-700 flex justify-between items-center mb-6">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-200">
+                            Auto-Scale Extra Buffet & Staffing (+100 Pax)
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {autoScaleOps 
+                              ? `Adding ${additionalTiers} extra station(s) & team(s) for ${guestCount} guests`
+                              : 'Client requested base setup & staffing only (₱0 extra)'}
+                          </p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
+                          <input 
+                            type="checkbox" 
+                            checked={autoScaleOps} 
+                            onChange={(e) => setAutoScaleOps(e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold-500"></div>
+                        </label>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1 mb-6">
                       {OFFICIAL_ADDONS
                         .filter(addon => addonCategory === 'All' || addon.cat === addonCategory)
@@ -1381,7 +1409,7 @@
                           </div>
                         )}
 
-                        {additionalTiers > 0 && (
+                        {additionalTiers > 0 && autoScaleOps && (
                           <div className="pt-2 border-t border-slate-800/60 space-y-1">
                             <span className="text-[10px] text-gold-400 uppercase tracking-wider font-bold block">Auto Operational Service (101+ Pax Tier)</span>
                             <div className="flex justify-between pl-2 text-slate-300 text-[11px]">
@@ -1708,10 +1736,27 @@
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="border p-1.5 font-semibold">{selectedPkg?.name}</td>
-                    <td className="border p-1.5 text-center">{guestCount} Pax</td>
-                    <td className="border p-1.5 text-right">{selectedPkg?.isScratch ? 'Custom ₱0' : selectedPkg?.flatRate ? 'Flat' : 'Tiered'}</td>
-                    <td className="border p-1.5 text-right">₱{packageBasePrice.toLocaleString()}</td>
+                    <td className="border p-1.5 font-semibold align-top">
+                      <div>{selectedPkg?.name}</div>
+                      {selectedPkg && !selectedPkg.isScratch && !selectedPkg.isFoodPacks && (
+                        <div className="text-[10px] font-normal text-gray-600 mt-1 pl-2 border-l-2 border-burgundy-900">
+                          <p className="font-semibold text-gray-700">Package Inclusions:</p>
+                          <ul className="list-disc list-inside text-gray-500 mt-0.5 space-y-0.5">
+                            {selectedPkg.inclusions.map((inc, i) => (
+                              <li key={i}>{inc}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {selectedPkg?.isScratch && (
+                        <div className="text-[10px] font-normal text-gray-500 mt-1 pl-2 border-l-2 border-burgundy-900">
+                          Fully customized package with zero mandatory base charges. All food items, setups, and staff are itemized individually below.
+                        </div>
+                      )}
+                    </td>
+                    <td className="border p-1.5 text-center align-top">{guestCount} Pax</td>
+                    <td className="border p-1.5 text-right align-top">{selectedPkg?.isScratch ? 'Custom ₱0' : selectedPkg?.flatRate ? 'Flat' : 'Tiered'}</td>
+                    <td className="border p-1.5 text-right align-top">₱{packageBasePrice.toLocaleString()}</td>
                   </tr>
                   {foodCredit > 0 && (
                     <tr className="text-emerald-800 bg-emerald-50">
@@ -1721,19 +1766,19 @@
                       <td className="border p-1.5 text-right">-₱{foodCredit.toLocaleString()}</td>
                     </tr>
                   )}
-                  {additionalTiers > 0 && (
+                  {additionalTiers > 0 && autoScaleOps && (
                     <>
                       <tr>
-                        <td className="border p-1.5">Additional Buffet Line Setup (101+ Pax Tier)</td>
-                        <td className="border p-1.5 text-center">{additionalTiers} Extra Line(s)</td>
-                        <td className="border p-1.5 text-right">₱3,500 / line</td>
-                        <td className="border p-1.5 text-right">₱{autoBuffetFee.toLocaleString()}</td>
+                        <td className="border p-1.5 text-gray-600">Additional Buffet Line Setup (101+ Pax Tier)</td>
+                        <td className="border p-1.5 text-center text-gray-600">{additionalTiers} Extra Line(s)</td>
+                        <td className="border p-1.5 text-right text-gray-600">₱3,500 / line</td>
+                        <td className="border p-1.5 text-right font-medium">₱{autoBuffetFee.toLocaleString()}</td>
                       </tr>
                       <tr>
-                        <td className="border p-1.5">Additional Service Staffing (101+ Pax Tier)</td>
-                        <td className="border p-1.5 text-center">{additionalTiers} Extra Team(s)</td>
-                        <td className="border p-1.5 text-right">₱7,500 / team</td>
-                        <td className="border p-1.5 text-right">₱{autoStaffingFee.toLocaleString()}</td>
+                        <td className="border p-1.5 text-gray-600">Additional Service Staffing (101+ Pax Tier)</td>
+                        <td className="border p-1.5 text-center text-gray-600">{additionalTiers} Extra Team(s)</td>
+                        <td className="border p-1.5 text-right text-gray-600">₱7,500 / team</td>
+                        <td className="border p-1.5 text-right font-medium">₱{autoStaffingFee.toLocaleString()}</td>
                       </tr>
                     </>
                   )}
