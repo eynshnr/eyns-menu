@@ -1293,6 +1293,26 @@ function doPost(e) {
         return ['All', ...Object.keys(mergedCatalogByCategory)];
       }, [mergedCatalogByCategory]);
 
+      // Category options for the "Add Custom / Special Request Dish" dropdown.
+      // Sourced from the Google Sheet's Category column (in sheet order).
+      // Falls back to the built-in categories only while the sheet is empty or not yet loaded.
+      const specialDishCategoryOptions = useMemo(() => {
+        const fromSheet = [];
+        sheetDishes.forEach((sd) => {
+          const cat = String(sd.category || '').trim();
+          if (cat && !fromSheet.includes(cat)) fromSheet.push(cat);
+        });
+        const base = fromSheet.length > 0 ? fromSheet : Object.keys(FULL_A_LA_CARTE_CATALOG);
+        return base.includes('Special / Custom') ? base : [...base, 'Special / Custom'];
+      }, [sheetDishes]);
+
+      // Keep the selected category valid when the sheet's categories change
+      useEffect(() => {
+        if (!specialDishCategoryOptions.includes(newDishCategory)) {
+          setNewDishCategory(specialDishCategoryOptions[0]);
+        }
+      }, [specialDishCategoryOptions]);
+
       const filteredCatalogDishes = useMemo(() => {
         let list = [];
         if (catalogCategory === 'All') {
@@ -2341,7 +2361,7 @@ function doPost(e) {
                         onChange={(e) => setNewDishCategory(e.target.value)}
                         className="sm:col-span-3 h-9 bg-slate-900 border border-slate-700 rounded-lg px-2.5 text-xs text-slate-100 focus:outline-none focus:border-gold-500"
                       >
-                        {[...Object.keys(FULL_A_LA_CARTE_CATALOG), 'Special / Custom'].map(cat => (
+                        {specialDishCategoryOptions.map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
                       </select>
