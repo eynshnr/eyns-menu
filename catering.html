@@ -94,6 +94,41 @@
   <script type="text/babel">
     const { useState, useMemo, useRef, useEffect } = React;
 
+    // --- CULINARY CATEGORY ORDER & NORMALIZER ---
+    const CATEGORY_ORDER = [
+      'Soup',
+      'Beef',
+      'Pork',
+      'Chicken',
+      'Seafood',
+      'Veggies',
+      'Pancit',
+      'Pasta',
+      'Rice',
+      'Dessert',
+      'Juices & Beverages',
+      'Special / Custom'
+    ];
+
+    const normalizeCategoryName = (raw) => {
+      const cleaned = String(raw || '').trim();
+      if (!cleaned) return 'Special / Custom';
+      const match = CATEGORY_ORDER.find(c => c.toLowerCase() === cleaned.toLowerCase());
+      if (match) return match;
+      return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+    };
+
+    const sortCategories = (catList) => {
+      return [...catList].sort((a, b) => {
+        const idxA = CATEGORY_ORDER.findIndex(c => c.toLowerCase() === a.toLowerCase());
+        const idxB = CATEGORY_ORDER.findIndex(c => c.toLowerCase() === b.toLowerCase());
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.localeCompare(b);
+      });
+    };
+
     // --- PACKAGES DATA ---
     const PACKAGES = [
       {
@@ -106,9 +141,23 @@
         baseSetup: 30000,
         perPaxRate: 300,
         foodAllowancePerPax: 300,
-        desc: 'Complete buffet setup with 3 main dishes, steamed rice, dessert, and bottomless iced tea.',
+        desc: 'Complete buffet setup with full dining ware, uniformed waitstaff, and a 6-item included base menu.',
+        courseTargets: [
+          { key: 'mains', label: 'Main Dishes', target: 2, filterCategory: 'Seafood', cycleCategories: ['Seafood', 'Chicken', 'Beef', 'Pork'] },
+          { key: 'salad', label: 'Salad / Veggies', target: 1, filterCategory: 'Veggies' },
+          { key: 'dessert', label: 'Dessert', target: 1, filterCategory: 'Dessert' },
+          { key: 'drinks', label: 'Drinks', target: 1, filterCategory: 'Juices & Beverages' },
+          { key: 'rice', label: 'Rice', target: 1, filterCategory: 'Rice' }
+        ],
+        baseMenu: [
+          { name: 'Fish Fillet in Tartar Sauce', category: 'Seafood', price: 85 },
+          { name: 'Roast Chicken', category: 'Chicken', price: 95 },
+          { name: 'Garden Salad', category: 'Veggies', price: 45 },
+          { name: 'Coffee Jelly', category: 'Dessert', price: 50 },
+          { name: 'Iced Tea', category: 'Juices & Beverages', price: 35 },
+          { name: 'Steamed Rice', category: 'Rice', price: 25 }
+        ],
         inclusions: [
-          '3 Main Dishes + Steamed Rice + Dessert + Bottomless Iced Tea',
           'Full Elegant Buffet Table Setup & Floral Centerpiece',
           'Complete Dining Utensils, Glassware & Cloth Napkins',
           'Uniformed Waitstaff & Banquet Service Crew',
@@ -126,6 +175,49 @@
         perPaxRate: 400,
         foodAllowancePerPax: 300,
         desc: 'Upgraded banquet setup with 4 main dishes, soup, appetizer/salad, steamed rice, dessert, and bottomless drinks.',
+        courseTargets: [
+          { key: 'mains', label: '4 Main Dishes', target: 4, filterCategory: 'Beef', cycleCategories: ['Beef', 'Pork', 'Chicken', 'Seafood'] },
+          { key: 'soup', label: 'Soup', target: 1, filterCategory: 'Soup' },
+          { key: 'salad', label: 'Salad / Veggies', target: 1, filterCategory: 'Veggies' },
+          { key: 'dessert', label: 'Dessert', target: 1, filterCategory: 'Dessert' },
+          { key: 'drinks', label: 'Drinks', target: 1, filterCategory: 'Juices & Beverages' },
+          { key: 'rice', label: 'Rice', target: 1, filterCategory: 'Rice' }
+        ],
+        sampleMenus: {
+          A: [
+            { name: 'Cream of Mushroom Soup', category: 'Soup', price: 45 },
+            { name: 'Garden Salad', category: 'Veggies', price: 45 },
+            { name: 'Beef Caldereta', category: 'Beef', price: 110 },
+            { name: 'Pork Hawaiian Spareribs', category: 'Pork', price: 95 },
+            { name: 'Chicken Cordon Bleu', category: 'Chicken', price: 95 },
+            { name: 'Buttered Garlic Shrimp', category: 'Seafood', price: 110 },
+            { name: 'Steamed Rice', category: 'Rice', price: 25 },
+            { name: 'Buko Pandan Salad', category: 'Dessert', price: 50 },
+            { name: 'Iced Tea', category: 'Juices & Beverages', price: 35 }
+          ],
+          B: [
+            { name: 'Crab & Corn Soup', category: 'Soup', price: 45 },
+            { name: 'Macaroni Salad', category: 'Veggies', price: 50 },
+            { name: 'Roast Beef with Mushroom Gravy', category: 'Beef', price: 115 },
+            { name: 'Lechon Kawali', category: 'Pork', price: 95 },
+            { name: 'Roast Chicken', category: 'Chicken', price: 95 },
+            { name: 'Fish Fillet in Tartar Sauce', category: 'Seafood', price: 85 },
+            { name: 'Steamed Rice', category: 'Rice', price: 25 },
+            { name: 'Leche Flan', category: 'Dessert', price: 55 },
+            { name: 'Four Seasons Juice', category: 'Juices & Beverages', price: 40 }
+          ],
+          C: [
+            { name: 'Chicken Asparagus Soup', category: 'Soup', price: 45 },
+            { name: 'Chopsuey Guisado', category: 'Veggies', price: 65 },
+            { name: 'Beef Kare-Kare', category: 'Beef', price: 115 },
+            { name: 'Pork Menudo', category: 'Pork', price: 90 },
+            { name: 'Chicken Teriyaki', category: 'Chicken', price: 90 },
+            { name: 'Sweet & Sour Fish Fillet', category: 'Seafood', price: 85 },
+            { name: 'Steamed Rice', category: 'Rice', price: 25 },
+            { name: 'Coffee Jelly', category: 'Dessert', price: 50 },
+            { name: 'Bottomless Lemonade', category: 'Juices & Beverages', price: 40 }
+          ]
+        },
         inclusions: [
           '4 Main Dishes + Soup + Salad + Steamed Rice + Dessert + Drinks',
           'Upgraded Buffet Table Styling, Chafing Dishes & Decor',
@@ -137,18 +229,35 @@
       {
         id: 'styling_only',
         name: 'BACKYARD EVENT STYLING & CATERING',
-        tagline: 'Venue Styling & Full Service Setup',
-        p50: 25000,
-        p100: 25000,
-        p150: 25000,
-        baseSetup: 25000,
+        tagline: 'Starts at ₱35k (Stage & Catering) – ₱65k (Full Package)',
+        p50: 35000,
+        p100: 65000,
+        p150: 65000,
+        baseSetup: 35000,
+        fullPackageSetup: 65000,
         perPaxRate: 0,
         foodAllowancePerPax: 0,
-        desc: 'Complete backyard event styling, tablescape, buffet setup, and service crew. Pair with your chosen A La Carte dishes.',
+        desc: 'Starts at ₱35,000 for stage styling and service catering, up to ₱65,000 for the full backyard styling & catering package. Pair with your chosen A La Carte dishes.',
+        tiers: [
+          {
+            id: 'stage_service',
+            label: 'Stage Styling & Service Catering',
+            badge: 'Starts at ₱35,000',
+            price: 35000,
+            desc: 'Stage styling, backdrop accents, buffet table setup, dining ware, and uniformed catering service crew.'
+          },
+          {
+            id: 'full_backyard',
+            label: 'Full Backyard Styling & Catering Package',
+            badge: '₱65,000 Full Package',
+            price: 65000,
+            desc: 'Complete venue transformation: full backyard drapery, thematic stage, dressed guest tables & chairs, buffet styling, and full catering service.'
+          }
+        ],
         inclusions: [
-          'Backyard Event Styling, Drapery & Thematic Accents',
+          'Stage Styling, Backdrop & Thematic Event Accents',
           'Buffet Station Setup, Chafing Dishes & Serving Ware',
-          'Guest Tables, Chairs & Basic Table Centerpieces',
+          'Guest Tables, Chairs & Table Centerpieces',
           'Uniformed Banquet Service Team & Setup Crew'
         ]
       },
@@ -203,127 +312,64 @@
       'Other Special Occasion'
     ];
 
-    // --- FULL A LA CARTE MENU CATALOG (FALLBACK ONLY WHEN SHEET IS EMPTY) ---
+    // --- FALLBACK BUILT-IN A LA CARTE CATALOG (Used only when Google Sheet is empty/offline) ---
     const FULL_A_LA_CARTE_CATALOG = {
       'Soup': [
         { id: 'soup_1', name: 'Cream of Mushroom Soup', price: 45 },
-        { id: 'soup_2', name: 'Crab & Corn Soup', price: 50 },
-        { id: 'soup_3', name: 'Creamy Pumpkin Soup', price: 45 },
-        { id: 'soup_4', name: 'Chicken Macaroni Soup (Sopas)', price: 50 },
-        { id: 'soup_5', name: 'Hototay Soup', price: 55 }
+        { id: 'soup_2', name: 'Crab & Corn Soup', price: 45 },
+        { id: 'soup_3', name: 'Chicken Asparagus Soup', price: 45 }
       ],
       'Beef': [
-        { id: 'meat_1', name: 'Roast Beef with Mushroom Gravy', price: 110 },
-        { id: 'meat_2', name: 'Beef Caldereta', price: 105 },
-        { id: 'meat_3', name: 'Beef Broccoli', price: 105 }
+        { id: 'beef_1', name: 'Beef Caldereta', price: 110 },
+        { id: 'beef_2', name: 'Roast Beef with Mushroom Gravy', price: 115 },
+        { id: 'beef_3', name: 'Beef Kare-Kare', price: 115 },
+        { id: 'beef_4', name: 'Beef Broccoli', price: 110 }
       ],
       'Pork': [
-        { id: 'meat_4', name: 'Pork Menudo', price: 85 },
-        { id: 'meat_5', name: 'Sweet & Sour Pork', price: 85 },
-        { id: 'meat_6', name: 'Pork Humba / Estofado', price: 90 },
-        { id: 'meat_7', name: 'Lechon Kawali with Liver Sauce', price: 95 }
+        { id: 'pork_1', name: 'Pork Hawaiian Spareribs', price: 95 },
+        { id: 'pork_2', name: 'Lechon Kawali', price: 95 },
+        { id: 'pork_3', name: 'Pork Menudo', price: 90 },
+        { id: 'pork_4', name: 'Sweet & Sour Pork', price: 90 }
       ],
       'Chicken': [
-        { id: 'meat_8', name: 'Chicken Cordon Bleu', price: 95 },
-        { id: 'meat_9', name: 'Buttered Fried Chicken', price: 80 },
-        { id: 'meat_10', name: 'Chicken Teriyaki', price: 85 }
+        { id: 'chk_1', name: 'Roast Chicken', price: 95 },
+        { id: 'chk_2', name: 'Chicken Cordon Bleu', price: 95 },
+        { id: 'chk_3', name: 'Chicken Teriyaki', price: 90 },
+        { id: 'chk_4', name: 'Buttered Fried Chicken', price: 85 }
       ],
       'Seafood': [
-        { id: 'sea_1', name: 'Sweet & Sour Fish Fillet', price: 85 },
-        { id: 'sea_2', name: 'Fish Fillet with Tartar Sauce', price: 85 },
-        { id: 'sea_3', name: 'Buttered Garlic Shrimp', price: 115 },
-        { id: 'sea_4', name: 'Calamares Fritti', price: 95 },
-        { id: 'sea_5', name: 'Seafood Chop Suey', price: 90 }
+        { id: 'sea_1', name: 'Fish Fillet in Tartar Sauce', price: 85 },
+        { id: 'sea_2', name: 'Sweet & Sour Fish Fillet', price: 85 },
+        { id: 'sea_3', name: 'Buttered Garlic Shrimp', price: 110 }
       ],
       'Veggies': [
-        { id: 'veg_1', name: 'Buttered Mixed Vegetables', price: 55 },
-        { id: 'veg_2', name: 'Chopsuey Guisado', price: 60 },
-        { id: 'veg_3', name: 'Lumpiang Sariwa', price: 55 },
-        { id: 'veg_4', name: 'Fresh Garden Salad with Thousand Island', price: 60 }
+        { id: 'veg_1', name: 'Garden Salad', price: 45 },
+        { id: 'veg_2', name: 'Chopsuey Guisado', price: 65 },
+        { id: 'veg_3', name: 'Buttered Mixed Vegetables', price: 55 },
+        { id: 'veg_4', name: 'Macaroni Salad', price: 50 }
       ],
       'Pancit': [
         { id: 'pan_1', name: 'Pancit Canton Guisado', price: 55 },
-        { id: 'pan_2', name: 'Pancit Bihon Guisado', price: 50 },
-        { id: 'pan_3', name: 'Sotanghon Guisado', price: 60 },
-        { id: 'pan_4', name: 'Pancit Malabon', price: 65 }
+        { id: 'pan_2', name: 'Sotanghon Guisado', price: 60 }
       ],
       'Pasta': [
-        { id: 'pas_1', name: 'Creamy Chicken Carbonara', price: 70 },
-        { id: 'pas_2', name: 'Filipino Sweet-Style Spaghetti', price: 65 },
-        { id: 'pas_3', name: 'Baked Macaroni', price: 75 },
-        { id: 'pas_4', name: 'Tuna Pesto Pasta', price: 75 }
+        { id: 'pas_1', name: 'Baked Macaroni', price: 70 },
+        { id: 'pas_2', name: 'Creamy Carbonara', price: 75 }
       ],
       'Rice': [
-        { id: 'rice_1', name: 'Steamed Pandan White Rice', price: 25 },
-        { id: 'rice_2', name: 'Garlic Fried Rice', price: 35 },
-        { id: 'rice_3', name: 'Yang Chow Fried Rice', price: 45 }
+        { id: 'rice_1', name: 'Steamed Rice', price: 25 },
+        { id: 'rice_2', name: 'Garlic Fried Rice', price: 35 }
       ],
       'Dessert': [
-        { id: 'des_1', name: 'Buko Pandan Salad', price: 45 },
-        { id: 'des_2', name: 'Creamy Fruit Salad', price: 50 },
-        { id: 'des_3', name: 'Leche Flan', price: 50 },
-        { id: 'des_4', name: 'Coffee Jelly', price: 40 },
-        { id: 'des_5', name: 'Assorted Fresh Fruits', price: 45 }
+        { id: 'des_1', name: 'Coffee Jelly', price: 50 },
+        { id: 'des_2', name: 'Buko Pandan Salad', price: 50 },
+        { id: 'des_3', name: 'Leche Flan', price: 55 }
       ],
       'Juices & Beverages': [
-        { id: 'bev_1', name: 'Bottomless Iced Tea', price: 35 },
-        { id: 'bev_2', name: 'Four Seasons Juice', price: 35 },
-        { id: 'bev_3', name: 'Cucumber Lemonade', price: 40 },
-        { id: 'bev_4', name: 'Pineapple Juice', price: 35 },
-        { id: 'bev_5', name: 'Blue Lemonade', price: 40 },
-        { id: 'bev_6', name: 'Brewed Coffee & Hot Tea Station', price: 45 },
-        { id: 'bev_7', name: 'Bottled Purified Water (500ml)', price: 20 }
+        { id: 'bev_1', name: 'Iced Tea', price: 35 },
+        { id: 'bev_2', name: 'Four Seasons Juice', price: 40 },
+        { id: 'bev_3', name: 'Bottomless Lemonade', price: 40 }
       ]
-    };
-
-    // Logical culinary sort order so category tabs never appear scattered
-    const CULINARY_CATEGORY_ORDER = [
-      'Soup',
-      'Appetizer',
-      'Salad',
-      'Beef',
-      'Pork',
-      'Chicken',
-      'Meat',
-      'Seafood',
-      'Veggies',
-      'Vegetables',
-      'Pancit',
-      'Noodles',
-      'Pasta',
-      'Rice',
-      'Dessert',
-      'Juices & Beverages',
-      'Beverages'
-    ];
-
-    // Normalize category casing & whitespace (e.g., "beef " -> "Beef")
-    const normalizeCategoryName = (raw) => {
-      const cleaned = String(raw || '').trim().replace(/\s+/g, ' ');
-      if (!cleaned) return 'Special / Custom';
-      const lower = cleaned.toLowerCase();
-      if (lower === 'special / custom' || lower === 'special/custom' || lower === 'custom') {
-        return 'Special / Custom';
-      }
-      if (lower === 'juices & beverages' || lower === 'beverages' || lower === 'drinks') {
-        return lower === 'juices & beverages' ? 'Juices & Beverages' : cleaned.replace(/\b\w/g, c => c.toUpperCase());
-      }
-      const matchedStandard = CULINARY_CATEGORY_ORDER.find(c => c.toLowerCase() === lower);
-      if (matchedStandard) return matchedStandard;
-      return cleaned.replace(/\b\w/g, c => c.toUpperCase());
-    };
-
-    const sortCategoriesList = (categories) => {
-      return [...categories].sort((a, b) => {
-        if (a === 'Special / Custom') return 1;
-        if (b === 'Special / Custom') return -1;
-        const idxA = CULINARY_CATEGORY_ORDER.findIndex(c => c.toLowerCase() === a.toLowerCase());
-        const idxB = CULINARY_CATEGORY_ORDER.findIndex(c => c.toLowerCase() === b.toLowerCase());
-        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-        if (idxA !== -1) return -1;
-        if (idxB !== -1) return 1;
-        return a.localeCompare(b);
-      });
     };
 
     // --- INDIVIDUAL HOTEL ROOMS INVENTORY (ROOMS 1–18) ---
@@ -481,7 +527,6 @@
       const [viewYear, setViewYear] = useState(initialDate.getFullYear());
       const [viewMonth, setViewMonth] = useState(initialDate.getMonth());
 
-      // Sync visible calendar month/year whenever value changes externally (e.g. via presets)
       useEffect(() => {
         if (value) {
           const [y, m, d] = value.split('-').map(Number);
@@ -492,7 +537,6 @@
         }
       }, [value]);
 
-      // Close calendar popover when clicking or tapping outside
       useEffect(() => {
         if (!isOpen) return;
         const handleOutside = (e) => {
@@ -591,7 +635,6 @@
         const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
 
         const cells = [];
-        // Leading previous-month days
         for (let i = firstDayOfWeek - 1; i >= 0; i--) {
           cells.push({
             day: daysInPrevMonth - i,
@@ -599,7 +642,6 @@
             dateStr: null
           });
         }
-        // Current-month days
         for (let d = 1; d <= daysInMonth; d++) {
           cells.push({
             day: d,
@@ -607,7 +649,6 @@
             dateStr: formatYMD(viewYear, viewMonth, d)
           });
         }
-        // Trailing next-month days to complete 35 or 42 grid cells
         const totalCells = cells.length <= 35 ? 35 : 42;
         let nextDay = 1;
         while (cells.length < totalCells) {
@@ -919,7 +960,6 @@
     // --- GOOGLE SHEETS DATABASE CONFIGURATION ---
     const DEFAULT_GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/100fRNyT3vE96lz6TsaA-os9rwp0S4EUdqpJFaKR7S9k/edit?usp=sharing';
     const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNKebrYXLp20mWa43E1eJ2XGFnPtUDJMqUm0VlRtMsHNJ-zDA0hYsxBF79rTRIS7ij/exec';
-    const DEFAULT_ADMIN_PIN = '';
 
     const extractSpreadsheetId = (url) => {
       if (!url) return null;
@@ -927,7 +967,7 @@
       return match ? match[1] : null;
     };
 
-    const GOOGLE_APPS_SCRIPT_CODE = `var ADMIN_PIN = 'CHANGE_THIS_SECRET_PIN'; // REQUIRED: Set your private password here so nobody else can write to your sheet
+    const GOOGLE_APPS_SCRIPT_CODE = `var ADMIN_PIN = 'CHANGE_THIS_SECRET_PIN'; // Set your private password here
 
 function doGet(e) {
   try {
@@ -937,7 +977,7 @@ function doGet(e) {
     for (var i = 1; i < data.length; i++) {
       if (data[i][1]) {
         dishes.push({
-          id: String(data[i][0] || ('row_' + i)).trim(),
+          id: String(data[i][0] || ('row_' + i)),
           name: String(data[i][1]).trim(),
           category: String(data[i][2] || 'Special / Custom').trim(),
           price: Number(data[i][3]) || 0,
@@ -958,9 +998,8 @@ function doPost(e) {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
     var payload = JSON.parse(e.postData.contents);
 
-    // Block all write/edit/delete requests unless the exact private ADMIN_PIN is provided
-    if (!ADMIN_PIN || ADMIN_PIN === 'CHANGE_THIS_SECRET_PIN' || payload.pin !== ADMIN_PIN) {
-      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Unauthorized: Valid Admin PIN required' }))
+    if (!ADMIN_PIN || payload.pin !== ADMIN_PIN) {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Unauthorized: Invalid Admin PIN' }))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -971,20 +1010,12 @@ function doPost(e) {
     if (payload.action === 'add') {
       sheet.appendRow([payload.id, payload.name, payload.category, Number(payload.price), payload.createdAt || Date.now()]);
     } else if (payload.action === 'update') {
-      var rows = sheet.getDataRange().getValues();
-      var updated = false;
-      for (var r = 1; r < rows.length; r++) {
-        if (String(rows[r][0]).trim() === String(payload.id).trim() ||
-            (payload.oldName && String(rows[r][1]).trim().toLowerCase() === String(payload.oldName).trim().toLowerCase())) {
-          sheet.getRange(r + 1, 2).setValue(payload.name);
-          sheet.getRange(r + 1, 3).setValue(payload.category);
-          sheet.getRange(r + 1, 4).setValue(Number(payload.price));
-          updated = true;
+      var dataUpd = sheet.getDataRange().getValues();
+      for (var r = 1; r < dataUpd.length; r++) {
+        if (String(dataUpd[r][0]) === String(payload.id)) {
+          sheet.getRange(r + 1, 2, 1, 3).setValues([[payload.name, payload.category, Number(payload.price)]]);
           break;
         }
-      }
-      if (!updated) {
-        sheet.appendRow([payload.id, payload.name, payload.category, Number(payload.price), Date.now()]);
       }
     } else if (payload.action === 'bulk_add' && Array.isArray(payload.items)) {
       payload.items.forEach(function(item) {
@@ -994,7 +1025,7 @@ function doPost(e) {
       var data = sheet.getDataRange().getValues();
       var lastIndex = data.length - 1;
       for (var i = lastIndex; i >= 1; i--) {
-        if (String(data[i][0]).trim() === String(payload.id).trim()) {
+        if (String(data[i][0]) === String(payload.id)) {
           sheet.deleteRow(i + 1);
           break;
         }
@@ -1023,8 +1054,11 @@ function doPost(e) {
 
       // Package & Menu State
       const [selectedPackageId, setSelectedPackageId] = useState('entry');
+      const [stylingTier, setStylingTier] = useState('stage_service'); // 'stage_service' (35k) | 'full_backyard' (65k) | 'custom'
+      const [customStylingPrice, setCustomStylingPrice] = useState(35000);
       const [isCustomMenu, setIsCustomMenu] = useState(false);
-      const [customDishes, setCustomDishes] = useState([]); // [{ id, name, price, pax }]
+      const [selectedSampleMenuKey, setSelectedSampleMenuKey] = useState('A');
+      const [customDishes, setCustomDishes] = useState([]); // [{ id, name, category, price, pax }]
 
       // Special / Custom Dish Creator State
       const [newDishName, setNewDishName] = useState('');
@@ -1033,30 +1067,28 @@ function doPost(e) {
       const [newDishPax, setNewDishPax] = useState(100);
       const [saveDishToCatalog, setSaveDishToCatalog] = useState(false);
 
-      // Catalog Filter, Search & Dish Editor State
+      // Catalog Filter & Search State
       const [catalogCategory, setCatalogCategory] = useState('All');
       const [catalogSearch, setCatalogSearch] = useState('');
-      const [editingDish, setEditingDish] = useState(null); // { id, oldName, name, category, customCategory, price }
-      const [isSavingEdit, setIsSavingEdit] = useState(false);
 
-      // Google Sheets Database State
+      // Google Sheets Database & Security State (Read-Only Client Mode by Default)
       const [sheetUrl, setSheetUrl] = useState(DEFAULT_GOOGLE_SHEET_URL);
       const [sheetUrlInput, setSheetUrlInput] = useState(DEFAULT_GOOGLE_SHEET_URL);
       const [appsScriptUrl, setAppsScriptUrl] = useState(DEFAULT_APPS_SCRIPT_URL);
       const [appsScriptUrlInput, setAppsScriptUrlInput] = useState(DEFAULT_APPS_SCRIPT_URL);
-      const [adminPin, setAdminPin] = useState(DEFAULT_ADMIN_PIN);
-      const [adminPinInput, setAdminPinInput] = useState(DEFAULT_ADMIN_PIN);
+      const [adminPin, setAdminPin] = useState('');
+      const [adminPinInput, setAdminPinInput] = useState('');
+      const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
       const [sheetDishes, setSheetDishes] = useState([]);
       const [isSyncingSheet, setIsSyncingSheet] = useState(false);
-      const [isBulkSeeding, setIsBulkSeeding] = useState(false);
       const [sheetLastSynced, setSheetLastSynced] = useState('');
       const [sheetSyncError, setSheetSyncError] = useState('');
       const [showSheetModal, setShowSheetModal] = useState(false);
+      const [showAppsScriptGuide, setShowAppsScriptGuide] = useState(false);
       const [confirmDeleteDishId, setConfirmDeleteDishId] = useState(null);
+      const [editingDish, setEditingDish] = useState(null);
+      const [isSavingDishEdit, setIsSavingDishEdit] = useState(false);
       const [toastNotice, setToastNotice] = useState('');
-
-      // Master catalog edits are locked by default unless an Admin PIN is entered
-      const isAdminUnlocked = Boolean(adminPin && adminPin.trim().length > 0);
 
       // Setups, Operational Scaling & Ad-Hoc Items State
       const [autoScaleOps, setAutoScaleOps] = useState(true);
@@ -1093,6 +1125,24 @@ function doPost(e) {
         }, 4200);
       };
 
+      // Close modal cleanly on Escape key press
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if (e.key === 'Escape') {
+            setShowSheetModal(false);
+            setEditingDish(null);
+          }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, []);
+
+      // Direct Google Sheet link helper
+      const googleSheetOpenHref = useMemo(() => {
+        const id = extractSpreadsheetId(sheetUrlInput) || extractSpreadsheetId(sheetUrl);
+        return id ? `https://docs.google.com/spreadsheets/d/${id}/edit` : 'https://sheets.new';
+      }, [sheetUrlInput, sheetUrl]);
+
       // Parse rows returned by Google Visualization JSONP API
       const parseGoogleSheetGvizRows = (table) => {
         if (!table || !Array.isArray(table.rows)) return [];
@@ -1104,7 +1154,6 @@ function doPost(e) {
           const c2 = cells[2]?.v != null ? String(cells[2].v).trim() : '';
           const c3 = cells[3]?.v != null ? cells[3].v : null;
 
-          // Skip header rows
           if (
             c0.toLowerCase() === 'id' ||
             c0.toLowerCase() === 'dish name' ||
@@ -1113,20 +1162,18 @@ function doPost(e) {
             return;
           }
 
-          // Format A: [ID, Dish Name, Category, Price Per Pax, Created At]
           if (c1 && (c3 !== null && !isNaN(Number(c3)))) {
             parsed.push({
               id: c0 || `gs_row_${idx}`,
               name: c1,
-              category: normalizeCategoryName(c2),
+              category: normalizeCategoryName(c2 || 'Special / Custom'),
               price: Number(c3) || 0
             });
           } else if (c0 && c2 !== '' && !isNaN(Number(c2))) {
-            // Format B: [Dish Name, Category, Price Per Pax]
             parsed.push({
               id: `gs_row_${idx}`,
               name: c0,
-              category: normalizeCategoryName(c1),
+              category: normalizeCategoryName(c1 || 'Special / Custom'),
               price: Number(c2) || 0
             });
           }
@@ -1158,7 +1205,7 @@ function doPost(e) {
             if (!settled) {
               settled = true;
               cleanup();
-              reject(new Error('Google Sheet request timed out. Ensure sharing is set to "Anyone with the link".'));
+              reject(new Error('Google Sheet request timed out.'));
             }
           }, 7000);
 
@@ -1180,7 +1227,7 @@ function doPost(e) {
               settled = true;
               clearTimeout(timeoutId);
               cleanup();
-              reject(new Error('Sheet is restricted or unreachable. Set Share access to "Anyone with the link (Viewer)".'));
+              reject(new Error('Sheet is restricted or unreachable via direct JSONP. Using Apps Script endpoint instead.'));
             }
           };
 
@@ -1219,9 +1266,9 @@ function doPost(e) {
             const data = await response.json();
             if (data && Array.isArray(data.dishes)) {
               normalized = data.dishes.map((d, idx) => ({
-                id: String(d.id || `gs_${idx}_${Date.now()}`).trim(),
+                id: String(d.id || `gs_${idx}_${Date.now()}`),
                 name: String(d.name || '').trim(),
-                category: normalizeCategoryName(d.category),
+                category: normalizeCategoryName(d.category || 'Special / Custom'),
                 price: Number(d.price) || 0,
                 createdAt: Number(d.createdAt) || 0
               })).filter(d => d.name);
@@ -1233,22 +1280,14 @@ function doPost(e) {
             normalized = parseGoogleSheetGvizRows(table);
           }
 
-          // Deduplicate rows by ID or exact dish name (latest sheet row wins)
-          const dedupedMap = new Map();
-          normalized.forEach((item) => {
-            const key = item.name.toLowerCase();
-            dedupedMap.set(key, item);
-          });
-          const uniqueDishes = Array.from(dedupedMap.values());
-
-          setSheetDishes(uniqueDishes);
+          setSheetDishes(normalized);
           setSheetSyncError('');
           setSheetLastSynced(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
           if (!silent) {
-            showToast(`Synced ${uniqueDishes.length} menu item(s) from your Google Sheet!`);
+            showToast(`Synced ${normalized.length} menu item(s) from your Google Sheet!`);
           }
         } catch (err) {
-          const msg = err?.message || 'Could not read Google Sheet. Ensure sharing is set to "Anyone with the link can view".';
+          const msg = err?.message || 'Could not read Google Sheet.';
           setSheetSyncError(msg);
           if (!silent) {
             showToast(msg);
@@ -1258,29 +1297,24 @@ function doPost(e) {
         }
       };
 
-      // Load saved Google Sheet URL on startup and sync silently
+      // Load saved Google Sheet URL on startup and sync silently (Admin remains LOCKED by default)
       useEffect(() => {
         try {
           const savedSheet = localStorage.getItem('eyns_google_sheet_url');
           const savedScript = localStorage.getItem('eyns_google_apps_script_url');
-          const savedPin = localStorage.getItem('eyns_google_admin_pin');
           const activeSheet = savedSheet || DEFAULT_GOOGLE_SHEET_URL;
           const activeScript = savedScript || DEFAULT_APPS_SCRIPT_URL;
-          const activePin = savedPin !== null ? savedPin : DEFAULT_ADMIN_PIN;
           setSheetUrl(activeSheet);
           setSheetUrlInput(activeSheet);
           setAppsScriptUrl(activeScript);
           setAppsScriptUrlInput(activeScript);
-          setAdminPin(activePin);
-          setAdminPinInput(activePin);
-          if (activePin) setSaveDishToCatalog(true);
           fetchDishesFromSheet(activeSheet, activeScript, true);
         } catch (e) {
           fetchDishesFromSheet(DEFAULT_GOOGLE_SHEET_URL, DEFAULT_APPS_SCRIPT_URL, true);
         }
       }, []);
 
-      // Save Google Sheet connection URLs
+      // Save Google Sheet connection & unlock Admin Edit Mode if PIN is entered
       const handleSaveSheetConnection = (e) => {
         e.preventDefault();
         const trimmedSheet = sheetUrlInput.trim();
@@ -1289,12 +1323,20 @@ function doPost(e) {
         setSheetUrl(trimmedSheet);
         setAppsScriptUrl(trimmedScript);
         setAdminPin(trimmedPin);
-        setSaveDishToCatalog(Boolean(trimmedPin));
+
+        if (trimmedPin) {
+          setIsAdminUnlocked(true);
+          setSaveDishToCatalog(true);
+        } else {
+          setIsAdminUnlocked(false);
+          setSaveDishToCatalog(false);
+        }
+
         try {
           localStorage.setItem('eyns_google_sheet_url', trimmedSheet);
           localStorage.setItem('eyns_google_apps_script_url', trimmedScript);
-          localStorage.setItem('eyns_google_admin_pin', trimmedPin);
         } catch (err) {}
+
         if (trimmedSheet || trimmedScript) {
           fetchDishesFromSheet(trimmedSheet, trimmedScript, false);
         } else {
@@ -1308,13 +1350,10 @@ function doPost(e) {
       const handleLockAdminMode = () => {
         setAdminPin('');
         setAdminPinInput('');
+        setIsAdminUnlocked(false);
         setSaveDishToCatalog(false);
         setEditingDish(null);
-        setConfirmDeleteDishId(null);
-        try {
-          localStorage.removeItem('eyns_google_admin_pin');
-        } catch (err) {}
-        showToast('Catalog locked to Read-Only Mode.');
+        showToast('Locked back to Client Read-Only Mode.');
       };
 
       // Copy tab-separated rows ready to paste directly into cell A1 of Google Sheets
@@ -1334,24 +1373,7 @@ function doPost(e) {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        showToast('Copied all menu rows! Open your Google Sheet, click cell A1, and press Ctrl+V.');
-      };
-
-      // Download Starter CSV for Google Sheets
-      const handleDownloadStarterCsv = () => {
-        const rows = [['ID', 'Dish Name', 'Category', 'Price Per Pax', 'Created At']];
-        Object.entries(FULL_A_LA_CARTE_CATALOG).forEach(([cat, items]) => {
-          items.forEach((item) => {
-            rows.push([item.id, `"${item.name.replace(/"/g, '""')}"`, `"${cat}"`, item.price, Date.now()]);
-          });
-        });
-        const csvContent = rows.map(r => r.join(',')).join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'EYNS_ALaCarte_Menu_Template.csv';
-        link.click();
-        showToast('Downloaded starter CSV! Import it into Google Sheets via File → Import.');
+        showToast('Copied all starter menu rows! Paste into cell A1 of your Google Sheet.');
       };
 
       // Copy Apps Script Code to Clipboard
@@ -1362,46 +1384,56 @@ function doPost(e) {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        showToast('Apps Script code copied! Paste it into Extensions → Apps Script in your Google Sheet.');
+        showToast('Apps Script code copied! Paste into Extensions → Apps Script.');
       };
 
-      // Bulk-Seed Built-In Catalog to Connected Google Sheet
-      const handleSeedCatalogToSheet = async () => {
-        const effectiveScriptUrl = (appsScriptUrl || '').trim() || (sheetUrl.includes('script.google.com') ? sheetUrl.trim() : '');
-        if (!effectiveScriptUrl) {
-          showToast('To auto-export via script, paste your Apps Script /exec URL in field #2, OR click "Copy Menu Rows (Paste in A1)".');
-          return;
-        }
-        setIsBulkSeeding(true);
-        try {
-          const items = [];
-          Object.entries(FULL_A_LA_CARTE_CATALOG).forEach(([cat, list]) => {
-            list.forEach((dish) => {
-              items.push({ id: dish.id, name: dish.name, category: cat, price: dish.price });
+      // Save Edited Dish Name, Category, or Price back to Google Sheet (Admin Only)
+      const handleSaveDishEdit = async (e) => {
+        e.preventDefault();
+        if (!editingDish || !isAdminUnlocked) return;
+        const cleanName = editingDish.name.trim();
+        const cleanCategory = normalizeCategoryName(editingDish.category);
+        const cleanPrice = Number(editingDish.price) || 0;
+        if (!cleanName) return;
+
+        setIsSavingDishEdit(true);
+        setSheetDishes(prev => prev.map(d =>
+          d.id === editingDish.id
+            ? { ...d, name: cleanName, category: cleanCategory, price: cleanPrice }
+            : d
+        ));
+
+        const effectiveScriptUrl = (appsScriptUrl || '').trim();
+        if (effectiveScriptUrl) {
+          try {
+            await fetch(effectiveScriptUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({
+                action: 'update',
+                pin: adminPin,
+                id: editingDish.id,
+                name: cleanName,
+                category: cleanCategory,
+                price: cleanPrice
+              })
             });
-          });
-          await fetch(effectiveScriptUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'bulk_add', pin: adminPin, items })
-          });
-          setTimeout(() => {
-            fetchDishesFromSheet(sheetUrl, appsScriptUrl, true);
-            setIsBulkSeeding(false);
-            showToast(`Exported ${items.length} built-in dishes to your Google Sheet!`);
-          }, 1500);
-        } catch (err) {
-          setIsBulkSeeding(false);
-          showToast('Failed to export built-in menu to Google Sheet.');
+            showToast(`Updated "${cleanName}" (${cleanCategory}) in Google Sheet!`);
+          } catch (err) {
+            showToast('Updated locally, but could not reach Google Sheet.');
+          }
         }
+        setIsSavingDishEdit(false);
+        setEditingDish(null);
       };
 
-      // Delete Custom Dish from Google Sheet
+      // Delete Custom Dish from Google Sheet (Admin Only)
       const handleDeleteSheetDish = async (dishId) => {
+        if (!isAdminUnlocked) return;
         setSheetDishes(prev => prev.filter(d => d.id !== dishId));
         setConfirmDeleteDishId(null);
-        const effectiveScriptUrl = (appsScriptUrl || '').trim() || (sheetUrl.includes('script.google.com') ? sheetUrl.trim() : '');
+        const effectiveScriptUrl = (appsScriptUrl || '').trim();
         if (!effectiveScriptUrl) return;
         try {
           await fetch(effectiveScriptUrl, {
@@ -1416,91 +1448,10 @@ function doPost(e) {
         }
       };
 
-      // Update Existing Dish Category / Name / Price (2-Way Sync with Google Sheet)
-      const handleSaveEditedDish = async (e) => {
-        e.preventDefault();
-        if (!editingDish) return;
-        const cleanName = editingDish.name.trim();
-        const rawCat = editingDish.category === '__custom__' ? editingDish.customCategory : editingDish.category;
-        const cleanCat = normalizeCategoryName(rawCat);
-        const cleanPrice = parseFloat(editingDish.price);
-
-        if (!cleanName || isNaN(cleanPrice) || cleanPrice < 0) {
-          showToast('Please enter a valid dish name and per-pax price.');
-          return;
-        }
-
-        setIsSavingEdit(true);
-
-        // Update local state immediately (if sheetDishes was empty, seed from built-in first so edit persists cleanly)
-        setSheetDishes((prev) => {
-          const baseList = prev.length > 0
-            ? [...prev]
-            : Object.entries(FULL_A_LA_CARTE_CATALOG).flatMap(([cat, items]) =>
-                items.map(i => ({ id: i.id, name: i.name, category: cat, price: i.price }))
-              );
-
-          const idx = baseList.findIndex(
-            d => d.id === editingDish.id || d.name.toLowerCase() === editingDish.oldName.toLowerCase()
-          );
-          const updatedRecord = {
-            id: editingDish.id,
-            name: cleanName,
-            category: cleanCat,
-            price: cleanPrice,
-            createdAt: Date.now()
-          };
-          if (idx >= 0) {
-            baseList[idx] = updatedRecord;
-          } else {
-            baseList.push(updatedRecord);
-          }
-          return baseList;
-        });
-
-        // Also update the dish if it's already added in the current active quotation
-        setCustomDishes((prev) =>
-          prev.map(d =>
-            (d.id === editingDish.id || d.name.toLowerCase() === editingDish.oldName.toLowerCase())
-              ? { ...d, name: cleanName, price: cleanPrice }
-              : d
-          )
-        );
-
-        const effectiveScriptUrl = (appsScriptUrl || '').trim() || (sheetUrl.includes('script.google.com') ? sheetUrl.trim() : '');
-        if (effectiveScriptUrl) {
-          try {
-            await fetch(effectiveScriptUrl, {
-              method: 'POST',
-              mode: 'no-cors',
-              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-              body: JSON.stringify({
-                action: 'update',
-                pin: adminPin,
-                id: editingDish.id,
-                oldName: editingDish.oldName,
-                name: cleanName,
-                category: cleanCat,
-                price: cleanPrice
-              })
-            });
-            showToast(`Updated "${cleanName}" → ${cleanCat} (₱${cleanPrice}/pax) in Google Sheet!`);
-          } catch (err) {
-            showToast(`Updated "${cleanName}" locally (could not reach Apps Script).`);
-          }
-        } else {
-          showToast(`Updated "${cleanName}" → ${cleanCat} locally.`);
-        }
-
-        setIsSavingEdit(false);
-        setEditingDish(null);
-      };
-
-      // Catalog Grouping: Use Google Sheet as 100% single source of truth when populated;
-      // fall back to built-in menu only when the sheet has 0 rows.
+      // Single Source of Truth Catalog:
+      // Uses live Google Sheet items when synced; falls back to built-in catalog only if sheet is empty.
       const mergedCatalogByCategory = useMemo(() => {
         const map = {};
-
         if (sheetDishes.length > 0) {
           sheetDishes.forEach((sd) => {
             const cat = normalizeCategoryName(sd.category);
@@ -1516,24 +1467,18 @@ function doPost(e) {
         } else {
           Object.entries(FULL_A_LA_CARTE_CATALOG).forEach(([cat, items]) => {
             const normCat = normalizeCategoryName(cat);
-            if (!map[normCat]) map[normCat] = [];
-            items.forEach((item) => {
-              map[normCat].push({
-                ...item,
-                category: normCat,
-                isSheetItem: false
-              });
-            });
+            map[normCat] = items.map(item => ({
+              ...item,
+              category: normCat,
+              isSheetItem: false
+            }));
           });
         }
 
-        // Sort categories cleanly using culinary order & sort dishes alphabetically within each category
         const sortedMap = {};
-        const sortedKeys = sortCategoriesList(Object.keys(map));
-        sortedKeys.forEach((k) => {
-          sortedMap[k] = [...map[k]].sort((a, b) => a.name.localeCompare(b.name));
+        sortCategories(Object.keys(map)).forEach(cat => {
+          sortedMap[cat] = map[cat];
         });
-
         return sortedMap;
       }, [sheetDishes]);
 
@@ -1541,33 +1486,37 @@ function doPost(e) {
         return ['All', ...Object.keys(mergedCatalogByCategory)];
       }, [mergedCatalogByCategory]);
 
-      // Automatically reset active filter to 'All' if the selected category was removed or renamed
-      useEffect(() => {
-        if (catalogCategory !== 'All' && !allCatalogCategories.includes(catalogCategory)) {
-          setCatalogCategory('All');
-        }
-      }, [allCatalogCategories, catalogCategory]);
-
-      // Category options for the "Add Custom / Special Request Dish" & Edit Dish dropdowns
-      const specialDishCategoryOptions = useMemo(() => {
-        const keys = Object.keys(mergedCatalogByCategory);
-        const base = keys.length > 0 ? keys : sortCategoriesList(Object.keys(FULL_A_LA_CARTE_CATALOG));
-        return base.includes('Special / Custom') ? base : [...base, 'Special / Custom'];
+      const categoryDishCounts = useMemo(() => {
+        const counts = { All: 0 };
+        Object.entries(mergedCatalogByCategory).forEach(([cat, items]) => {
+          counts[cat] = items.length;
+          counts.All += items.length;
+        });
+        return counts;
       }, [mergedCatalogByCategory]);
 
-      // Keep the selected category valid when the sheet's categories change
+      const specialDishCategoryOptions = useMemo(() => {
+        const combined = new Set([...CATEGORY_ORDER, ...Object.keys(mergedCatalogByCategory)]);
+        return sortCategories(Array.from(combined));
+      }, [mergedCatalogByCategory]);
+
       useEffect(() => {
         if (!specialDishCategoryOptions.includes(newDishCategory)) {
-          setNewDishCategory(specialDishCategoryOptions[0]);
+          setNewDishCategory(specialDishCategoryOptions[0] || 'Beef');
         }
       }, [specialDishCategoryOptions]);
 
-      // Filter dishes by selected category tab and search input
       const filteredCatalogDishes = useMemo(() => {
         let list = [];
         if (catalogCategory === 'All') {
           Object.values(mergedCatalogByCategory).forEach(items => {
             list = list.concat(items);
+          });
+        } else if (catalogCategory === 'Selected') {
+          Object.values(mergedCatalogByCategory).forEach(items => {
+            list = list.concat(
+              items.filter(d => customDishes.some(cd => cd.id === d.id || cd.name.toLowerCase() === d.name.toLowerCase()))
+            );
           });
         } else {
           list = mergedCatalogByCategory[catalogCategory] || [];
@@ -1577,13 +1526,54 @@ function doPost(e) {
           list = list.filter(d => d.name.toLowerCase().includes(q) || d.category.toLowerCase().includes(q));
         }
         return list;
-      }, [mergedCatalogByCategory, catalogCategory, catalogSearch]);
+      }, [mergedCatalogByCategory, catalogCategory, catalogSearch, customDishes]);
 
       // --- QUOTATION HANDLERS ---
 
       const selectedPkg = useMemo(() => {
         return PACKAGES.find(p => p.id === selectedPackageId) || PACKAGES[0];
       }, [selectedPackageId]);
+
+      const isPackageWithAllowance = selectedPackageId === 'entry' || selectedPackageId === 'essential';
+
+      // All catalog dishes flattened for quick lookup when loading base/sample menus
+      const allFlattenedCatalogDishes = useMemo(() => {
+        const list = [];
+        Object.values(mergedCatalogByCategory).forEach(items => list.push(...items));
+        return list;
+      }, [mergedCatalogByCategory]);
+
+      // Load Package Entry's Base Menu or Package Essential's Sample Menu (A/B/C) into Custom Menu Swapper
+      const handleLoadPackageMenuToSwapper = (menuItems, labelText) => {
+        const resolved = menuItems.map((sample, idx) => {
+          const matched = allFlattenedCatalogDishes.find(
+            c => c.name.toLowerCase() === sample.name.toLowerCase()
+          );
+          return {
+            id: matched ? matched.id : `pkg_sample_${Date.now()}_${idx}`,
+            name: matched ? matched.name : sample.name,
+            category: matched ? matched.category : sample.category,
+            price: matched ? matched.price : sample.price,
+            pax: guestCount
+          };
+        });
+        setCustomDishes(resolved);
+        setIsCustomMenu(true);
+        showToast(`Loaded ${labelText} (${resolved.length} items) — swap or adjust any dish below!`);
+      };
+
+      // Course progress tracker for Entry & Essential custom menu selection
+      const courseProgress = useMemo(() => {
+        if (!selectedPkg.courseTargets) return [];
+        return selectedPkg.courseTargets.map(ct => {
+          const validCats = ct.cycleCategories || [ct.filterCategory];
+          const count = customDishes.filter(d => {
+            const cat = normalizeCategoryName(d.category || '');
+            return validCats.some(vc => vc.toLowerCase() === cat.toLowerCase());
+          }).length;
+          return { ...ct, count };
+        });
+      }, [selectedPkg, customDishes]);
 
       // Add or increment dish in current quotation
       const handleAddCatalogDishToQuote = (dish) => {
@@ -1592,9 +1582,9 @@ function doPost(e) {
           if (existing) {
             return prev.map(d => d.id === existing.id ? { ...d, pax: guestCount } : d);
           }
-          return [...prev, { id: dish.id, name: dish.name, price: dish.price, pax: guestCount }];
+          return [...prev, { id: dish.id, name: dish.name, category: dish.category, price: dish.price, pax: guestCount }];
         });
-        if (selectedPackageId === 'entry' || selectedPackageId === 'essential') {
+        if (isPackageWithAllowance) {
           setIsCustomMenu(true);
         }
         showToast(`Added "${dish.name}" (${guestCount} pax) to quotation.`);
@@ -1613,10 +1603,11 @@ function doPost(e) {
         showToast(`Synced all selected dishes to ${guestCount} pax.`);
       };
 
-      // Add Special / Custom Dish (with optional Google Sheet save)
+      // Add Special / Custom Dish (Saves to Google Sheet ONLY when Admin PIN is unlocked)
       const handleCreateSpecialDish = async (e) => {
         e.preventDefault();
         const trimmedName = newDishName.trim();
+        const normCategory = normalizeCategoryName(newDishCategory);
         const priceVal = parseFloat(newDishPrice);
         const paxVal = parseInt(newDishPax, 10) || guestCount;
 
@@ -1626,16 +1617,18 @@ function doPost(e) {
         }
 
         const dishId = `custom_${Date.now()}`;
-        const cleanCat = normalizeCategoryName(newDishCategory);
         const newEntry = {
           id: dishId,
           name: trimmedName,
-          category: cleanCat,
+          category: normCategory,
           price: priceVal,
           pax: paxVal
         };
 
         setCustomDishes(prev => [...prev, newEntry]);
+        if (isPackageWithAllowance) {
+          setIsCustomMenu(true);
+        }
         setNewDishName('');
         setNewDishPrice('');
 
@@ -1643,13 +1636,13 @@ function doPost(e) {
           const sheetRecord = {
             id: dishId,
             name: trimmedName,
-            category: cleanCat,
+            category: normCategory,
             price: priceVal,
             createdAt: Date.now()
           };
           setSheetDishes(prev => [...prev, sheetRecord]);
 
-          const effectiveScriptUrl = (appsScriptUrl || '').trim() || (sheetUrl.includes('script.google.com') ? sheetUrl.trim() : '');
+          const effectiveScriptUrl = (appsScriptUrl || '').trim();
           if (effectiveScriptUrl) {
             try {
               await fetch(effectiveScriptUrl, {
@@ -1660,13 +1653,11 @@ function doPost(e) {
               });
               showToast(`Added "${trimmedName}" to quotation & saved to Google Sheet!`);
             } catch (err) {
-              showToast(`Added "${trimmedName}" to quotation (offline catalog save).`);
+              showToast(`Added "${trimmedName}" to quotation (could not reach Google Sheet).`);
             }
-          } else {
-            showToast(`Added "${trimmedName}" to quotation & catalog!`);
           }
         } else {
-          showToast(`Added "${trimmedName}" to current quotation only.`);
+          showToast(`Added "${trimmedName}" to your current quotation.`);
         }
       };
 
@@ -1718,7 +1709,10 @@ function doPost(e) {
         setOccasion('Wedding Reception');
         setGuestCount(100);
         setSelectedPackageId('entry');
+        setStylingTier('stage_service');
+        setCustomStylingPrice(35000);
         setIsCustomMenu(false);
+        setSelectedSampleMenuKey('A');
         setCustomDishes([]);
         setAutoScaleOps(true);
         setAddons({ tablesChairs: false, acRental: false, soundSystem: false, stage: 'none' });
@@ -1733,26 +1727,34 @@ function doPost(e) {
 
       // --- FINANCIAL CALCULATIONS ---
 
-      // 1. Base Package Cost
+      const activeStylingCost = useMemo(() => {
+        if (stylingTier === 'full_backyard') return 65000;
+        if (stylingTier === 'custom') return Math.max(0, Number(customStylingPrice) || 0);
+        return 35000;
+      }, [stylingTier, customStylingPrice]);
+
       const basePackageCost = useMemo(() => {
         if (selectedPackageId === 'food_packs' || selectedPackageId === 'from_scratch') return 0;
-        if (selectedPackageId === 'styling_only') return selectedPkg.baseSetup;
+        if (selectedPackageId === 'styling_only') return activeStylingCost;
         return selectedPkg.baseSetup + (selectedPkg.perPaxRate * guestCount);
-      }, [selectedPackageId, selectedPkg, guestCount]);
+      }, [selectedPackageId, selectedPkg, guestCount, activeStylingCost]);
 
-      // 2. Custom Menu Food Credit (-₱300/pax for Entry & Essential when Build Custom Menu is enabled)
+      // Custom Menu Food Credit (-₱300/pax for Entry & Essential when Customize from Catalog is active)
       const foodCreditDeduction = useMemo(() => {
         if (!isCustomMenu) return 0;
         if (selectedPackageId !== 'entry' && selectedPackageId !== 'essential') return 0;
         return 300 * guestCount;
       }, [isCustomMenu, selectedPackageId, guestCount]);
 
-      // 3. Dishes Total (A La Carte + Special/Custom Dishes)
       const dishesTotal = useMemo(() => {
         return customDishes.reduce((sum, dish) => sum + (dish.price * dish.pax), 0);
       }, [customDishes]);
 
-      // 4. Auto-Scaled Operational Charges (Triggers starting at 101+ guests unless overridden)
+      const dishesPerPaxAverage = useMemo(() => {
+        if (guestCount <= 0) return 0;
+        return Math.round(dishesTotal / guestCount);
+      }, [dishesTotal, guestCount]);
+
       const additionalTiers = useMemo(() => {
         if (selectedPackageId === 'food_packs' || selectedPackageId === 'from_scratch') return 0;
         return Math.max(0, Math.ceil(guestCount / 100) - 1);
@@ -1766,7 +1768,6 @@ function doPost(e) {
         return (additionalTiers > 0 && autoScaleOps) ? additionalTiers * 7500 : 0;
       }, [additionalTiers, autoScaleOps]);
 
-      // 5. Standard Add-ons Total
       const standardAddonsTotal = useMemo(() => {
         let sum = 0;
         if (addons.tablesChairs) sum += 50 * guestCount;
@@ -1777,7 +1778,6 @@ function doPost(e) {
         return sum;
       }, [addons, guestCount]);
 
-      // 6. Ad-Hoc Custom Line Items Total
       const adHocTotal = useMemo(() => {
         return adHocItems.reduce((sum, item) => {
           const multiplier = item.perPax ? guestCount : item.qty;
@@ -1785,7 +1785,6 @@ function doPost(e) {
         }, 0);
       }, [adHocItems, guestCount]);
 
-      // 7. Individual Hotel Rooms Total
       const roomsTotal = useMemo(() => {
         return Object.entries(selectedRooms).reduce((sum, [roomId, nights]) => {
           const room = ROOMS.find(r => r.id === roomId);
@@ -1793,7 +1792,6 @@ function doPost(e) {
         }, 0);
       }, [selectedRooms]);
 
-      // 8. Subtotal, Discount, Tax, Grand Total & Balance
       const grossSubtotal = useMemo(() => {
         return Math.max(0, basePackageCost - foodCreditDeduction)
           + dishesTotal
@@ -1825,7 +1823,6 @@ function doPost(e) {
       const grandTotal = netTaxableSubtotal + taxAmount;
       const balanceDue = Math.max(0, grandTotal - amountPaid);
 
-      // Filtered Rooms for Step 5
       const filteredRooms = useMemo(() => {
         if (roomTierFilter === 'All') return ROOMS;
         if (roomTierFilter === 'Reserved') return ROOMS.filter(r => (selectedRooms[r.id] || 0) > 0);
@@ -1834,7 +1831,6 @@ function doPost(e) {
 
       // --- EXPORT & PRINT HANDLERS ---
 
-      // Print Official A4 Sheet via Hidden Iframe
       const handlePrintA4 = () => {
         if (!printRef.current) return;
         const contentHtml = printRef.current.innerHTML;
@@ -1873,7 +1869,6 @@ function doPost(e) {
         doc.close();
       };
 
-      // Export High-Resolution JPEG via html2canvas
       const handleDownloadJpeg = async () => {
         if (!printRef.current || typeof html2canvas === 'undefined') {
           showToast('Image exporter is still loading. Please try again in a second.');
@@ -1901,7 +1896,6 @@ function doPost(e) {
         }
       };
 
-      // Format Event Date nicely for Document
       const formattedEventDateDoc = useMemo(() => {
         if (!eventDate) return 'To Be Determined';
         const [y, m, d] = eventDate.split('-').map(Number);
@@ -1961,26 +1955,16 @@ function doPost(e) {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => (isAdminUnlocked ? handleLockAdminMode() : setShowSheetModal(true))}
+                  onClick={() => setShowSheetModal(true)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 ${
                     isAdminUnlocked
-                      ? 'bg-amber-950/70 hover:bg-amber-900/70 text-gold-300 border-gold-500/40'
-                      : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700'
+                      ? 'bg-gold-500/20 hover:bg-gold-500/30 text-gold-300 border-gold-500/50'
+                      : 'bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 border-emerald-500/40'
                   }`}
-                  title={isAdminUnlocked ? 'Click to lock catalog editing' : 'Enter Admin PIN to unlock catalog editing'}
+                  title={isAdminUnlocked ? 'Admin Edit Mode Unlocked' : 'Menu Database (Read-Only Client Mode)'}
                 >
-                  <i className={`fa-solid ${isAdminUnlocked ? 'fa-lock-open text-gold-400' : 'fa-lock text-slate-400'}`}></i>
-                  <span className="hidden md:inline">{isAdminUnlocked ? 'Admin Unlocked' : 'Read-Only'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowSheetModal(true)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 border border-emerald-500/40 transition flex items-center gap-1.5"
-                >
-                  <i className="fa-solid fa-table"></i>
-                  <span>Sheets DB</span>
-                  <span className={`w-2 h-2 rounded-full ${sheetSyncError ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
+                  <i className={`fa-solid ${isAdminUnlocked ? 'fa-lock-open text-gold-400' : 'fa-lock text-emerald-400'}`}></i>
+                  <span>{isAdminUnlocked ? 'Admin Unlocked' : 'Read-Only'}</span>
                 </button>
 
                 <button
@@ -2032,7 +2016,6 @@ function doPost(e) {
                         <p className="text-xs text-slate-400 mt-2 leading-relaxed">{pkg.desc}</p>
                       </div>
 
-                      {/* Tier Price Matrix (Hidden for Custom Package) */}
                       {!pkg.hidePriceBox && pkg.id !== 'food_packs' && pkg.id !== 'styling_only' && (
                         <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3 grid grid-cols-3 gap-2 text-center">
                           <div>
@@ -2051,16 +2034,45 @@ function doPost(e) {
                       )}
 
                       {!pkg.hidePriceBox && pkg.id === 'styling_only' && (
-                        <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3 text-center">
-                          <div className="text-[10px] text-slate-400">Base Setup & Styling Rate</div>
-                          <div className="text-sm font-bold text-gold-300">₱25,000 Flat Setup + A La Carte Menu</div>
+                        <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3 grid grid-cols-2 gap-2 text-center">
+                          <div className="pr-2 border-r border-slate-800">
+                            <div className="text-[10px] text-slate-400">Stage & Catering</div>
+                            <div className="text-xs font-bold text-gold-300">Starts at ₱35,000</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] text-slate-400">Full Package</div>
+                            <div className="text-xs font-bold text-gold-300">Up to ₱65,000</div>
+                          </div>
                         </div>
                       )}
 
-                      {!pkg.hidePriceBox && pkg.id === 'food_packs' && (
-                        <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3 text-center">
-                          <div className="text-[10px] text-slate-400">Pricing Structure</div>
-                          <div className="text-sm font-bold text-gold-300">₱0 Base • Pay Strictly Per Dish</div>
+                      {/* Sample Menus A, B, C Preview (Package Essential) */}
+                      {pkg.sampleMenus && (
+                        <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-gold-400">
+                              Sample Menu Sets:
+                            </span>
+                            <div className="flex gap-1">
+                              {['A', 'B', 'C'].map(key => (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => setSelectedSampleMenuKey(key)}
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
+                                    selectedSampleMenuKey === key
+                                      ? 'bg-gold-500 text-slate-950'
+                                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                  }`}
+                                >
+                                  Menu {key}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-[11px] text-slate-300 leading-relaxed">
+                            {pkg.sampleMenus[selectedSampleMenuKey].map(d => d.name).join(' • ')}
+                          </p>
                         </div>
                       )}
 
@@ -2100,35 +2112,34 @@ function doPost(e) {
                 <div>
                   <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gold-300">A La Carte Menu Catalog</h2>
                   <p className="text-xs sm:text-sm text-slate-400 mt-1">
-                    Synced with your Google Sheets database. Click any dish to add it to your active quotation.
+                    {isAdminUnlocked
+                      ? 'Admin Unlocked: Click the edit icon on any dish to change its category (e.g. Meat → Beef / Pork / Chicken) or price.'
+                      : 'Synced live from Google Sheets (Read-Only Mode). Click any dish to add it to your active quotation.'}
                   </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href={googleSheetOpenHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 transition flex items-center gap-1.5"
+                  >
+                    <i className="fa-solid fa-up-right-from-square"></i>
+                    <span>Open Google Sheet</span>
+                  </a>
                   <button
                     type="button"
-                    onClick={() => (isAdminUnlocked ? handleLockAdminMode() : setShowSheetModal(true))}
+                    onClick={() => setShowSheetModal(true)}
                     className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 ${
                       isAdminUnlocked
-                        ? 'bg-amber-950/70 text-gold-300 border-gold-500/40 hover:bg-amber-900/70'
-                        : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-gold-500/50'
+                        ? 'bg-gold-500/20 text-gold-300 border-gold-500/40'
+                        : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
                     }`}
                   >
-                    <i className={`fa-solid ${isAdminUnlocked ? 'fa-lock-open text-gold-400' : 'fa-lock text-slate-400'}`}></i>
-                    <span>{isAdminUnlocked ? 'Admin Edit Unlocked (Lock)' : 'Unlock Admin Edit'}</span>
+                    <i className={`fa-solid ${isAdminUnlocked ? 'fa-lock-open text-gold-400' : 'fa-key text-slate-400'}`}></i>
+                    <span>{isAdminUnlocked ? 'Admin Edit Active' : 'Admin Unlock'}</span>
                   </button>
-
-                  {isAdminUnlocked && (
-                    <a
-                      href={extractSpreadsheetId(sheetUrl) ? `https://docs.google.com/spreadsheets/d/${extractSpreadsheetId(sheetUrl)}/edit` : 'https://sheets.new'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5"
-                    >
-                      <i className="fa-solid fa-up-right-from-square"></i>
-                      <span>Open Sheet</span>
-                    </a>
-                  )}
                   <button
                     type="button"
                     onClick={() => fetchDishesFromSheet(sheetUrl, appsScriptUrl, false)}
@@ -2136,7 +2147,7 @@ function doPost(e) {
                     className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5"
                   >
                     <i className={`fa-solid fa-rotate ${isSyncingSheet ? 'fa-spin' : ''}`}></i>
-                    <span>Refresh Sync</span>
+                    <span>Refresh</span>
                   </button>
                   <button
                     type="button"
@@ -2151,30 +2162,20 @@ function doPost(e) {
               {/* Search & Category Filter */}
               <div className="flex flex-col md:flex-row gap-3 justify-between">
                 <div className="flex flex-wrap gap-1.5">
-                  {allCatalogCategories.map(cat => {
-                    const count = cat === 'All'
-                      ? Object.values(mergedCatalogByCategory).reduce((acc, arr) => acc + arr.length, 0)
-                      : (mergedCatalogByCategory[cat]?.length || 0);
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setCatalogCategory(cat)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border flex items-center gap-1.5 ${
-                          catalogCategory === cat
-                            ? 'bg-gold-500 text-slate-950 border-gold-400'
-                            : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600'
-                        }`}
-                      >
-                        <span>{cat}</span>
-                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                          catalogCategory === cat ? 'bg-slate-950/20 text-slate-950 font-bold' : 'bg-slate-800 text-slate-400'
-                        }`}>
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
+                  {allCatalogCategories.map(cat => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setCatalogCategory(cat)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border ${
+                        catalogCategory === cat
+                          ? 'bg-gold-500 text-slate-950 border-gold-400'
+                          : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-600'
+                      }`}
+                    >
+                      {cat} ({categoryDishCounts[cat] || 0})
+                    </button>
+                  ))}
                 </div>
                 <div className="relative w-full md:w-72">
                   <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
@@ -2199,59 +2200,42 @@ function doPost(e) {
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-gold-300">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-300">
                             {dish.category}
                           </span>
-                          {dish.isSheetItem && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30">
-                              Sheet
-                            </span>
-                          )}
                         </div>
                         <h4 className="font-bold text-sm text-white mt-1.5 truncate">{dish.name}</h4>
                         <p className="text-xs font-bold text-gold-400 mt-0.5">₱{dish.price.toLocaleString()} / pax</p>
                       </div>
 
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        {isAdminUnlocked && (
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {isAdminUnlocked && dish.isSheetItem && (
                           <>
                             <button
                               type="button"
-                              onClick={() =>
-                                setEditingDish({
-                                  id: dish.id,
-                                  oldName: dish.name,
-                                  name: dish.name,
-                                  category: dish.category,
-                                  customCategory: '',
-                                  price: String(dish.price)
-                                })
-                              }
+                              onClick={() => setEditingDish({ id: dish.id, name: dish.name, category: dish.category, price: dish.price })}
                               className="p-2 rounded-lg text-slate-400 hover:text-gold-300 hover:bg-slate-800 transition"
                               title="Edit dish category or price"
                             >
                               <i className="fa-solid fa-pen-to-square text-xs"></i>
                             </button>
-
-                            {dish.isSheetItem && (
-                              confirmDeleteDishId === dish.id ? (
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteSheetDish(dish.id)}
-                                  className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-red-600 text-white"
-                                >
-                                  Confirm
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => setConfirmDeleteDishId(dish.id)}
-                                  className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-800 transition"
-                                  title="Remove dish"
-                                >
-                                  <i className="fa-solid fa-trash-can text-xs"></i>
-                                </button>
-                              )
+                            {confirmDeleteDishId === dish.id ? (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteSheetDish(dish.id)}
+                                className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-red-600 text-white"
+                              >
+                                Confirm
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteDishId(dish.id)}
+                                className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-800 transition"
+                                title="Delete from Google Sheet"
+                              >
+                                <i className="fa-solid fa-trash-can text-xs"></i>
+                              </button>
                             )}
                           </>
                         )}
@@ -2353,7 +2337,6 @@ function doPost(e) {
                       <h2 className="font-serif text-lg sm:text-xl font-bold text-gold-300">Client & Event Details</h2>
                     </div>
 
-                    {/* Document Mode Switcher */}
                     <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
                       <button
                         type="button"
@@ -2454,7 +2437,7 @@ function doPost(e) {
                         const calc = pkg.baseSetup + (pkg.perPaxRate * guestCount);
                         previewRate = `₱${calc.toLocaleString()} (${guestCount} pax)`;
                       } else if (pkg.id === 'styling_only') {
-                        previewRate = '₱25,000 Flat Setup';
+                        previewRate = 'Starts at ₱35k – ₱65k Full';
                       } else if (pkg.id === 'food_packs') {
                         previewRate = '₱0 Base • Per-Dish Rate';
                       } else if (pkg.id === 'from_scratch') {
@@ -2488,24 +2471,158 @@ function doPost(e) {
                     })}
                   </div>
 
-                  {/* Custom Menu Toggle for Entry & Essential */}
-                  {(selectedPackageId === 'entry' || selectedPackageId === 'essential') && (
-                    <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-bold text-slate-100">Build Custom A La Carte Menu</p>
-                        <p className="text-xs text-slate-400">
-                          Replaces standard package dishes with your custom picks and deducts a <strong className="text-gold-400">₱300/pax food credit (-₱{(300 * guestCount).toLocaleString()})</strong>.
-                        </p>
+                  {/* Tier Selector for Backyard Event Styling & Catering */}
+                  {selectedPackageId === 'styling_only' && (
+                    <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-4 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-bold text-slate-100">Backyard Styling & Catering Scope</p>
+                          <p className="text-xs text-slate-400">
+                            Choose between the <strong className="text-gold-400">₱35,000</strong> Stage Styling & Service Catering rate or the <strong className="text-gold-400">₱65,000</strong> Full Package.
+                          </p>
+                        </div>
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-gold-500/15 text-gold-300 border border-gold-500/30">
+                          Selected: ₱{activeStylingCost.toLocaleString()}
+                        </span>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={isCustomMenu}
-                          onChange={(e) => setIsCustomMenu(e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold-500"></div>
-                      </label>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setStylingTier('stage_service')}
+                          className={`p-3 rounded-xl border text-left transition ${
+                            stylingTier === 'stage_service'
+                              ? 'bg-gold-500/15 border-gold-500 text-white'
+                              : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-600'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-gold-400">Starts At</span>
+                            {stylingTier === 'stage_service' && <i className="fa-solid fa-circle-check text-gold-400 text-xs"></i>}
+                          </div>
+                          <div className="text-sm font-extrabold text-gold-300 mt-0.5">₱35,000</div>
+                          <div className="text-[11px] font-semibold mt-0.5">Stage Styling & Service Catering</div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setStylingTier('full_backyard')}
+                          className={`p-3 rounded-xl border text-left transition ${
+                            stylingTier === 'full_backyard'
+                              ? 'bg-gold-500/15 border-gold-500 text-white'
+                              : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-600'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-gold-400">Full Package</span>
+                            {stylingTier === 'full_backyard' && <i className="fa-solid fa-circle-check text-gold-400 text-xs"></i>}
+                          </div>
+                          <div className="text-sm font-extrabold text-gold-300 mt-0.5">₱65,000</div>
+                          <div className="text-[11px] font-semibold mt-0.5">Full Backyard Styling & Catering</div>
+                        </button>
+
+                        <div
+                          onClick={() => setStylingTier('custom')}
+                          className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                            stylingTier === 'custom'
+                              ? 'bg-gold-500/15 border-gold-500 text-white'
+                              : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-600'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-gold-400">Custom Scope (₱35k–₱65k)</span>
+                            {stylingTier === 'custom' && <i className="fa-solid fa-circle-check text-gold-400 text-xs"></i>}
+                          </div>
+                          <CurrencyInput
+                            value={customStylingPrice}
+                            onChange={(val) => {
+                              setStylingTier('custom');
+                              setCustomStylingPrice(val);
+                            }}
+                            chips={[
+                              { label: '₱35k', value: 35000 },
+                              { label: '₱45k', value: 45000 },
+                              { label: '₱55k', value: 55000 },
+                              { label: '₱65k', value: 65000 }
+                            ]}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Base Menu vs Custom Catalog Switcher for Entry & Essential */}
+                  {isPackageWithAllowance && (
+                    <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-4 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-bold text-slate-100">
+                            {selectedPkg.name} Menu Mode
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {isCustomMenu
+                              ? <>Custom catalog menu active: <strong className="text-gold-400">-₱300/pax food credit (-₱{(300 * guestCount).toLocaleString()})</strong> applied toward your selected dishes.</>
+                              : selectedPackageId === 'entry'
+                                ? 'Using the 6-item included base menu (Fish Fillet in Tartar Sauce, Roast Chicken, Garden Salad, Coffee Jelly, Iced Tea, Steamed Rice).'
+                                : <>Using included <strong>Sample Menu {selectedSampleMenuKey}</strong>, or switch to pick/swap dishes from the catalog.</>}
+                          </p>
+                        </div>
+                        <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs font-bold">
+                          <button
+                            type="button"
+                            onClick={() => setIsCustomMenu(false)}
+                            className={`px-3 py-1.5 rounded-lg transition ${
+                              !isCustomMenu
+                                ? 'bg-gold-500 text-slate-950 shadow'
+                                : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            {selectedPackageId === 'entry' ? 'Included Base Menu' : `Sample Menu ${selectedSampleMenuKey}`}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsCustomMenu(true)}
+                            className={`px-3 py-1.5 rounded-lg transition ${
+                              isCustomMenu
+                                ? 'bg-gold-500 text-slate-950 shadow'
+                                : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            Customize from Catalog (-₱300/pax)
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Quick Sample Menu A / B / C selector inside Step 2 for Package Essential */}
+                      {selectedPackageId === 'essential' && (
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-800/80">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-semibold text-slate-400 mr-1">Sample Set:</span>
+                            {['A', 'B', 'C'].map(key => (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => setSelectedSampleMenuKey(key)}
+                                className={`px-3 py-1 rounded-lg text-xs font-bold border transition ${
+                                  selectedSampleMenuKey === key
+                                    ? 'bg-gold-500 text-slate-950 border-gold-400'
+                                    : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500'
+                                }`}
+                              >
+                                Menu {key}
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleLoadPackageMenuToSwapper(selectedPkg.sampleMenus[selectedSampleMenuKey], `Menu ${selectedSampleMenuKey}`)}
+                            className="text-xs font-bold text-gold-300 hover:text-gold-200 flex items-center gap-1.5 transition"
+                          >
+                            <i className="fa-solid fa-arrows-rotate"></i>
+                            <span>Load Menu {selectedSampleMenuKey} to Swap Dishes</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </section>
@@ -2516,95 +2633,235 @@ function doPost(e) {
                     <div className="flex items-center gap-2.5">
                       <span className="w-7 h-7 rounded-lg bg-gold-500 text-slate-950 font-extrabold text-xs flex items-center justify-center">3</span>
                       <div>
-                        <h2 className="font-serif text-lg sm:text-xl font-bold text-gold-300">Food Menu, Juices & Special Dishes</h2>
+                        <h2 className="font-serif text-lg sm:text-xl font-bold text-gold-300">Food Menu & A La Carte Selection</h2>
                         <p className="text-[11px] text-slate-400">
-                          {isCustomMenu || selectedPackageId === 'food_packs' || selectedPackageId === 'styling_only' || selectedPackageId === 'from_scratch'
-                            ? 'Select A La Carte dishes, juices, or add custom special dishes below.'
-                            : 'Standard package menu is active. Add extra dishes or special requests below.'}
+                          {isPackageWithAllowance
+                            ? 'Keep the included base menu or customize your dishes directly from the live catalog below.'
+                            : 'Select A La Carte dishes, juices, or add custom special dishes below.'}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
                       {customDishes.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={handleSyncAllDishesToGuestCount}
-                          className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-gold-300 border border-slate-700 transition"
-                        >
-                          Sync All to {guestCount} Pax
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleSyncAllDishesToGuestCount}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-gold-300 border border-slate-700 transition"
+                          >
+                            Sync All ({guestCount} Pax)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCustomDishes([])}
+                            className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-950 hover:bg-red-950/50 text-slate-400 hover:text-red-300 border border-slate-800 transition"
+                            title="Clear selected dishes"
+                          >
+                            Clear
+                          </button>
+                        </>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => setShowSheetModal(true)}
-                        className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 transition flex items-center gap-1.5"
-                      >
-                        <i className="fa-solid fa-table"></i>
-                        <span>Google Sheet</span>
-                      </button>
                     </div>
                   </div>
+
+                  {/* Interactive Base / Sample Menu Bar for Package Entry & Package Essential */}
+                  {isPackageWithAllowance && (
+                    <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 space-y-3.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-gold-400">
+                            {selectedPackageId === 'entry' ? 'Included Base Menu:' : 'Sample Base Menus:'}
+                          </span>
+                          {selectedPackageId === 'essential' && (
+                            <div className="flex gap-1">
+                              {['A', 'B', 'C'].map(key => (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => setSelectedSampleMenuKey(key)}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition ${
+                                    selectedSampleMenuKey === key
+                                      ? 'bg-gold-500 text-slate-950 border-gold-400'
+                                      : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500'
+                                  }`}
+                                >
+                                  Menu {key}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {selectedPackageId === 'entry' ? (
+                          <button
+                            type="button"
+                            onClick={() => handleLoadPackageMenuToSwapper(selectedPkg.baseMenu, 'Package Entry Base Menu')}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-gold-500/15 hover:bg-gold-500 hover:text-slate-950 text-gold-300 border border-gold-500/40 transition flex items-center gap-1.5"
+                          >
+                            <i className="fa-solid fa-arrows-rotate"></i>
+                            <span>Load Base Menu & Swap Dishes</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleLoadPackageMenuToSwapper(selectedPkg.sampleMenus[selectedSampleMenuKey], `Menu ${selectedSampleMenuKey}`)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-gold-500/15 hover:bg-gold-500 hover:text-slate-950 text-gold-300 border border-gold-500/40 transition flex items-center gap-1.5"
+                          >
+                            <i className="fa-solid fa-arrows-rotate"></i>
+                            <span>Load Menu {selectedSampleMenuKey} & Swap Dishes</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Preview Pills for Package Entry Base Menu or Package Essential Menu A/B/C */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {(selectedPackageId === 'entry'
+                          ? selectedPkg.baseMenu
+                          : selectedPkg.sampleMenus[selectedSampleMenuKey]
+                        ).map((item, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-900 text-slate-200 border border-slate-800 flex items-center gap-1.5"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-gold-400"></span>
+                            <span>{item.name}</span>
+                            <span className="text-[10px] text-slate-500">({item.category})</span>
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Course Guide Pills & ₱300/pax Allowance Meter */}
+                      <div className="pt-3 border-t border-slate-800/80 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Course Guide:</span>
+                          {courseProgress.map(cp => {
+                            const met = cp.count >= cp.target;
+                            return (
+                              <button
+                                key={cp.key}
+                                type="button"
+                                onClick={() => setCatalogCategory(cp.filterCategory)}
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition flex items-center gap-1.5 ${
+                                  met
+                                    ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
+                                    : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-gold-500/50'
+                                }`}
+                                title={`Click to filter ${cp.filterCategory} dishes`}
+                              >
+                                <i className={`fa-solid ${met ? 'fa-circle-check text-emerald-400' : 'fa-circle-dot text-slate-500'} text-[10px]`}></i>
+                                <span>{cp.label}: {cp.count}/{cp.target}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {isCustomMenu && (
+                          <div className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-3 text-xs">
+                            <div>
+                              <span className="text-slate-400">Selected Avg: </span>
+                              <strong className={dishesPerPaxAverage > 300 ? 'text-amber-300' : 'text-emerald-300'}>
+                                ₱{dishesPerPaxAverage}/pax
+                              </strong>
+                              <span className="text-slate-500"> vs ₱300/pax credit</span>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              dishesPerPaxAverage > 300
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            }`}>
+                              {dishesPerPaxAverage > 300
+                                ? `+₱${(dishesPerPaxAverage - 300).toLocaleString()}/pax upgrade`
+                                : `₱${Math.max(0, 300 - dishesPerPaxAverage).toLocaleString()}/pax remaining`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* A La Carte Category Picker */}
                   <div className="space-y-3">
                     <div className="flex flex-col sm:flex-row gap-2.5 justify-between">
                       <div className="flex flex-wrap gap-1.5">
-                        {allCatalogCategories.map(cat => {
-                          const count = cat === 'All'
-                            ? Object.values(mergedCatalogByCategory).reduce((acc, arr) => acc + arr.length, 0)
-                            : (mergedCatalogByCategory[cat]?.length || 0);
-                          return (
-                            <button
-                              key={cat}
-                              type="button"
-                              onClick={() => setCatalogCategory(cat)}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border flex items-center gap-1 ${
-                                catalogCategory === cat
-                                  ? 'bg-gold-500 text-slate-950 border-gold-400'
-                                  : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-600'
-                              }`}
-                            >
-                              <span>{cat}</span>
-                              <span className={`text-[10px] ${catalogCategory === cat ? 'text-slate-900 font-bold' : 'text-slate-500'}`}>
-                                ({count})
-                              </span>
-                            </button>
-                          );
-                        })}
+                        {allCatalogCategories.map(cat => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setCatalogCategory(cat)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
+                              catalogCategory === cat
+                                ? 'bg-gold-500 text-slate-950 border-gold-400'
+                                : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-600'
+                            }`}
+                          >
+                            {cat} ({categoryDishCounts[cat] || 0})
+                          </button>
+                        ))}
+                        {customDishes.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setCatalogCategory('Selected')}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
+                              catalogCategory === 'Selected'
+                                ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                                : 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40 hover:border-emerald-400'
+                            }`}
+                          >
+                            Selected ({customDishes.length})
+                          </button>
+                        )}
                       </div>
                       <input
                         type="text"
                         value={catalogSearch}
                         onChange={(e) => setCatalogSearch(e.target.value)}
-                        placeholder="Filter menu..."
-                        className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-gold-500 sm:w-48"
+                        placeholder="Search dishes or drinks..."
+                        className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-gold-500 sm:w-52"
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-64 overflow-y-auto pr-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-72 overflow-y-auto pr-1">
                       {filteredCatalogDishes.map(dish => {
                         const existing = customDishes.find(d => d.id === dish.id || d.name.toLowerCase() === dish.name.toLowerCase());
                         return (
                           <div
                             key={dish.id}
-                            className="bg-slate-950/90 border border-slate-800/90 rounded-xl p-3 flex items-center justify-between gap-2"
+                            className={`rounded-xl p-3 flex items-center justify-between gap-2 border transition ${
+                              existing
+                                ? 'bg-emerald-950/25 border-emerald-500/40'
+                                : 'bg-slate-950/90 border-slate-800/90 hover:border-slate-700'
+                            }`}
                           >
                             <div className="min-w-0">
                               <p className="text-xs font-bold text-slate-100 truncate">{dish.name}</p>
-                              <p className="text-[11px] text-gold-400 font-semibold">₱{dish.price}/pax • <span className="text-slate-500">{dish.category}</span></p>
+                              <p className="text-[11px] text-gold-400 font-semibold">₱{dish.price}/pax • <span className="text-slate-400">{dish.category}</span></p>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleAddCatalogDishToQuote(dish)}
-                              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex-shrink-0 transition ${
-                                existing
-                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                                  : 'bg-slate-800 hover:bg-gold-500 hover:text-slate-950 text-slate-200'
-                              }`}
-                            >
-                              {existing ? `${existing.pax} pax` : '+ Add'}
-                            </button>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {existing ? (
+                                <>
+                                  <span className="px-2 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                    {existing.pax} pax
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateDishPax(existing.id, 0)}
+                                    className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-red-950/60 text-slate-400 hover:text-red-300 border border-slate-800 flex items-center justify-center transition"
+                                    title="Remove from menu"
+                                  >
+                                    <i className="fa-solid fa-xmark text-[11px]"></i>
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddCatalogDishToQuote(dish)}
+                                  className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-gold-500 hover:text-slate-950 text-slate-200 transition"
+                                >
+                                  + Select
+                                </button>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -2614,15 +2871,27 @@ function doPost(e) {
                   {/* Selected Dishes List */}
                   {customDishes.length > 0 && (
                     <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-4 space-y-2.5">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-gold-400">
-                        Selected Menu Items ({customDishes.length})
-                      </h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-gold-400">
+                          Selected Menu Lineup ({customDishes.length} {customDishes.length === 1 ? 'Item' : 'Items'})
+                        </h4>
+                        <span className="text-xs font-bold text-slate-300">
+                          Total Food Value: <strong className="text-gold-300">₱{dishesTotal.toLocaleString()}</strong>
+                        </span>
+                      </div>
                       <div className="divide-y divide-slate-800/80">
                         {customDishes.map(dish => (
                           <div key={dish.id} className="py-2.5 flex flex-wrap items-center justify-between gap-3">
                             <div>
-                              <p className="text-xs font-bold text-white">{dish.name}</p>
-                              <p className="text-[11px] text-slate-400">
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs font-bold text-white">{dish.name}</p>
+                                {dish.category && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">
+                                    {dish.category}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-400 mt-0.5">
                                 ₱{dish.price.toLocaleString()}/pax × {dish.pax} pax = <strong className="text-gold-300">₱{(dish.price * dish.pax).toLocaleString()}</strong>
                               </p>
                             </div>
@@ -2655,27 +2924,23 @@ function doPost(e) {
                   <form onSubmit={handleCreateSpecialDish} className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-gold-300">
-                        + Add Custom / Special Request Dish
+                        + Add Special Request Dish
                       </h4>
                       {isAdminUnlocked ? (
-                        <label className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer">
+                        <label className="flex items-center gap-2 text-[11px] text-gold-300 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={saveDishToCatalog}
                             onChange={(e) => setSaveDishToCatalog(e.target.checked)}
                             className="accent-gold-500 rounded"
                           />
-                          <span>Save dish to Google Sheets Menu Catalog</span>
+                          <span>Also save permanently to Google Sheet (Admin)</span>
                         </label>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => setShowSheetModal(true)}
-                          className="text-[11px] text-slate-400 hover:text-gold-300 flex items-center gap-1.5 transition"
-                        >
-                          <i className="fa-solid fa-lock text-[10px] text-gold-400"></i>
-                          <span>Adds to this quote only • Unlock Admin PIN to save to Master Sheet</span>
-                        </button>
+                        <span className="text-[11px] text-slate-400">
+                          <i className="fa-solid fa-lock text-emerald-400 mr-1"></i>
+                          Applies to this quotation only (Master sheet protected)
+                        </span>
                       )}
                     </div>
 
@@ -3120,11 +3385,44 @@ function doPost(e) {
                             <td className="py-2 align-top pr-2">
                               <div className="font-bold text-slate-900">
                                 {selectedPkg.name} {selectedPackageId !== 'food_packs' && selectedPackageId !== 'from_scratch' ? `(${guestCount} pax)` : ''}
+                                {selectedPackageId === 'styling_only' && (
+                                  <span className="text-amber-800 font-semibold ml-1">
+                                    — {stylingTier === 'full_backyard'
+                                      ? 'Full Backyard Styling & Catering Package'
+                                      : stylingTier === 'custom'
+                                        ? 'Custom Backyard Styling & Catering Scope'
+                                        : 'Stage Styling & Service Catering'}
+                                  </span>
+                                )}
+                                {isPackageWithAllowance && !isCustomMenu && (
+                                  <span className="text-amber-800 font-semibold ml-1">
+                                    {selectedPackageId === 'entry' ? '— Included Base Menu' : `— Sample Menu ${selectedSampleMenuKey}`}
+                                  </span>
+                                )}
+                                {isPackageWithAllowance && isCustomMenu && (
+                                  <span className="text-amber-800 font-semibold ml-1">— Custom Catalog Menu</span>
+                                )}
                               </div>
                               <div className="text-[10px] text-slate-600 mt-1 pl-2 border-l-2 border-amber-600 space-y-0.5">
-                                <p className="font-semibold text-slate-700">{selectedPkg.desc}</p>
+                                <p className="font-semibold text-slate-700">
+                                  {selectedPackageId === 'styling_only'
+                                    ? (stylingTier === 'full_backyard'
+                                        ? 'Complete venue transformation: full backyard drapery, thematic stage, dressed guest tables & chairs, buffet styling, and full catering service.'
+                                        : 'Stage styling, backdrop accents, buffet table setup, dining ware, and uniformed catering service crew.')
+                                    : selectedPkg.desc}
+                                </p>
+                                {selectedPackageId === 'entry' && !isCustomMenu && selectedPkg.baseMenu && (
+                                  <p className="text-[10px] text-amber-900 font-medium">
+                                    Included Base Menu: {selectedPkg.baseMenu.map(d => d.name).join(', ')}
+                                  </p>
+                                )}
+                                {selectedPackageId === 'essential' && !isCustomMenu && selectedPkg.sampleMenus?.[selectedSampleMenuKey] && (
+                                  <p className="text-[10px] text-amber-900 font-medium">
+                                    Menu {selectedSampleMenuKey} Lineup: {selectedPkg.sampleMenus[selectedSampleMenuKey].map(d => d.name).join(', ')}
+                                  </p>
+                                )}
                                 <ul className="list-disc list-inside text-slate-500 space-y-0.5">
-                                  {selectedPkg.inclusions.map((inc, idx) => (
+                                  {(selectedPackageId === 'essential' && isCustomMenu ? selectedPkg.inclusions.slice(1) : selectedPkg.inclusions).map((inc, idx) => (
                                     <li key={idx}>{inc}</li>
                                   ))}
                                 </ul>
@@ -3309,191 +3607,19 @@ function doPost(e) {
             </main>
           )}
 
-          {/* GOOGLE SHEETS DATABASE CONNECTION MODAL */}
-          {showSheetModal && (
-            <div className="no-print fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-              <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 space-y-5 shadow-2xl my-8">
+          {/* EDIT CATALOG DISH & CATEGORY MODAL (ADMIN ONLY) */}
+          {editingDish && isAdminUnlocked && (
+            <div
+              onClick={() => setEditingDish(null)}
+              className="no-print fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+            >
+              <form
+                onClick={(e) => e.stopPropagation()}
+                onSubmit={handleSaveDishEdit}
+                className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl"
+              >
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <i className="fa-solid fa-table text-emerald-400 text-lg"></i>
-                    <h3 className="font-serif text-lg font-bold text-white">Google Sheets Menu Database</h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowSheetModal(false)}
-                    className="text-slate-400 hover:text-white p-1"
-                  >
-                    <i className="fa-solid fa-xmark text-base"></i>
-                  </button>
-                </div>
-
-                {/* Connection Form */}
-                <form onSubmit={handleSaveSheetConnection} className="space-y-3 text-xs">
-                  <div>
-                    <label className="font-bold text-slate-200 block mb-1">1. Google Sheet URL (Read Live Menu)</label>
-                    <input
-                      type="url"
-                      value={sheetUrlInput}
-                      onChange={(e) => setSheetUrlInput(e.target.value)}
-                      placeholder="https://docs.google.com/spreadsheets/d/..."
-                      className="w-full h-9 bg-slate-950 border border-slate-700 rounded-xl px-3 text-slate-100 focus:outline-none focus:border-emerald-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-200 block mb-1">2. Google Apps Script Web App URL (Optional 2-Way Write)</label>
-                    <input
-                      type="url"
-                      value={appsScriptUrlInput}
-                      onChange={(e) => setAppsScriptUrlInput(e.target.value)}
-                      placeholder="https://script.google.com/macros/s/.../exec"
-                      className="w-full h-9 bg-slate-950 border border-slate-700 rounded-xl px-3 text-slate-100 focus:outline-none focus:border-emerald-500"
-                    />
-                    {appsScriptUrlInput.trim().endsWith('/dev') && (
-                      <p className="mt-1.5 text-[11px] text-amber-300 bg-amber-950/50 border border-amber-500/40 rounded-lg px-2.5 py-1.5">
-                        <strong>Notice:</strong> Your link ends in <code>/dev</code> (Test Deployment), which Google always restricts. Click <strong>Deploy → New deployment</strong> in Apps Script and copy the Web App URL ending in <code>/exec</code>.
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="font-bold text-slate-200 block mb-1">3. Admin Edit PIN (Locks 2-Way Writes to You)</label>
-                    <input
-                      type="password"
-                      value={adminPinInput}
-                      onChange={(e) => setAdminPinInput(e.target.value)}
-                      placeholder="Must match ADMIN_PIN in your Apps Script"
-                      className="w-full h-9 bg-slate-950 border border-slate-700 rounded-xl px-3 text-slate-100 focus:outline-none focus:border-emerald-500"
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <button
-                      type="submit"
-                      disabled={isSyncingSheet}
-                      className="px-4 py-2 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5"
-                    >
-                      <i className={`fa-solid ${isSyncingSheet ? 'fa-spinner fa-spin' : 'fa-floppy-disk'}`}></i>
-                      <span>{isSyncingSheet ? 'Syncing...' : 'Save & Sync Now'}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => fetchDishesFromSheet(sheetUrl, appsScriptUrl, false)}
-                      disabled={isSyncingSheet}
-                      className="px-3.5 py-2 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5"
-                    >
-                      <i className={`fa-solid fa-rotate ${isSyncingSheet ? 'fa-spin' : ''}`}></i>
-                      <span>Refresh</span>
-                    </button>
-
-                    {isAdminUnlocked && (
-                      <button
-                        type="button"
-                        onClick={handleSeedCatalogToSheet}
-                        disabled={isBulkSeeding}
-                        className="px-3.5 py-2 rounded-xl font-bold bg-gold-500/20 hover:bg-gold-500 hover:text-slate-950 text-gold-300 border border-gold-500/40 transition flex items-center gap-1.5"
-                      >
-                        <i className={`fa-solid ${isBulkSeeding ? 'fa-spinner fa-spin' : 'fa-cloud-arrow-up'}`}></i>
-                        <span>{isBulkSeeding ? 'Exporting...' : 'Export Built-In Menu to Sheet'}</span>
-                      </button>
-                    )}
-                  </div>
-                </form>
-
-                {/* Sync Status / Permission Feedback */}
-                {sheetSyncError ? (
-                  <div className="bg-amber-950/50 border border-amber-500/40 rounded-xl p-3 text-xs text-amber-200 flex items-start gap-2.5">
-                    <i className="fa-solid fa-triangle-exclamation text-amber-400 mt-0.5"></i>
-                    <div>
-                      <p className="font-bold">Google Sheet Sync Notice</p>
-                      <p className="text-[11px] text-amber-300/90 mt-0.5">{sheetSyncError}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3 text-xs text-emerald-200 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <i className="fa-solid fa-circle-check text-emerald-400"></i>
-                      <span>
-                        Connected • <strong>{sheetDishes.length}</strong> custom/sheet item(s) synced
-                      </span>
-                    </div>
-                    {sheetLastSynced && (
-                      <span className="text-[11px] text-emerald-400">Last synced: {sheetLastSynced}</span>
-                    )}
-                  </div>
-                )}
-
-                {/* Setup & Quick Population Guide */}
-                <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-4 space-y-3 text-xs">
-                  <div className="flex flex-wrap justify-between items-center gap-2">
-                    <h4 className="font-bold text-gold-300 uppercase tracking-wider">Quick Populate & 2-Way Setup</h4>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <a
-                        href={extractSpreadsheetId(sheetUrlInput) ? `https://docs.google.com/spreadsheets/d/${extractSpreadsheetId(sheetUrlInput)}/edit` : 'https://sheets.new'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5"
-                      >
-                        <i className="fa-solid fa-up-right-from-square"></i>
-                        <span>Open Your Google Sheet</span>
-                      </a>
-                      <button
-                        type="button"
-                        onClick={handleCopySheetRows}
-                        className="bg-emerald-950/90 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/50 px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5"
-                      >
-                        <i className="fa-solid fa-table-cells"></i>
-                        <span>Copy Menu Rows (Paste in A1)</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDownloadStarterCsv}
-                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5"
-                      >
-                        <i className="fa-solid fa-file-csv text-emerald-400"></i>
-                        <span>Download Starter CSV</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCopyAppsScript}
-                        className="bg-gold-500/20 hover:bg-gold-500 hover:text-slate-950 text-gold-300 border border-gold-500/40 px-3 py-1 rounded-lg font-bold transition flex items-center gap-1.5"
-                      >
-                        <i className="fa-solid fa-copy"></i>
-                        <span>Copy Apps Script Code</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <ol className="list-decimal list-inside space-y-1.5 text-slate-300 leading-relaxed">
-                    <li>
-                      <strong className="text-emerald-300">Lock Your Google Sheet to Your Email Only:</strong> In Google Sheets, click <strong className="text-white">Share</strong> and set General Access to <strong className="text-gold-300">Restricted</strong> (so <em>only</em> your email can open/edit the spreadsheet). Your Apps Script runs as <strong>Me</strong>, so it can still read the menu safely for the app.
-                    </li>
-                    <li>
-                      <strong className="text-gold-300">Set Your Mandatory Secret PIN in Apps Script:</strong> Open <strong className="text-white">Extensions → Apps Script</strong>, replace <code className="text-amber-300">'CHANGE_THIS_SECRET_PIN'</code> on line 1 with your private password, and click <strong className="text-white">Deploy → Manage deployments → Edit → New version → Deploy</strong>.
-                    </li>
-                    <li>
-                      <strong className="text-emerald-300">How Client Protection Works:</strong> Even if a client opens this web app link, the catalog is locked in <strong className="text-white">Read-Only Mode</strong> and your PIN is never stored in the webpage code—so nobody can edit or delete your menu without your secret PIN.
-                    </li>
-                  </ol>
-
-                  <pre className="bg-slate-900 border border-slate-800 rounded-lg p-3 text-[10px] text-slate-300 overflow-x-auto max-h-40 font-mono">
-                    {GOOGLE_APPS_SCRIPT_CODE}
-                  </pre>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* IN-APP DISH & CATEGORY EDITOR MODAL */}
-          {editingDish && (
-            <div className="no-print fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2">
-                    <i className="fa-solid fa-pen-to-square text-gold-400"></i>
-                    <h3 className="font-serif text-lg font-bold text-white">Edit Menu Dish & Category</h3>
-                  </div>
+                  <h3 className="font-serif text-lg font-bold text-gold-300">Edit Menu Item & Category</h3>
                   <button
                     type="button"
                     onClick={() => setEditingDish(null)}
@@ -3503,86 +3629,281 @@ function doPost(e) {
                   </button>
                 </div>
 
-                <form onSubmit={handleSaveEditedDish} className="space-y-3.5 text-xs">
+                <div className="space-y-3 text-xs">
                   <div>
-                    <label className="font-bold text-slate-300 block mb-1">Dish Name</label>
+                    <label className="font-bold text-slate-200 block mb-1">Dish Name</label>
                     <input
                       type="text"
-                      value={editingDish.name}
-                      onChange={(e) => setEditingDish(p => ({ ...p, name: e.target.value }))}
-                      className="w-full h-9 bg-slate-950 border border-slate-700 rounded-xl px-3 text-slate-100 focus:outline-none focus:border-gold-500"
                       required
+                      value={editingDish.name}
+                      onChange={(e) => setEditingDish(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full h-9 bg-slate-950 border border-slate-700 rounded-xl px-3 text-slate-100 focus:outline-none focus:border-gold-500"
                     />
                   </div>
 
                   <div>
-                    <label className="font-bold text-slate-300 block mb-1">Category (e.g., Beef, Pork, Chicken, Seafood)</label>
+                    <label className="font-bold text-slate-200 block mb-1">Category (Move from Meat → Beef / Pork / Chicken)</label>
                     <select
-                      value={
-                        specialDishCategoryOptions.includes(editingDish.category)
-                          ? editingDish.category
-                          : '__custom__'
-                      }
-                      onChange={(e) => setEditingDish(p => ({ ...p, category: e.target.value }))}
+                      value={editingDish.category}
+                      onChange={(e) => setEditingDish(prev => ({ ...prev, category: e.target.value }))}
                       className="w-full h-9 bg-slate-950 border border-slate-700 rounded-xl px-3 text-slate-100 focus:outline-none focus:border-gold-500"
                     >
                       {specialDishCategoryOptions.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
-                      <option value="__custom__">+ Type New Category Name...</option>
                     </select>
                   </div>
 
-                  {(!specialDishCategoryOptions.includes(editingDish.category) || editingDish.category === '__custom__') && (
-                    <div>
-                      <label className="font-bold text-gold-300 block mb-1">New Category Name</label>
-                      <input
-                        type="text"
-                        value={editingDish.category === '__custom__' ? editingDish.customCategory : editingDish.category}
-                        onChange={(e) =>
-                          setEditingDish(p => ({
-                            ...p,
-                            category: '__custom__',
-                            customCategory: e.target.value
-                          }))
-                        }
-                        placeholder="e.g., Beef, Pork, Chicken, Platters"
-                        className="w-full h-9 bg-slate-950 border border-gold-500/60 rounded-xl px-3 text-slate-100 focus:outline-none focus:border-gold-500"
-                        required
-                      />
-                    </div>
-                  )}
-
                   <div>
-                    <label className="font-bold text-slate-300 block mb-1">Price Per Pax (₱)</label>
+                    <label className="font-bold text-slate-200 block mb-1">Price Per Pax (₱)</label>
                     <input
                       type="number"
                       min="0"
                       step="any"
-                      value={editingDish.price}
-                      onChange={(e) => setEditingDish(p => ({ ...p, price: e.target.value }))}
-                      className="w-full h-9 bg-slate-950 border border-slate-700 rounded-xl px-3 text-slate-100 focus:outline-none focus:border-gold-500"
                       required
+                      value={editingDish.price}
+                      onChange={(e) => setEditingDish(prev => ({ ...prev, price: e.target.value }))}
+                      className="w-full h-9 bg-slate-950 border border-slate-700 rounded-xl px-3 text-slate-100 focus:outline-none focus:border-gold-500"
                     />
                   </div>
+                </div>
 
-                  <div className="flex items-center justify-end gap-2 pt-2">
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setEditingDish(null)}
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingDishEdit}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-gold-500 hover:bg-gold-400 text-slate-950"
+                  >
+                    {isSavingDishEdit ? 'Saving...' : 'Save to Google Sheet'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* GOOGLE SHEETS DATABASE & ADMIN ACCESS MODAL */}
+          {showSheetModal && (
+            <div
+              onClick={() => setShowSheetModal(false)}
+              className="no-print fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full max-h-[88vh] flex flex-col shadow-2xl overflow-hidden"
+              >
+                {/* Sticky Modal Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-900 flex-shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <i className="fa-solid fa-table text-emerald-400 text-lg"></i>
+                    <h3 className="font-serif text-lg font-bold text-white">Google Sheets Menu & Admin Access</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSheetModal(false)}
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold flex items-center gap-1.5 transition"
+                    aria-label="Close Google Sheets window"
+                  >
+                    <span>Close</span>
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+
+                {/* Scrollable Modal Body */}
+                <div className="p-5 overflow-y-auto space-y-4 text-xs flex-1">
+                  {/* Security Status Banner */}
+                  <div className={`rounded-xl p-3 border flex flex-wrap items-center justify-between gap-2 ${
+                    isAdminUnlocked
+                      ? 'bg-gold-500/10 border-gold-500/40 text-gold-200'
+                      : 'bg-emerald-950/50 border-emerald-500/40 text-emerald-200'
+                  }`}>
+                    <div className="flex items-center gap-2.5">
+                      <i className={`fa-solid ${isAdminUnlocked ? 'fa-lock-open text-gold-400' : 'fa-shield-halved text-emerald-400'} text-base`}></i>
+                      <div>
+                        <p className="font-bold">
+                          {isAdminUnlocked ? 'Admin Edit Mode Unlocked (PIN Active)' : 'Protected Client View (Read-Only Mode)'}
+                        </p>
+                        <p className="text-[11px] opacity-90">
+                          {isAdminUnlocked
+                            ? 'You can edit categories, prices, and save new dishes to your Google Sheet.'
+                            : 'Clients with the app link can view dishes and build quotes, but cannot modify your Google Sheet.'}
+                        </p>
+                      </div>
+                    </div>
+                    {isAdminUnlocked && (
+                      <button
+                        type="button"
+                        onClick={handleLockAdminMode}
+                        className="px-3 py-1.5 rounded-lg font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 transition"
+                      >
+                        Lock Back to Read-Only
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Sync Status */}
+                  {sheetSyncError ? (
+                    <div className="bg-amber-950/50 border border-amber-500/40 rounded-xl p-3 text-amber-200 flex items-start gap-2.5">
+                      <i className="fa-solid fa-triangle-exclamation text-amber-400 mt-0.5"></i>
+                      <div>
+                        <p className="font-bold">Google Sheet Sync Notice</p>
+                        <p className="text-[11px] text-amber-300/90 mt-0.5">{sheetSyncError}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-slate-200 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <i className="fa-solid fa-circle-check text-emerald-400"></i>
+                        <span>
+                          Connected • <strong>{sheetDishes.length}</strong> menu item(s) loaded
+                        </span>
+                      </div>
+                      {sheetLastSynced && (
+                        <span className="text-[11px] text-slate-400">Synced: {sheetLastSynced}</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Connection & Admin PIN Form */}
+                  <form onSubmit={handleSaveSheetConnection} className="space-y-3">
+                    <div>
+                      <label className="font-bold text-slate-200 block mb-1">Admin Edit PIN (Required to Unlock Editing)</label>
+                      <input
+                        type="password"
+                        value={adminPinInput}
+                        onChange={(e) => setAdminPinInput(e.target.value)}
+                        placeholder="Enter your secret ADMIN_PIN to unlock catalog editing"
+                        className="w-full h-9 bg-slate-950 border border-slate-700 rounded-xl px-3 text-slate-100 focus:outline-none focus:border-gold-500"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="font-bold text-slate-300">Google Sheet URL</label>
+                        <a
+                          href={googleSheetOpenHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition"
+                        >
+                          <span>Open in Google Sheets</span>
+                          <i className="fa-solid fa-up-right-from-square text-[10px]"></i>
+                        </a>
+                      </div>
+                      <input
+                        type="url"
+                        value={sheetUrlInput}
+                        onChange={(e) => setSheetUrlInput(e.target.value)}
+                        placeholder="https://docs.google.com/spreadsheets/d/..."
+                        className="w-full h-9 bg-slate-950 border border-slate-700 rounded-xl px-3 text-slate-100 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-300 block mb-1">Google Apps Script Web App URL (/exec)</label>
+                      <input
+                        type="url"
+                        value={appsScriptUrlInput}
+                        onChange={(e) => setAppsScriptUrlInput(e.target.value)}
+                        placeholder="https://script.google.com/macros/s/.../exec"
+                        className="w-full h-9 bg-slate-950 border border-slate-700 rounded-xl px-3 text-slate-100 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <a
+                        href={googleSheetOpenHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-2 rounded-xl font-bold bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 transition flex items-center gap-1.5"
+                      >
+                        <i className="fa-solid fa-up-right-from-square"></i>
+                        <span>Open Google Sheet</span>
+                      </a>
+
+                      <button
+                        type="submit"
+                        disabled={isSyncingSheet}
+                        className="px-4 py-2 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5"
+                      >
+                        <i className={`fa-solid ${isSyncingSheet ? 'fa-spinner fa-spin' : 'fa-floppy-disk'}`}></i>
+                        <span>{isSyncingSheet ? 'Syncing...' : 'Save & Sync Now'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => fetchDishesFromSheet(sheetUrl, appsScriptUrl, false)}
+                        disabled={isSyncingSheet}
+                        className="px-3.5 py-2 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5"
+                      >
+                        <i className={`fa-solid fa-rotate ${isSyncingSheet ? 'fa-spin' : ''}`}></i>
+                        <span>Refresh Menu</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleCopySheetRows}
+                        className="px-3.5 py-2 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/40 transition flex items-center gap-1.5"
+                      >
+                        <i className="fa-solid fa-table-cells"></i>
+                        <span>Copy Starter Rows</span>
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* Collapsible Developer / Apps Script Setup Section */}
+                  <div className="border border-slate-800 rounded-xl overflow-hidden">
                     <button
                       type="button"
-                      onClick={() => setEditingDish(null)}
-                      className="px-4 py-2 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-slate-300"
+                      onClick={() => setShowAppsScriptGuide(prev => !prev)}
+                      className="w-full px-3.5 py-2.5 bg-slate-950/90 hover:bg-slate-800/70 flex items-center justify-between text-left font-bold text-slate-300 transition"
                     >
-                      Cancel
+                      <span>
+                        <i className="fa-solid fa-code text-gold-400 mr-2"></i>
+                        Apps Script Setup Instructions & Code
+                      </span>
+                      <i className={`fa-solid fa-chevron-down text-[10px] transition-transform ${showAppsScriptGuide ? 'rotate-180' : ''}`}></i>
                     </button>
-                    <button
-                      type="submit"
-                      disabled={isSavingEdit}
-                      className="px-4 py-2 rounded-xl font-bold bg-gold-500 hover:bg-gold-400 text-slate-950 transition"
-                    >
-                      {isSavingEdit ? 'Saving...' : 'Save & Sync to Sheet'}
-                    </button>
+
+                    {showAppsScriptGuide && (
+                      <div className="p-3.5 bg-slate-950/60 border-t border-slate-800 space-y-2.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-[11px] text-slate-400">
+                            Set Google Sheet Share to <strong>Restricted</strong> and paste this into <strong>Extensions → Apps Script</strong>:
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleCopyAppsScript}
+                            className="bg-gold-500/20 hover:bg-gold-500 hover:text-slate-950 text-gold-300 border border-gold-500/40 px-2.5 py-1 rounded-lg font-bold transition flex items-center gap-1"
+                          >
+                            <i className="fa-solid fa-copy"></i>
+                            <span>Copy Script</span>
+                          </button>
+                        </div>
+                        <pre className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-[10px] text-slate-300 overflow-x-auto max-h-36 font-mono">
+                          {GOOGLE_APPS_SCRIPT_CODE}
+                        </pre>
+                      </div>
+                    )}
                   </div>
-                </form>
+                </div>
+
+                {/* Sticky Modal Footer */}
+                <div className="px-5 py-3 border-t border-slate-800 bg-slate-900 flex justify-end flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowSheetModal(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-gold-500 hover:bg-gold-400 text-slate-950 transition"
+                  >
+                    Done & Return to Builder
+                  </button>
+                </div>
               </div>
             </div>
           )}
