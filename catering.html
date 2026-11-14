@@ -865,6 +865,7 @@
     // --- GOOGLE SHEETS DATABASE CONFIGURATION ---
     const DEFAULT_GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/100fRNyT3vE96lz6TsaA-os9rwp0S4EUdqpJFaKR7S9k/edit?usp=sharing';
     const DEFAULT_APPS_SCRIPT_URL = '';
+    const DEFAULT_ADMIN_PIN = 'EYNS2026';
 
     const extractSpreadsheetId = (url) => {
       if (!url) return null;
@@ -872,7 +873,9 @@
       return match ? match[1] : null;
     };
 
-    const GOOGLE_APPS_SCRIPT_CODE = `function doGet(e) {
+    const GOOGLE_APPS_SCRIPT_CODE = `var ADMIN_PIN = 'EYNS2026'; // Change this to your private secret PIN
+
+function doGet(e) {
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
     var data = sheet.getDataRange().getValues();
@@ -900,6 +903,11 @@ function doPost(e) {
   try {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
     var payload = JSON.parse(e.postData.contents);
+
+    if (ADMIN_PIN && payload.pin !== ADMIN_PIN) {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Unauthorized: Invalid Admin PIN' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
 
     if (sheet.getLastRow() === 0) {
       sheet.appendRow(['ID', 'Dish Name', 'Category', 'Price Per Pax', 'Created At']);
@@ -963,6 +971,8 @@ function doPost(e) {
       const [sheetUrlInput, setSheetUrlInput] = useState(DEFAULT_GOOGLE_SHEET_URL);
       const [appsScriptUrl, setAppsScriptUrl] = useState(DEFAULT_APPS_SCRIPT_URL);
       const [appsScriptUrlInput, setAppsScriptUrlInput] = useState(DEFAULT_APPS_SCRIPT_URL);
+      const [adminPin, setAdminPin] = useState(DEFAULT_ADMIN_PIN);
+      const [adminPinInput, setAdminPinInput] = useState(DEFAULT_ADMIN_PIN);
       const [sheetDishes, setSheetDishes] = useState([]);
       const [isSyncingSheet, setIsSyncingSheet] = useState(false);
       const [isBulkSeeding, setIsBulkSeeding] = useState(false);
@@ -1169,12 +1179,16 @@ function doPost(e) {
         try {
           const savedSheet = localStorage.getItem('eyns_google_sheet_url');
           const savedScript = localStorage.getItem('eyns_google_apps_script_url');
+          const savedPin = localStorage.getItem('eyns_google_admin_pin');
           const activeSheet = savedSheet || DEFAULT_GOOGLE_SHEET_URL;
           const activeScript = savedScript || DEFAULT_APPS_SCRIPT_URL;
+          const activePin = savedPin !== null ? savedPin : DEFAULT_ADMIN_PIN;
           setSheetUrl(activeSheet);
           setSheetUrlInput(activeSheet);
           setAppsScriptUrl(activeScript);
           setAppsScriptUrlInput(activeScript);
+          setAdminPin(activePin);
+          setAdminPinInput(activePin);
           fetchDishesFromSheet(activeSheet, activeScript, true);
         } catch (e) {
           fetchDishesFromSheet(DEFAULT_GOOGLE_SHEET_URL, DEFAULT_APPS_SCRIPT_URL, true);
@@ -1186,11 +1200,14 @@ function doPost(e) {
         e.preventDefault();
         const trimmedSheet = sheetUrlInput.trim();
         const trimmedScript = appsScriptUrlInput.trim();
+        const trimmedPin = adminPinInput.trim();
         setSheetUrl(trimmedSheet);
         setAppsScriptUrl(trimmedScript);
+        setAdminPin(trimmedPin);
         try {
           localStorage.setItem('eyns_google_sheet_url', trimmedSheet);
           localStorage.setItem('eyns_google_apps_script_url', trimmedScript);
+          localStorage.setItem('eyns_google_admin_pin', trimmedPin);
         } catch (err) {}
         if (trimmedSheet || trimmedScript) {
           fetchDishesFromSheet(trimmedSheet, trimmedScript, false);
@@ -1269,7 +1286,7 @@ function doPost(e) {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'bulk_add', items })
+            body: JSON.stringify({ action: 'bulk_add', pin: adminPin, items })
           });
           setTimeout(() => {
             fetchDishesFromSheet(sheetUrl, appsScriptUrl, true);
@@ -1293,7 +1310,7 @@ function doPost(e) {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'delete', id: dishId })
+            body: JSON.stringify({ action: 'delete', pin: adminPin, id: dishId })
           });
           showToast('Removed dish from Google Sheet.');
         } catch (err) {
@@ -1432,7 +1449,7 @@ function doPost(e) {
                 method: 'POST',
                 mode: 'no-cors',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'add', ...sheetRecord })
+                body: JSON.stringify({ action: 'add', pin: adminPin, ...sheetRecord })
               });
               showToast(`Added "${trimmedName}" to quotation & saved to Google Sheet!`);
             } catch (err) {
@@ -3052,6 +3069,17 @@ function doPost(e) {
                     )}
                   </div>
 
+                  <div>
+                    <label className="font-bold text-slate-200 block mb-1">3. Admin Edit PIN (Locks 2-Way Writes to You)</label>
+                    <input
+                      type="password"
+                      value={adminPinInput}
+                      onChange={(e) => setAdminPinInput(e.target.value)}
+                      placeholder="Must match ADMIN_PIN in your Apps Script"
+                      className="w-full h-9 bg-slate-950 border border-slate-700 rounded-xl px-3 text-slate-100 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
                   <div className="flex flex-wrap items-center gap-2 pt-1">
                     <button
                       type="submit"
@@ -3157,6 +3185,9 @@ function doPost(e) {
                     </li>
                     <li>
                       Click <strong className="text-white">Deploy → New deployment → Web app</strong> (<em>Execute as:</em> <strong className="text-gold-300">Me</strong>, <em>Who has access:</em> <strong className="text-gold-300">Anyone</strong>) and paste the <code className="text-white">.../exec</code> URL into field #2 above.
+                    </li>
+                    <li>
+                      <strong className="text-emerald-300">Keep Spreadsheet Editable Only by Your Email:</strong> In Google Sheets, click <strong className="text-white">Share</strong> and set General Access to <strong className="text-gold-300">Restricted</strong> (or <strong className="text-gold-300">Viewer</strong> only—never <em>Editor</em>). Change <code className="text-gold-300">ADMIN_PIN</code> in your Apps Script to your private password and enter it in field #3 so only you can authorize edits.
                     </li>
                   </ol>
 
