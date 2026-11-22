@@ -402,11 +402,11 @@
         badge: 'INCLUDED IN BASE',
         upgradePerPax: 0,
         items: [
-          'Garden Salad',
-          'Roast Chicken w/ Dripping Sauce',
-          'Fish Fillet w/ Tartar Sauce',
-          'Plain Rice & Bottomless Iced Tea',
-          'Coffee Jelly'
+          { name: 'Garden Salad', basePrice: 45 },
+          { name: 'Roast Chicken w/ Dripping Sauce', basePrice: 80 },
+          { name: 'Fish Fillet w/ Tartar Sauce', basePrice: 75 },
+          { name: 'Plain Rice & Bottomless Iced Tea', basePrice: 55 },
+          { name: 'Coffee Jelly', basePrice: 45 }
         ]
       },
       {
@@ -415,10 +415,10 @@
         badge: '+ ₱250 PER PAX',
         upgradePerPax: 250,
         items: [
-          'Vietnamese Spring Roll w/ Peanut Sauce',
-          'Hainanese Chicken & Peach BBQ',
-          'Creamy Garlic Butter Baked Salmon',
-          'Honey Calamansi Juice & Buko Pandan'
+          { name: 'Vietnamese Spring Roll w/ Peanut Sauce', basePrice: 85 },
+          { name: 'Hainanese Chicken & Peach BBQ', basePrice: 180 },
+          { name: 'Creamy Garlic Butter Baked Salmon', basePrice: 195 },
+          { name: 'Honey Calamansi Juice & Buko Pandan', basePrice: 90 }
         ]
       },
       {
@@ -427,11 +427,11 @@
         badge: '+ ₱600 PER PAX',
         upgradePerPax: 600,
         items: [
-          'Clam Soup & Garden Salad',
-          'Paella & Plain Rice | Chicken Kebab & Lengua',
-          'Lechon w/ Carving Station',
-          'Chami Tamis-Anghang (Live Cooking)',
-          'Calumpit Juice & Assorted Fruits'
+          { name: 'Clam Soup & Garden Salad', basePrice: 100 },
+          { name: 'Paella & Plain Rice | Chicken Kebab & Lengua', basePrice: 250 },
+          { name: 'Lechon w/ Carving Station', basePrice: 320 },
+          { name: 'Chami Tamis-Anghang (Live Cooking)', basePrice: 120 },
+          { name: 'Calumpit Juice & Assorted Fruits', basePrice: 110 }
         ]
       }
     ];
@@ -1156,7 +1156,6 @@
       const [menuCategoryFilter, setMenuCategoryFilter] = useState('All');
       const [menuSearchQuery, setMenuSearchQuery] = useState('');
       const [selectedMenuLines, setSelectedMenuLines] = useState([]);
-      const [useSwapMenuCredit, setUseSwapMenuCredit] = useState(false);
       const [showQuickNewDishInStep3, setShowQuickNewDishInStep3] = useState(false);
 
       const [editingMenuId, setEditingMenuId] = useState(null);
@@ -1492,6 +1491,26 @@
         [selectedBuffetMenuId]
       );
 
+      const isCustomReplaceMenu = selectedPackage.foodIncluded && selectedBuffetMenuId === 'custom_replace';
+
+      // Reflect chosen buffet plan or Customized Menu directly inside package inclusions
+      const resolvedPackageInclusions = useMemo(() => {
+        const list = selectedPackage.inclusions || [];
+        if (!selectedPackage.foodIncluded) return list;
+        return list.map(inc => {
+          if (inc.toLowerCase().includes('classic menu a')) {
+            if (isCustomReplaceMenu) {
+              return `Customized A La Carte Menu (₱${selectedPackage.foodCreditPerPax || 300}/pax base food credit deducted; dishes itemized below)`;
+            }
+            if (selectedBuffetMenu.id !== 'menu_a_classic') {
+              return `${selectedBuffetMenu.name} (${selectedBuffetMenu.badge})`;
+            }
+            return 'Sample Menu A (Classic) included';
+          }
+          return inc;
+        });
+      }, [selectedPackage, isCustomReplaceMenu, selectedBuffetMenu]);
+
       const packageBreakdown = useMemo(() => {
         if (!showPackageStep) {
           return {
@@ -1502,19 +1521,33 @@
             excessCharge: 0,
             menuUpgradePerPax: 0,
             menuUpgradeCharge: 0,
+            foodCreditPerPax: 0,
+            foodCreditDeduction: 0,
+            grossPackageTotal: 0,
             total: 0
           };
         }
         const effectiveGuests = Math.max(1, Number(paxCount) || 1);
-        const menuUpgradePerPax = selectedPackage.foodIncluded ? (Number(selectedBuffetMenu?.upgradePerPax) || 0) : 0;
+        const menuUpgradePerPax = selectedPackage.foodIncluded && !isCustomReplaceMenu
+          ? (Number(selectedBuffetMenu?.upgradePerPax) || 0)
+          : 0;
         const menuUpgradeCharge = menuUpgradePerPax * effectiveGuests;
+        const foodCreditPerPax = selectedPackage.foodIncluded && isCustomReplaceMenu
+          ? (Number(selectedPackage.foodCreditPerPax) || 300)
+          : 0;
+        const foodCreditDeduction = foodCreditPerPax * effectiveGuests;
+
         if (isTieredAllInclusivePackage(selectedPackage.id)) {
           const base = calculateTieredPackageBreakdown(selectedPackage, selectedTierPax, paxCount, excessRatePerPax);
+          const grossPackageTotal = base.total + menuUpgradeCharge;
           return {
             ...base,
             menuUpgradePerPax,
             menuUpgradeCharge,
-            total: base.total + menuUpgradeCharge
+            foodCreditPerPax,
+            foodCreditDeduction,
+            grossPackageTotal,
+            total: Math.max(0, grossPackageTotal - foodCreditDeduction)
           };
         }
         const flat = Math.max(0, Number(customBaseFee) || 0);
@@ -1526,9 +1559,12 @@
           excessCharge: 0,
           menuUpgradePerPax: 0,
           menuUpgradeCharge: 0,
+          foodCreditPerPax: 0,
+          foodCreditDeduction: 0,
+          grossPackageTotal: flat,
           total: flat
         };
-      }, [showPackageStep, selectedPackage, selectedBuffetMenu, selectedTierPax, paxCount, excessRatePerPax, customBaseFee]);
+      }, [showPackageStep, selectedPackage, isCustomReplaceMenu, selectedBuffetMenu, selectedTierPax, paxCount, excessRatePerPax, customBaseFee]);
 
       const effectiveDayForBuilder = bookingCategory === 'seminar' ? activeScheduleDay : 1;
 
@@ -1598,33 +1634,38 @@
             lines: [],
             grossMenuTotal: computedPackedMealsSummary.totalAmount,
             perPaxRateSum: computedPackedMealsSummary.avgPerPack,
-            appliedSwapCredit: 0,
             netMenuTotal: computedPackedMealsSummary.totalAmount
           };
         }
         if (!showMenuStep) {
-          return { lines: [], grossMenuTotal: 0, perPaxRateSum: 0, appliedSwapCredit: 0, netMenuTotal: 0 };
+          return { lines: [], grossMenuTotal: 0, perPaxRateSum: 0, netMenuTotal: 0 };
         }
         const lines = selectedMenuLines.map(line => {
           const activeDays = bookingCategory === 'seminar' && line.allDays ? Math.max(1, eventDays) : 1;
           const dayPax = getPaxForDay(line.day);
-          const lineTotal = line.price * (line.unit === 'per_pax' ? dayPax : 1) * line.qty * activeDays;
-          return { ...line, dayPax, lineTotal };
+          const hasCustomPax = line.customPax !== undefined && line.customPax !== null;
+          const effectivePax = hasCustomPax
+            ? (line.customPax === '' ? 0 : Math.max(0, Number(line.customPax) || 0))
+            : dayPax * Math.max(1, Number(line.qty) || 1);
+          const lineTotal = line.price * effectivePax * activeDays;
+          return {
+            ...line,
+            dayPax,
+            effectivePax,
+            isCustomPax: hasCustomPax && line.customPax !== '' && effectivePax !== dayPax,
+            activeDays,
+            lineTotal
+          };
         });
         const grossMenuTotal = lines.reduce((s, l) => s + l.lineTotal, 0);
-        const perPaxRateSum = lines.reduce((s, l) => s + (l.unit === 'per_pax' ? l.price * l.qty : 0), 0);
-        const swapAvail = showPackageStep && selectedPackage.foodIncluded && useSwapMenuCredit
-          ? (Number(selectedPackage.foodCreditPerPax) || 300) * (Number(paxCount) || 0)
-          : 0;
-        const appliedSwapCredit = Math.min(grossMenuTotal, swapAvail);
+        const perPaxRateSum = lines.reduce((s, l) => s + (l.unit === 'per_pax' ? l.price : 0), 0);
         return {
           lines,
           grossMenuTotal,
           perPaxRateSum,
-          appliedSwapCredit,
-          netMenuTotal: Math.max(0, grossMenuTotal - appliedSwapCredit)
+          netMenuTotal: grossMenuTotal
         };
-      }, [bookingCategory, computedPackedMealsSummary, showMenuStep, showPackageStep, selectedMenuLines, eventDays, dayPaxOverrides, paxCount, selectedPackage, useSwapMenuCredit]);
+      }, [bookingCategory, computedPackedMealsSummary, showMenuStep, selectedMenuLines, eventDays, dayPaxOverrides, paxCount]);
 
       const computedServiceLines = useMemo(() => {
         const pool = bookingCategory === 'rental'
@@ -1868,7 +1909,6 @@
           setDocType('Quotation');
           setSelectedPackageId('from_scratch');
           setCustomBaseFee(0);
-          setUseSwapMenuCredit(false);
           setOccasion('Packed Meals Order');
           setServiceSubcategoryFilter('All');
           setCustomServiceCategory('Catering');
@@ -1985,7 +2025,7 @@
         }
         const lineKey = `${effectiveDayForBuilder}__${dish.id}`;
         if (selectedMenuLines.some(i => i.key === lineKey)) {
-          showToast(`"${dish.name}" is already in Chosen Menu — adjust servings below.`);
+          showToast(`"${dish.name}" is already in Chosen Menu — adjust pax count below.`);
           return;
         }
         setSelectedMenuLines(prev => [
@@ -1999,17 +2039,41 @@
             category: dish.category || 'Main Course',
             price: Number(dish.price) || 0,
             unit: dish.unit || 'per_pax',
+            customPax: null,
             qty: 1
           }
         ]);
         showToast(`Added "${dish.name}" to Chosen Menu.`);
       };
 
-      const handleUpdateMenuLineQty = (lineKey, nextQty) => {
-        const cleanQty = Number(nextQty) || 0;
+      const handleUpdateMenuLinePax = (lineKey, rawVal) => {
+        if (rawVal === '') {
+          setSelectedMenuLines(prev =>
+            prev.map(i => (i.key === lineKey ? { ...i, customPax: '' } : i))
+          );
+          return;
+        }
+        const parsed = Math.max(0, parseInt(rawVal, 10) || 0);
         setSelectedMenuLines(prev =>
-          cleanQty <= 0 ? prev.filter(i => i.key !== lineKey) : prev.map(i => (i.key === lineKey ? { ...i, qty: cleanQty } : i))
+          prev.map(i => (i.key === lineKey ? { ...i, customPax: parsed, qty: 1 } : i))
         );
+      };
+
+      const handleStepMenuLinePax = (lineKey, delta, currentEffectivePax) => {
+        const nextPax = Math.max(1, (Number(currentEffectivePax) || 1) + delta);
+        setSelectedMenuLines(prev =>
+          prev.map(i => (i.key === lineKey ? { ...i, customPax: nextPax, qty: 1 } : i))
+        );
+      };
+
+      const handleResetMenuLinePax = lineKey => {
+        setSelectedMenuLines(prev =>
+          prev.map(i => (i.key === lineKey ? { ...i, customPax: null, qty: 1 } : i))
+        );
+      };
+
+      const handleRemoveMenuLine = lineKey => {
+        setSelectedMenuLines(prev => prev.filter(i => i.key !== lineKey));
       };
 
       const handleToggleMenuLineAllDays = lineKey => {
@@ -2227,7 +2291,7 @@
           eventVenue, eventDate, rentalReturnDate, eventTime, paxCount, eventDays,
           securityDeposit, rentalTermsText, packedMealDaysCount, packedMealBatches,
           selectedPackageId, selectedBuffetMenuId, selectedTierPax, excessRatePerPax, customBaseFee,
-          selectedMenuLines, useSwapMenuCredit, selectedServiceLines, roomNightsMap, roomDatesMap,
+          selectedMenuLines, selectedServiceLines, roomNightsMap, roomDatesMap,
           discountLabel, discountAmount, taxRatePercent, payments,
           poNumber, poApprovedBudget, poNotes,
           grandTotal: totals.grandTotal, balanceDue: totals.balanceDue
@@ -2271,7 +2335,6 @@
         setExcessRatePerPax(q.excessRatePerPax ?? STANDARD_EXCESS_RATE);
         setCustomBaseFee(q.customBaseFee || 0);
         setSelectedMenuLines(q.selectedMenuLines || []);
-        setUseSwapMenuCredit(Boolean(q.useSwapMenuCredit));
         setSelectedServiceLines(q.selectedServiceLines || []);
         setRoomNightsMap(q.roomNightsMap || {});
         setRoomDatesMap(q.roomDatesMap || {});
@@ -2310,11 +2373,15 @@
         }
         lines.push(`📍 Location: ${eventVenue}`, '', '📋 SUMMARY OF CHARGES:');
         if (showPackageStep && (packageBreakdown.total > 0 || isTieredAllInclusivePackage(selectedPackage.id))) {
-          const menuSuffix = selectedPackage.foodIncluded ? ` + ${selectedBuffetMenu.name}` : '';
+          const menuSuffix = selectedPackage.foodIncluded
+            ? (isCustomReplaceMenu
+                ? ` (Customized Menu: −₱${packageBreakdown.foodCreditPerPax}/pax credit applied)`
+                : ` + ${selectedBuffetMenu.name}`)
+            : '';
           lines.push(`• ${selectedPackage.name}${menuSuffix}: ${formatCurrency(packageBreakdown.total)}`);
         }
         if (bookingCategory !== 'packed_meals' && computedMenuSummary.lines.length > 0) {
-          lines.push(`• Menu (${computedMenuSummary.lines.map(l => l.name).join(', ')}): ${formatCurrency(computedMenuSummary.netMenuTotal)}`);
+          lines.push(`• Menu (${computedMenuSummary.lines.map(l => `${l.name} (${l.effectivePax} pax)`).join(', ')}): ${formatCurrency(computedMenuSummary.netMenuTotal)}`);
         }
         if (computedServiceLines.length > 0) {
           lines.push(`• ${bookingCategory === 'rental' ? 'Rentals' : 'Services'} (${computedServiceLines.map(l => `${l.name} x${l.qty}`).join(', ')}): ${formatCurrency(servicesSubtotal)}`);
@@ -2802,20 +2869,28 @@
                         </div>
 
                         {/* Section 3: Official Built-In Buffet Menu Selections */}
-                        <div className="pt-2 border-t border-cream-200 space-y-2">
-                          <div className="flex items-center justify-between">
+                        <div className="pt-2 border-t border-cream-200 space-y-2.5">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
                             <span className="text-[11px] font-extrabold uppercase tracking-wider text-espresso-950">
-                              3. Buffet Menu Selections (Built-In Plan)
+                              3. Buffet Menu Plan
                             </span>
-                            {packageBreakdown.menuUpgradeCharge > 0 && (
-                              <span className="font-mono text-xs font-extrabold text-gold-600">
-                                +{formatWholeCurrency(packageBreakdown.menuUpgradeCharge)} ({paxCount}p × ₱{packageBreakdown.menuUpgradePerPax})
-                              </span>
-                            )}
+                            <div className="flex flex-wrap items-center gap-2">
+                              {packageBreakdown.menuUpgradeCharge > 0 && (
+                                <span className="font-mono text-[11px] font-extrabold text-gold-600">
+                                  Upgrade: +{formatWholeCurrency(packageBreakdown.menuUpgradeCharge)}
+                                </span>
+                              )}
+                              {packageBreakdown.foodCreditDeduction > 0 && (
+                                <span className="font-mono text-[11px] font-extrabold px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-800">
+                                  Food Credit: −{formatWholeCurrency(packageBreakdown.foodCreditDeduction)}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                             {SAMPLE_BUFFET_MENUS.map(menuOpt => {
-                              const isMenuSelected = selectedBuffetMenu.id === menuOpt.id;
+                              const isMenuSelected = selectedBuffetMenuId === menuOpt.id;
                               return (
                                 <button
                                   key={menuOpt.id}
@@ -2841,15 +2916,69 @@
                                         isMenuSelected ? 'text-cream-200/85' : 'text-espresso-800/80'
                                       }`}
                                     >
-                                      {menuOpt.items.map((dishLine, idx) => (
-                                        <li key={idx}>{dishLine}</li>
+                                      {menuOpt.items.map((dishObj, idx) => (
+                                        <li key={idx}>{dishObj.name}</li>
                                       ))}
                                     </ul>
                                   </div>
                                 </button>
                               );
                             })}
+
+                            {/* 4th Card: Customized Menu (Deduct ₱300/pax Credit) */}
+                            <button
+                              key="custom_replace"
+                              type="button"
+                              onClick={() => setSelectedBuffetMenuId('custom_replace')}
+                              className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between gap-1.5 ${
+                                isCustomReplaceMenu
+                                  ? 'bg-espresso-950 text-cream-50 border-gold-500 shadow'
+                                  : 'bg-white hover:bg-cream-100 text-espresso-950 border-cream-200 border-dashed'
+                              }`}
+                            >
+                              <div>
+                                <span
+                                  className={`inline-block px-2 py-0.5 rounded text-[9px] font-extrabold uppercase ${
+                                    isCustomReplaceMenu ? 'bg-gold-500 text-espresso-950' : 'bg-emerald-100 text-emerald-900'
+                                  }`}
+                                >
+                                  − ₱{selectedPackage.foodCreditPerPax || 300} / PAX CREDIT
+                                </span>
+                                <div className="font-bold text-xs mt-1">Customized Menu</div>
+                                <p className={`mt-1 text-[10px] leading-snug ${isCustomReplaceMenu ? 'text-cream-200/85' : 'text-espresso-800/80'}`}>
+                                  Deducts ₱{selectedPackage.foodCreditPerPax || 300}/pax ({formatWholeCurrency((Number(selectedPackage.foodCreditPerPax) || 300) * (Number(paxCount) || 0))}) from the package rate, then adds your chosen Step {stepNumbers.menu} dishes.
+                                </p>
+                              </div>
+                            </button>
                           </div>
+
+                          {/* Clear Customized Menu Computation Summary */}
+                          {isCustomReplaceMenu && (
+                            <div className="bg-emerald-50/90 p-3 rounded-xl border border-emerald-300 space-y-1.5 text-xs">
+                              <div className="font-extrabold text-emerald-950 flex items-center gap-1.5">
+                                <i className="fa-solid fa-calculator text-emerald-700"></i>
+                                <span>Customized Menu Computation ({paxCount} Pax)</span>
+                              </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
+                                <div className="bg-white p-2 rounded-lg border border-emerald-200">
+                                  <div className="text-[9px] font-bold uppercase text-espresso-800/70">Package Base</div>
+                                  <div className="font-mono font-extrabold text-espresso-950">{formatWholeCurrency(packageBreakdown.grossPackageTotal)}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded-lg border border-emerald-200">
+                                  <div className="text-[9px] font-bold uppercase text-emerald-700">Less ₱{packageBreakdown.foodCreditPerPax}/pax</div>
+                                  <div className="font-mono font-extrabold text-emerald-700">−{formatWholeCurrency(packageBreakdown.foodCreditDeduction)}</div>
+                                </div>
+                                <div className="bg-white p-2 rounded-lg border border-emerald-200">
+                                  <div className="text-[9px] font-bold uppercase text-espresso-800/70">+ Custom Dishes</div>
+                                  <div className="font-mono font-extrabold text-espresso-950">+{formatWholeCurrency(computedMenuSummary.netMenuTotal)}</div>
+                                </div>
+                                <div className="bg-espresso-950 text-gold-300 p-2 rounded-lg">
+                                  <div className="text-[9px] font-bold uppercase text-cream-200/80">New Package + Menu</div>
+                                  <div className="font-mono font-extrabold">{formatWholeCurrency(packageBreakdown.total + computedMenuSummary.netMenuTotal)}</div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -2869,7 +2998,7 @@
                     </div>
                     {showPackageInclusions && (
                       <ul className="bg-cream-50 p-3 rounded-xl border border-cream-200 space-y-1 text-xs list-disc pl-6">
-                        {selectedPackage.inclusions.map((inc, idx) => <li key={idx}>{inc}</li>)}
+                        {resolvedPackageInclusions.map((inc, idx) => <li key={idx}>{inc}</li>)}
                       </ul>
                     )}
                   </section>
@@ -3149,13 +3278,42 @@
                     )}
 
                     {showPackageStep && selectedPackage.foodIncluded && (
-                      <label className="flex items-center justify-between gap-3 bg-amber-50/70 p-3 rounded-xl border border-gold-400/50 cursor-pointer">
-                        <div>
-                          <span className="text-xs font-extrabold text-espresso-950">Apply Swap Menu Food Credit (₱{selectedPackage.foodCreditPerPax}/pax)</span>
-                          <span className="block text-[11px] text-espresso-800/80">Deducts up to {formatWholeCurrency((Number(selectedPackage.foodCreditPerPax) || 300) * (Number(paxCount) || 0))} when replacing built-in menu with custom A La Carte dishes</span>
+                      isCustomReplaceMenu ? (
+                        <div className="bg-emerald-50/90 p-3 rounded-xl border border-emerald-300 flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <div>
+                            <span className="font-extrabold text-emerald-950">
+                              <i className="fa-solid fa-check-circle mr-1.5 text-emerald-700"></i>
+                              Customized Menu Mode Active (₱{packageBreakdown.foodCreditPerPax}/pax Credit Deducted)
+                            </span>
+                            <span className="block text-[11px] text-emerald-900">
+                              Base food credit of <strong>−{formatWholeCurrency(packageBreakdown.foodCreditDeduction)}</strong> is already deducted from {selectedPackage.name} (Net Package: {formatWholeCurrency(packageBreakdown.total)}). Pick your custom dishes below.
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedBuffetMenuId('menu_a_classic')}
+                            className="px-2.5 py-1.5 rounded-lg bg-white border border-emerald-300 text-espresso-950 text-[11px] font-bold shrink-0"
+                          >
+                            Switch Back to Sample Menu A
+                          </button>
                         </div>
-                        <input type="checkbox" checked={useSwapMenuCredit} onChange={e => setUseSwapMenuCredit(e.target.checked)} className="w-4 h-4 accent-espresso-950" />
-                      </label>
+                      ) : (
+                        <div className="bg-amber-50/70 p-3 rounded-xl border border-gold-400/50 flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <div>
+                            <span className="font-extrabold text-espresso-950">Add-On / Extra Dishes (On Top of {selectedBuffetMenu.name})</span>
+                            <span className="block text-[11px] text-espresso-800/80">
+                              Dishes added below are billed as extras (e.g., VIP dishes). Want to replace {selectedBuffetMenu.name} with a customized menu instead?
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedBuffetMenuId('custom_replace')}
+                            className="px-3 py-1.5 rounded-lg bg-espresso-950 text-gold-300 text-[11px] font-extrabold shrink-0"
+                          >
+                            Use Customized Menu (−₱{selectedPackage.foodCreditPerPax || 300}/pax)
+                          </button>
+                        </div>
+                      )
                     )}
 
                     <div className="space-y-2">
@@ -3178,7 +3336,7 @@
                           Boolean(activePackedBatch?.dishIds?.includes(dish.id));
                         const existingLine =
                           bookingCategory !== 'packed_meals'
-                            ? selectedMenuLines.find(l => l.key === `${effectiveDayForBuilder}__${dish.id}`)
+                            ? computedMenuSummary.lines.find(l => l.key === `${effectiveDayForBuilder}__${dish.id}`)
                             : null;
                         const activeCard = isSelectedInPacked || Boolean(existingLine);
                         return (
@@ -3191,7 +3349,7 @@
                               <div className="font-mono font-extrabold text-xs">₱{dish.price}/{bookingCategory === 'packed_meals' ? 'pk' : 'pax'}</div>
                               {activeCard ? (
                                 <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-gold-500 text-espresso-950 text-[10px] font-extrabold">
-                                  {bookingCategory === 'packed_meals' ? 'In Box' : `In Menu (${existingLine.qty})`}
+                                  {bookingCategory === 'packed_meals' ? 'In Box' : `${existingLine.effectivePax} pax`}
                                 </span>
                               ) : (
                                 <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-white border border-cream-200 text-espresso-800 text-[10px] font-bold">+ Add</span>
@@ -3204,30 +3362,70 @@
 
                     {bookingCategory !== 'packed_meals' && computedMenuSummary.lines.length > 0 && (
                       <div className="bg-cream-50 p-3.5 rounded-2xl border border-gold-400/60 space-y-2">
-                        <div className="flex items-center justify-between border-b border-cream-200 pb-2">
-                          <span className="text-xs font-extrabold uppercase text-espresso-950">Chosen A La Carte Menu ({computedMenuSummary.lines.length}) — ₱{computedMenuSummary.perPaxRateSum}/pax</span>
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cream-200 pb-2">
+                          <div>
+                            <span className="text-xs font-extrabold uppercase text-espresso-950">
+                              Chosen A La Carte Menu ({computedMenuSummary.lines.length}) — {formatWholeCurrency(computedMenuSummary.grossMenuTotal)}
+                            </span>
+                            <span className="block text-[10px] text-espresso-800/75">
+                              Adjust pax per dish independently (e.g., 10–20 pax for VIPs)
+                            </span>
+                          </div>
                           <button type="button" onClick={() => setSelectedMenuLines([])} className="text-[11px] font-bold text-red-600 hover:underline">Clear</button>
                         </div>
                         {computedMenuSummary.lines.map(line => (
                           <div key={line.key} className="bg-white p-2.5 rounded-xl border border-cream-200 flex flex-wrap items-center justify-between gap-2">
                             <div className="min-w-0">
-                              <div className="text-xs font-bold text-espresso-950">
-                                {bookingCategory === 'seminar' && <span className="px-1.5 py-0.5 mr-1 rounded bg-espresso-950 text-gold-300 text-[10px] font-mono">D{line.day}</span>}
-                                {line.name}
+                              <div className="text-xs font-bold text-espresso-950 flex flex-wrap items-center gap-1.5">
+                                {bookingCategory === 'seminar' && <span className="px-1.5 py-0.5 rounded bg-espresso-950 text-gold-300 text-[10px] font-mono">D{line.day}</span>}
+                                <span>{line.name}</span>
+                                {line.isCustomPax && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResetMenuLinePax(line.key)}
+                                    title="Click to reset back to full event pax"
+                                    className="px-1.5 py-0.5 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-900 text-[9px] font-extrabold"
+                                  >
+                                    Custom Pax • Reset to {line.dayPax}p
+                                  </button>
+                                )}
                               </div>
                               <div className="text-[11px] text-espresso-800/75 font-mono">
-                                ₱{line.price} × {line.dayPax} × {line.qty} = <strong className="text-espresso-950">{formatWholeCurrency(line.lineTotal)}</strong>
+                                ₱{line.price}/pax × {line.effectivePax} pax{line.activeDays > 1 ? ` × ${line.activeDays}d` : ''} = <strong className="text-espresso-950">{formatWholeCurrency(line.lineTotal)}</strong>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 shrink-0">
                               {bookingCategory === 'seminar' && eventDays > 1 && (
                                 <button type="button" onClick={() => handleToggleMenuLineAllDays(line.key)} className={`px-2 py-1 rounded-lg text-[10px] font-bold ${line.allDays ? 'bg-espresso-950 text-gold-300' : 'bg-cream-100'}`}>
                                   {line.allDays ? `All ${eventDays}d` : '1 Day'}
                                 </button>
                               )}
-                              <button type="button" onClick={() => handleUpdateMenuLineQty(line.key, line.qty - 1)} className="w-7 h-7 rounded-lg bg-cream-100 font-bold text-xs">−</button>
-                              <span className="w-6 text-center font-mono text-xs font-extrabold">{line.qty}</span>
-                              <button type="button" onClick={() => handleUpdateMenuLineQty(line.key, line.qty + 1)} className="w-7 h-7 rounded-lg bg-cream-100 font-bold text-xs">+</button>
+                              <div className="flex items-center gap-1 bg-cream-100 p-0.5 rounded-xl border border-cream-200">
+                                <button type="button" onClick={() => handleStepMenuLinePax(line.key, -1, line.effectivePax)} className="w-7 h-7 rounded-lg hover:bg-white font-bold text-xs transition" title="Decrease pax">−</button>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={line.customPax === '' ? '' : line.effectivePax}
+                                  onChange={e => handleUpdateMenuLinePax(line.key, e.target.value)}
+                                  onBlur={() => {
+                                    if (line.customPax === '' || (line.customPax !== null && Number(line.customPax) < 1)) {
+                                      handleUpdateMenuLinePax(line.key, 1);
+                                    }
+                                  }}
+                                  aria-label={`Pax for ${line.name}`}
+                                  className="w-12 text-center bg-white rounded-lg py-1 font-mono text-xs font-extrabold border border-cream-200 focus:outline-none focus:border-gold-500"
+                                />
+                                <span className="text-[10px] font-bold text-espresso-800/75 pr-1">pax</span>
+                                <button type="button" onClick={() => handleStepMenuLinePax(line.key, 1, line.effectivePax)} className="w-7 h-7 rounded-lg hover:bg-white font-bold text-xs transition" title="Increase pax">+</button>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveMenuLine(line.key)}
+                                className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition"
+                                title="Remove dish"
+                              >
+                                <i className="fa-solid fa-trash-can text-[11px]"></i>
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -3591,30 +3789,44 @@
                               <td className="py-2.5 px-3">
                                 <div className="font-bold text-espresso-950">{selectedPackage.name}</div>
                                 {isTieredAllInclusivePackage(selectedPackage.id) && (
-                                  <div className="text-[11px] text-espresso-800">
-                                    Base Tier ({packageBreakdown.tierPax} Pax): {formatWholeCurrency(packageBreakdown.basePrice)}
-                                    {packageBreakdown.excessPax > 0 && ` + ${packageBreakdown.excessPax} Excess Pax @ ₱${packageBreakdown.excessRate}/pax`}
+                                  <div className="text-[11px] text-espresso-800 space-y-0.5">
+                                    <div>
+                                      Base Tier ({packageBreakdown.tierPax} Pax): {formatWholeCurrency(packageBreakdown.basePrice)}
+                                      {packageBreakdown.excessPax > 0 && ` + ${packageBreakdown.excessPax} Excess Pax @ ₱${packageBreakdown.excessRate}/pax (${formatWholeCurrency(packageBreakdown.excessCharge)})`}
+                                      {packageBreakdown.menuUpgradeCharge > 0 && ` + ${selectedBuffetMenu.name} Upgrade (${formatWholeCurrency(packageBreakdown.menuUpgradeCharge)})`}
+                                    </div>
+                                    {packageBreakdown.foodCreditDeduction > 0 && (
+                                      <div className="font-bold text-emerald-700">
+                                        Less Customized Menu Food Credit (₱{packageBreakdown.foodCreditPerPax}/pax × {paxCount} pax): −{formatWholeCurrency(packageBreakdown.foodCreditDeduction)}
+                                      </div>
+                                    )}
                                   </div>
                                 )}
-                                {selectedPackage.inclusions?.length > 0 && (
+                                {resolvedPackageInclusions.length > 0 && (
                                   <ul className="mt-1.5 text-[10px] text-espresso-900 list-disc pl-4 space-y-0.5">
-                                    {selectedPackage.inclusions.map((inc, idx) => (
+                                    {resolvedPackageInclusions.map((inc, idx) => (
                                       <li key={idx}>{inc}</li>
                                     ))}
                                   </ul>
                                 )}
                                 {selectedPackage.foodIncluded && (
-                                  <div className="mt-1.5 bg-cream-50 p-2 rounded-lg border border-cream-200">
-                                    <div className="text-[10px] font-extrabold text-espresso-950">
-                                      Built-In Buffet Plan: {selectedBuffetMenu.name} ({selectedBuffetMenu.badge})
-                                      {packageBreakdown.menuUpgradeCharge > 0 && ` — +${formatWholeCurrency(packageBreakdown.menuUpgradeCharge)}`}
+                                  isCustomReplaceMenu ? (
+                                    <div className="mt-1.5 bg-emerald-50/70 p-2 rounded-lg border border-emerald-200 text-[10px] font-bold text-emerald-900">
+                                      Customized Menu Selected — ₱{packageBreakdown.foodCreditPerPax}/pax base food credit (−{formatWholeCurrency(packageBreakdown.foodCreditDeduction)}) deducted above; chosen dishes itemized below.
                                     </div>
-                                    <ul className="mt-0.5 text-[10px] text-espresso-900 list-disc pl-4 space-y-0.5">
-                                      {selectedBuffetMenu.items.map((dishLine, idx) => (
-                                        <li key={idx}>{dishLine}</li>
-                                      ))}
-                                    </ul>
-                                  </div>
+                                  ) : (
+                                    <div className="mt-1.5 bg-cream-50 p-2 rounded-lg border border-cream-200">
+                                      <div className="text-[10px] font-extrabold text-espresso-950">
+                                        Built-In Buffet Plan: {selectedBuffetMenu.name} ({selectedBuffetMenu.badge})
+                                        {packageBreakdown.menuUpgradeCharge > 0 && ` — +${formatWholeCurrency(packageBreakdown.menuUpgradeCharge)}`}
+                                      </div>
+                                      <ul className="mt-0.5 text-[10px] text-espresso-900 list-disc pl-4 space-y-0.5">
+                                        {selectedBuffetMenu.items.map((dishItem, idx) => (
+                                          <li key={idx}>{dishItem.name}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )
                                 )}
                               </td>
                               <td className="py-2.5 px-3 text-right font-mono align-top">
@@ -3674,25 +3886,17 @@
                                 </div>
                                 <div className="text-[10px] text-espresso-800/80">
                                   Category: {line.category}
+                                  {line.isCustomPax ? ` • Custom / VIP Portion (${line.effectivePax} pax)` : ''}
                                   {line.allDays && eventDays > 1 ? ` • All ${eventDays} Days` : ''}
                                 </div>
                               </td>
-                              <td className="py-2 px-3 text-right font-mono">{line.dayPax} pax × {line.qty}</td>
+                              <td className="py-2 px-3 text-right font-mono">
+                                {line.effectivePax} pax{line.allDays && eventDays > 1 ? ` × ${eventDays}d` : ''}
+                              </td>
                               <td className="py-2 px-3 text-right font-mono">{formatCurrency(line.price)}</td>
                               <td className="py-2 px-3 text-right font-mono font-bold">{formatCurrency(line.lineTotal)}</td>
                             </tr>
                           ))}
-
-                          {bookingCategory !== 'packed_meals' && computedMenuSummary.appliedSwapCredit > 0 && (
-                            <tr className="bg-emerald-50">
-                              <td className="py-2 px-3 font-bold text-emerald-800" colSpan="3">
-                                Swap Menu Food Credit (₱{selectedPackage.foodCreditPerPax}/pax)
-                              </td>
-                              <td className="py-2 px-3 text-right font-mono font-bold text-emerald-800">
-                                −{formatCurrency(computedMenuSummary.appliedSwapCredit)}
-                              </td>
-                            </tr>
-                          )}
 
                           {/* Event Services & Rentals Detailed Rows */}
                           {computedServiceLines.map(line => (
@@ -3896,14 +4100,16 @@
                             Package Setup: {selectedPackage.name}
                           </div>
                           <div className="p-3 space-y-2">
-                            <ul className="grid grid-cols-2 gap-1 text-[11px] list-disc pl-4">
-                              {selectedPackage.inclusions.map((inc, i) => <li key={i}>{inc}</li>)}
+                            <ul className="text-[11px] list-disc pl-4 space-y-0.5 text-espresso-900">
+                              {resolvedPackageInclusions.map((inc, idx) => <li key={idx}>☐ {inc}</li>)}
                             </ul>
-                            {selectedPackage.foodIncluded && (
+                            {selectedPackage.foodIncluded && !isCustomReplaceMenu && (
                               <div className="pt-2 border-t border-cream-200">
                                 <div className="font-bold text-espresso-950 mb-1">Built-In Kitchen Menu ({selectedBuffetMenu.name} — {paxCount} Pax):</div>
                                 <ul className="text-[11px] list-disc pl-4 space-y-0.5">
-                                  {selectedBuffetMenu.items.map((item, i) => <li key={i}>☐ {item}</li>)}
+                                  {selectedBuffetMenu.items.map((dishItem, idx) => (
+                                    <li key={idx}>☐ {dishItem.name}</li>
+                                  ))}
                                 </ul>
                               </div>
                             )}
@@ -3943,8 +4149,11 @@
                           <div className="bg-espresso-950 text-gold-300 px-3 py-1.5 text-xs font-extrabold uppercase">Additional A La Carte Kitchen List</div>
                           {computedMenuSummary.lines.map(l => (
                             <div key={l.key} className="flex items-center justify-between px-3 py-2 border-t border-cream-200 text-xs">
-                              <span>☐ <strong>[{l.category}]</strong> {l.name}</span>
-                              <span className="font-mono font-bold">{l.dayPax} pax × {l.qty}</span>
+                              <span>
+                                ☐ <strong>[{l.category}]</strong> {l.name}
+                                {l.isCustomPax && <span className="ml-1.5 text-[10px] font-bold text-gold-600">(VIP / Custom Pax)</span>}
+                              </span>
+                              <span className="font-mono font-bold">{l.effectivePax} pax{l.allDays && eventDays > 1 ? ` × ${eventDays}d` : ''}</span>
                             </div>
                           ))}
                         </div>
@@ -4060,7 +4269,9 @@
                         </span>
                         <h4 className="font-serif text-lg font-bold text-espresso-950 mt-2">{menuOpt.name}</h4>
                         <ul className="mt-2 text-xs text-espresso-900 space-y-1 list-disc pl-5">
-                          {menuOpt.items.map((item, idx) => <li key={idx}>{item}</li>)}
+                          {menuOpt.items.map((item, idx) => (
+                            <li key={idx}>{item.name}</li>
+                          ))}
                         </ul>
                       </div>
                       <button
