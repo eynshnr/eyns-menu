@@ -133,7 +133,7 @@
     const { useState, useEffect, useMemo, useRef } = React;
 
     // =========================================================================
-    // 0. PERMANENT GOOGLE SHEET LINKS (PRE-LINKED FOR TEAM DEVICES)
+    // 0. OPTIONAL PERMANENT GOOGLE SHEET LINKS (FOR GITHUB / TEAM DEPLOYMENT)
     // =========================================================================
     const HARDCODED_MENU_SHEET_URL = '';
     const HARDCODED_SERVICES_SHEET_URL = '';
@@ -150,6 +150,7 @@
       MENU_SCRIPT_URL: 'eyns_menu_script_url_stable',
       SERVICES_SCRIPT_URL: 'eyns_services_script_url_stable',
       ROOMS_SCRIPT_URL: 'eyns_rooms_script_url_stable',
+      ADMIN_PIN: 'eyns_admin_pin_stable',
       SAVED_QUOTES: 'eyns_saved_quotes_v1',
       BUSINESS_PROFILE: 'eyns_business_profile_v1'
     };
@@ -186,10 +187,10 @@
 
     const DEFAULT_BUSINESS_PROFILE = {
       businessName: 'EYNS HOTEL & RESTAURANT',
-      tagline: 'Creating Memorable Celebrations Since 1988 • Catanauan, Quezon',
+      tagline: 'Catering Services & Event Styling Quotation • Creating Memorable Celebrations Since 1988',
       address: 'Catanauan, Quezon',
       contactLine: 'Contact Person: Jem Medina (0917-841-7553)',
-      preparedBy: 'Jem Medina — EYNS Hotel & Restaurant Events Team',
+      preparedBy: 'Jem Medina — EYNS Hotel & Restaurant',
       paymentAccounts:
         'GCash / Bank Transfer: Update your official BDO, BPI, or GCash account details in Profile.',
       cateringTerms:
@@ -354,7 +355,7 @@
 
     function formatPrettyDate(isoStr) {
       if (!isoStr) return 'TBD';
-      const parts = String(isoStr).split('-');
+      const parts = isoStr.split('-');
       if (parts.length !== 3) return isoStr;
       const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
       if (isNaN(dt.getTime())) return isoStr;
@@ -363,7 +364,7 @@
 
     function addDaysToIsoDate(isoStr, offsetDays) {
       if (!isoStr) return '';
-      const parts = String(isoStr).split('-');
+      const parts = isoStr.split('-');
       if (parts.length !== 3) return isoStr;
       const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
       if (isNaN(dt.getTime())) return isoStr;
@@ -382,8 +383,6 @@
     function copyTextFallback(text) {
       const el = document.createElement('textarea');
       el.value = text;
-      el.style.position = 'fixed';
-      el.style.opacity = '0';
       document.body.appendChild(el);
       el.select();
       document.execCommand('copy');
@@ -391,58 +390,17 @@
     }
 
     // =========================================================================
-    // 2. OFFICIAL EYNS PACKAGES, SAMPLE BUFFET MENUS, MENU & ROOM CATALOGS
+    // 2. OFFICIAL EYNS PACKAGES, SAMPLE BUFFET MENUS, A LA CARTE & ROOMS
     // =========================================================================
     const STANDARD_EXCESS_RATE = 400;
-
-    const SAMPLE_BUFFET_MENUS = [
-      {
-        id: 'menu_a_classic',
-        name: 'Sample Menu A (Classic)',
-        badge: 'INCLUDED IN BASE',
-        upgradePerPax: 0,
-        items: [
-          { name: 'Garden Salad', basePrice: 45 },
-          { name: 'Roast Chicken w/ Dripping Sauce', basePrice: 80 },
-          { name: 'Fish Fillet w/ Tartar Sauce', basePrice: 75 },
-          { name: 'Plain Rice & Bottomless Iced Tea', basePrice: 55 },
-          { name: 'Coffee Jelly', basePrice: 45 }
-        ]
-      },
-      {
-        id: 'menu_b_deluxe',
-        name: 'Sample Menu B (Deluxe)',
-        badge: '+ ₱250 PER PAX',
-        upgradePerPax: 250,
-        items: [
-          { name: 'Vietnamese Spring Roll w/ Peanut Sauce', basePrice: 85 },
-          { name: 'Hainanese Chicken & Peach BBQ', basePrice: 180 },
-          { name: 'Creamy Garlic Butter Baked Salmon', basePrice: 195 },
-          { name: 'Honey Calamansi Juice & Buko Pandan', basePrice: 90 }
-        ]
-      },
-      {
-        id: 'menu_c_grand',
-        name: 'Sample Menu C (Grand)',
-        badge: '+ ₱600 PER PAX',
-        upgradePerPax: 600,
-        items: [
-          { name: 'Clam Soup & Garden Salad', basePrice: 100 },
-          { name: 'Paella & Plain Rice | Chicken Kebab & Lengua', basePrice: 250 },
-          { name: 'Lechon w/ Carving Station', basePrice: 320 },
-          { name: 'Chami Tamis-Anghang (Live Cooking)', basePrice: 120 },
-          { name: 'Calumpit Juice & Assorted Fruits', basePrice: 110 }
-        ]
-      }
-    ];
 
     const PACKAGES = [
       {
         id: 'pkg_entry',
         section: '1. ALL-INCLUSIVE CATERING & STYLING PACKAGES',
         name: 'Package Entry',
-        tagline: 'Open-Air Venue, Classic Menu A, Tables & Chairs, Basic Sound & Stage Backdrop',
-        venue: 'Eyns Open-Air Venue',
+        tagline: 'Open-Air Venue, Classic Menu A, Dedicated Staff & Basic Stage Backdrop',
+        venue: 'Open-Air Venue',
         foodIncluded: true,
         foodCreditPerPax: 300,
         tiers: [
@@ -456,7 +414,7 @@
           'Dedicated Service Staff',
           'Tables & Chairs Setup',
           'Buffet, Cake, & Souvenir Tables',
-          'Wine Bucket and Birdcage',
+          'Wine Bucket & Birdcage',
           'Basic Sound System',
           'Basic Stage Backdrop (Fabric Drapes)'
         ]
@@ -465,7 +423,7 @@
         id: 'pkg_essential',
         section: '1. ALL-INCLUSIVE CATERING & STYLING PACKAGES',
         name: 'Package Essential',
-        tagline: 'Air-conditioned Venue (4 hrs), Classic Menu A, Themed Stage & Prep Room',
+        tagline: 'Air-conditioned Venue (4 hrs), Themed Stage & Tables, Prep Room & Host',
         venue: 'Eyns Air-conditioned Venue (4 hrs)',
         foodIncluded: true,
         foodCreditPerPax: 300,
@@ -490,7 +448,7 @@
         id: 'pkg_signature',
         section: '1. ALL-INCLUSIVE CATERING & STYLING PACKAGES',
         name: "Anna's Signature",
-        tagline: 'Air-conditioned Venue (4 hrs), Triple-Zone Styling, Grazing Table & Pro Host',
+        tagline: 'Triple-Zone Styling, Grazing Table (50 Pax), Pro Lights & Sound & Host',
         venue: 'Eyns Air-conditioned Venue (4 hrs)',
         foodIncluded: true,
         foodCreditPerPax: 300,
@@ -514,7 +472,7 @@
         id: 'any_venue_styling',
         section: '2. FULL EVENT STYLING & SERVICE CATERING ONLY',
         name: 'Full Event Styling & Service Package (Food Excluded)',
-        tagline: 'Eyns Restaurant, Eyns Resort, or Your Choice of Venue — Triple-Zone Styling',
+        tagline: 'Eyns Restaurant, Eyns Resort, or Your Choice of Venue — Triple Zone Setup',
         venue: 'Eyns Restaurant, Eyns Resort, or Your Choice of Venue',
         foodIncluded: false,
         foodCreditPerPax: 0,
@@ -557,6 +515,47 @@
           'No Fixed Package Base Fee (₱0)',
           'Select Individual A La Carte Dishes',
           'Add Equipment Rentals, Catering Services or Rooms as Needed'
+        ]
+      }
+    ];
+
+    const SAMPLE_BUFFET_MENUS = [
+      {
+        id: 'menu_a_classic',
+        name: 'Sample Menu A (Classic)',
+        badge: 'INCLUDED IN BASE',
+        upgradePerPax: 0,
+        items: [
+          { name: 'Garden Salad' },
+          { name: 'Roast Chicken w/ Dripping Sauce' },
+          { name: 'Fish Fillet w/ Tartar Sauce' },
+          { name: 'Plain Rice & Bottomless Iced Tea' },
+          { name: 'Coffee Jelly' }
+        ]
+      },
+      {
+        id: 'menu_b_deluxe',
+        name: 'Sample Menu B (Deluxe)',
+        badge: '+ ₱250 PER PAX',
+        upgradePerPax: 250,
+        items: [
+          { name: 'Vietnamese Spring Roll w/ Peanut Sauce' },
+          { name: 'Hainanese Chicken & Peach BBQ' },
+          { name: 'Creamy Garlic Butter Baked Salmon' },
+          { name: 'Honey Calamansi Juice & Buko Pandan' }
+        ]
+      },
+      {
+        id: 'menu_c_grand',
+        name: 'Sample Menu C (Grand)',
+        badge: '+ ₱600 PER PAX',
+        upgradePerPax: 600,
+        items: [
+          { name: 'Clam Soup & Garden Salad' },
+          { name: 'Paella & Plain Rice | Chicken Kebab & Lengua' },
+          { name: 'Lechon w/ Carving Station' },
+          { name: 'Chami Tamis-Anghang (Live Cooking)' },
+          { name: 'Calumpit Juice & Assorted Fruits' }
         ]
       }
     ];
@@ -659,7 +658,7 @@
       { id: 'menu_56', category: 'Beverages & Snacks', name: 'Arroz Caldo / Chicken Mami Snack Bowl', price: 75, unit: 'per_pax', description: 'Warm hearty snack bowl with boiled egg' }
     ];
 
-    // 18 Default Hotel Rooms (Auto-overridden when synced with Sheet #5)
+    // 18 Default Hotel Rooms (synced & overridable via Sheet #5)
     const DEFAULT_ROOM_CATALOG = [
       { id: 'room_1', roomNo: 'Room 1', type: 'Standard Double Room', rate: 1800, capacity: '2 Pax', inclusions: 'Aircon, Wi-Fi, Private Bath' },
       { id: 'room_2', roomNo: 'Room 2', type: 'Standard Double Room', rate: 1800, capacity: '2 Pax', inclusions: 'Aircon, Wi-Fi, Private Bath' },
@@ -671,14 +670,14 @@
       { id: 'room_8', roomNo: 'Room 8', type: 'Deluxe Twin Room', rate: 2200, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Cable TV, Private Bath' },
       { id: 'room_9', roomNo: 'Room 9', type: 'Executive King Room', rate: 2600, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Smart TV, Hot & Cold Shower' },
       { id: 'room_10', roomNo: 'Room 10', type: 'Executive King Room', rate: 2600, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Smart TV, Hot & Cold Shower' },
-      { id: 'room_11', roomNo: 'Room 11', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: 'Aircon, Wi-Fi, 2 Double Beds, Private Bath' },
-      { id: 'room_12', roomNo: 'Room 12', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: 'Aircon, Wi-Fi, 2 Double Beds, Private Bath' },
-      { id: 'room_13', roomNo: 'Room 13', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: 'Aircon, Wi-Fi, 2 Double Beds, Private Bath' },
-      { id: 'room_14', roomNo: 'Room 14', type: 'Junior Bridal / VIP Suite', rate: 3800, capacity: '2–4 Pax', inclusions: 'Aircon, Wi-Fi, Lounge Area, Prep Mirror' },
-      { id: 'room_15', roomNo: 'Room 15', type: 'Junior Bridal / VIP Suite', rate: 3800, capacity: '2–4 Pax', inclusions: 'Aircon, Wi-Fi, Lounge Area, Prep Mirror' },
-      { id: 'room_16', roomNo: 'Room 16', type: 'Barkada / Group Dorm Room', rate: 4200, capacity: '6 Pax', inclusions: 'Aircon, Wi-Fi, Group Beds, Private Bath' },
-      { id: 'room_17', roomNo: 'Room 17', type: 'Barkada / Group Dorm Room', rate: 4200, capacity: '6 Pax', inclusions: 'Aircon, Wi-Fi, Group Beds, Private Bath' },
-      { id: 'room_18', roomNo: 'Room 18', type: 'EYNS Grand Family Suite', rate: 4800, capacity: '6–8 Pax', inclusions: 'Aircon, Wi-Fi, Living Area, Private Bath' }
+      { id: 'room_11', roomNo: 'Room 11', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: 'Aircon, Wi-Fi, 2 Queen Beds, Private Bath' },
+      { id: 'room_12', roomNo: 'Room 12', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: 'Aircon, Wi-Fi, 2 Queen Beds, Private Bath' },
+      { id: 'room_13', roomNo: 'Room 13', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: 'Aircon, Wi-Fi, 2 Queen Beds, Private Bath' },
+      { id: 'room_14', roomNo: 'Room 14', type: 'Junior Bridal / VIP Suite', rate: 3800, capacity: '2–4 Pax', inclusions: 'Aircon, Wi-Fi, Vanity Area, Mini-Fridge' },
+      { id: 'room_15', roomNo: 'Room 15', type: 'Junior Bridal / VIP Suite', rate: 3800, capacity: '2–4 Pax', inclusions: 'Aircon, Wi-Fi, Vanity Area, Mini-Fridge' },
+      { id: 'room_16', roomNo: 'Room 16', type: 'Barkada / Group Dorm Room', rate: 4200, capacity: '6 Pax', inclusions: 'Aircon, Wi-Fi, Multiple Beds, Private Bath' },
+      { id: 'room_17', roomNo: 'Room 17', type: 'Barkada / Group Dorm Room', rate: 4200, capacity: '6 Pax', inclusions: 'Aircon, Wi-Fi, Multiple Beds, Private Bath' },
+      { id: 'room_18', roomNo: 'Room 18', type: 'EYNS Grand Family Suite', rate: 4800, capacity: '6–8 Pax', inclusions: 'Aircon, Wi-Fi, Living Lounge, Mini-Fridge, Private Bath' }
     ];
 
     // =========================================================================
@@ -1017,6 +1016,118 @@
         };
         document.head.appendChild(script);
       });
+    }
+
+    // =========================================================================
+    // 3.5 SMOOTH NUMERIC INPUT (NO SNAP-BACK WHILE CLEARING OR TYPING)
+    // =========================================================================
+    function SmoothNumberInput({
+      value,
+      onValueChange,
+      min = 0,
+      max,
+      fallback,
+      allowDecimal = false,
+      allowEmpty = false,
+      placeholder = '',
+      className = '',
+      ariaLabel
+    }) {
+      const formatExternal = v => {
+        if (allowEmpty && (v === '' || v === null || v === undefined || Number(v) === 0)) {
+          return '';
+        }
+        return v === null || v === undefined ? '' : String(v);
+      };
+
+      const [draft, setDraft] = useState(() => formatExternal(value));
+      const isFocusedRef = useRef(false);
+      const lastCommittedRef = useRef(value);
+
+      useEffect(() => {
+        if (!isFocusedRef.current || value !== lastCommittedRef.current) {
+          setDraft(formatExternal(value));
+          lastCommittedRef.current = value;
+        }
+      }, [value, allowEmpty]);
+
+      const handleChange = e => {
+        const raw = e.target.value;
+        const regex = allowDecimal ? /^\d*\.?\d*$/ : /^\d*$/;
+        if (!regex.test(raw)) return;
+
+        setDraft(raw);
+
+        if (raw === '' || raw === '.') {
+          if (allowEmpty) {
+            lastCommittedRef.current = 0;
+            onValueChange(0);
+          }
+          return;
+        }
+
+        const parsed = allowDecimal ? parseFloat(raw) : parseInt(raw, 10);
+        if (isNaN(parsed)) return;
+
+        if (parsed >= min) {
+          const clamped = max !== undefined ? Math.min(max, parsed) : parsed;
+          lastCommittedRef.current = clamped;
+          onValueChange(clamped);
+        }
+      };
+
+      const commitValue = () => {
+        if (draft === '' || draft === '.') {
+          if (allowEmpty) {
+            setDraft('');
+            lastCommittedRef.current = 0;
+            onValueChange(0);
+          } else {
+            const fb = fallback !== undefined ? fallback : min;
+            setDraft(String(fb));
+            lastCommittedRef.current = fb;
+            onValueChange(fb);
+          }
+          return;
+        }
+
+        let parsed = allowDecimal ? parseFloat(draft) : parseInt(draft, 10);
+        if (isNaN(parsed)) {
+          parsed = fallback !== undefined ? fallback : min;
+        }
+        if (parsed < min) parsed = min;
+        if (max !== undefined && parsed > max) parsed = max;
+
+        const finalStr = allowEmpty && parsed === 0 ? '' : String(parsed);
+        setDraft(finalStr);
+        lastCommittedRef.current = parsed;
+        onValueChange(parsed);
+      };
+
+      return (
+        <input
+          type="text"
+          inputMode={allowDecimal ? 'decimal' : 'numeric'}
+          value={draft}
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          onFocus={e => {
+            isFocusedRef.current = true;
+            e.target.select();
+          }}
+          onChange={handleChange}
+          onBlur={() => {
+            isFocusedRef.current = false;
+            commitValue();
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              e.target.blur();
+            }
+          }}
+          className={className}
+        />
+      );
     }
 
     // =========================================================================
@@ -1579,7 +1690,9 @@
         }
         const menuMap = new Map(menuItems.map(m => [m.id, m]));
         const dayCounters = {};
-        const sortedRaw = [...packedMealBatches].sort((a, b) => (a.day || 1) - (b.day || 1));
+        const sortedRaw = [...packedMealBatches]
+          .filter(b => (Number(b.day) || 1) <= packedMealDaysCount)
+          .sort((a, b) => (a.day || 1) - (b.day || 1));
         const batches = sortedRaw.map(batch => {
           const dayNum = Math.max(1, Number(batch.day) || 1);
           dayCounters[dayNum] = (dayCounters[dayNum] || 0) + 1;
@@ -1612,7 +1725,7 @@
           totalAmount,
           avgPerPack: totalAmount / Math.max(1, totalPacks)
         };
-      }, [bookingCategory, packedMealBatches, menuItems]);
+      }, [bookingCategory, packedMealBatches, packedMealDaysCount, menuItems]);
 
       const activeDayPackedBatches = useMemo(
         () => computedPackedMealsSummary.batches.filter(b => (b.day || 1) === activePackedMealDay),
@@ -1739,11 +1852,10 @@
         setPackedMealDaysCount(targetDays);
         if (activePackedMealDay > targetDays) setActivePackedMealDay(targetDays);
         setPackedMealBatches(prev => {
-          const kept = prev.filter(b => (b.day || 1) <= targetDays);
           const additions = [];
           const defaultMealsPerNewDay = Math.max(1, prev.filter(b => (b.day || 1) === 1).length || 1);
           for (let d = 1; d <= targetDays; d++) {
-            if (!kept.some(b => (b.day || 1) === d)) {
+            if (!prev.some(b => (b.day || 1) === d)) {
               const autoDate = addDaysToIsoDate(day1Date, d - 1);
               for (let m = 0; m < defaultMealsPerNewDay; m++) {
                 additions.push({
@@ -1761,9 +1873,10 @@
               }
             }
           }
-          const merged = [...kept, ...additions].sort((a, b) => (a.day || 1) - (b.day || 1));
-          if (!merged.some(b => b.id === activePackedMealId) && merged[0]) {
-            setActivePackedMealId(merged[0].id);
+          const merged = [...prev, ...additions].sort((a, b) => (a.day || 1) - (b.day || 1));
+          const visible = merged.filter(b => (b.day || 1) <= targetDays);
+          if (!visible.some(b => b.id === activePackedMealId) && visible[0]) {
+            setActivePackedMealId(visible[0].id);
           }
           return merged;
         });
@@ -2752,21 +2865,28 @@
                         </div>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input type="number" min="1" value={paxCount} onChange={e => handlePaxChange(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-cream-200 bg-white font-mono text-sm font-bold" />
+                        <SmoothNumberInput
+                          min={1}
+                          fallback={50}
+                          value={paxCount}
+                          onValueChange={val => handlePaxChange(val)}
+                          ariaLabel="Number of Guests (Pax)"
+                          className="w-full px-3 py-2 rounded-xl border border-cream-200 bg-white font-mono text-sm font-bold focus:outline-none focus:border-gold-500"
+                        />
                         {bookingCategory === 'seminar' && (
                           <div className="flex items-center gap-2">
                             <label className="text-xs font-bold text-espresso-900 shrink-0">Seminar Days:</label>
-                            <input
-                              type="number"
-                              min="1"
-                              max="14"
+                            <SmoothNumberInput
+                              min={1}
+                              max={14}
+                              fallback={1}
                               value={eventDays}
-                              onChange={e => {
-                                const d = Math.max(1, Math.min(14, parseInt(e.target.value, 10) || 1));
+                              onValueChange={d => {
                                 setEventDays(d);
                                 if (activeScheduleDay > d) setActiveScheduleDay(d);
                               }}
-                              className="w-full px-3 py-2 rounded-xl border border-cream-200 bg-white font-mono text-sm font-bold"
+                              ariaLabel="Seminar Days"
+                              className="w-full px-3 py-2 rounded-xl border border-cream-200 bg-white font-mono text-sm font-bold focus:outline-none focus:border-gold-500"
                             />
                           </div>
                         )}
@@ -2780,7 +2900,15 @@
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-bold text-espresso-900 mb-1">Refundable Security Deposit (₱)</label>
-                          <input type="number" min="0" value={securityDeposit} onChange={e => setSecurityDeposit(Math.max(0, Number(e.target.value) || 0))} className="w-full px-3 py-2 rounded-xl border border-cream-200 bg-white font-mono text-sm font-bold" />
+                          <SmoothNumberInput
+                            min={0}
+                            fallback={0}
+                            allowDecimal
+                            value={securityDeposit}
+                            onValueChange={val => setSecurityDeposit(val)}
+                            ariaLabel="Refundable Security Deposit"
+                            className="w-full px-3 py-2 rounded-xl border border-cream-200 bg-white font-mono text-sm font-bold focus:outline-none focus:border-gold-500"
+                          />
                         </div>
                         <div className="flex items-end">
                           <div className="w-full px-3 py-2 rounded-xl bg-white border border-cream-200 text-xs">
@@ -2807,7 +2935,15 @@
                     </div>
                     <div className="sm:col-span-3">
                       <label className="block text-[11px] font-bold text-espresso-900 mb-1">Valid (Days)</label>
-                      <input type="number" min="1" max="90" value={quoteValidDays} onChange={e => setQuoteValidDays(Math.max(1, parseInt(e.target.value, 10) || 15))} className="w-full px-3 py-1.5 rounded-xl border border-cream-200 bg-white font-mono text-xs font-bold" />
+                      <SmoothNumberInput
+                        min={1}
+                        max={90}
+                        fallback={15}
+                        value={quoteValidDays}
+                        onValueChange={val => setQuoteValidDays(val)}
+                        ariaLabel="Quote Validity Days"
+                        className="w-full px-3 py-1.5 rounded-xl border border-cream-200 bg-white font-mono text-xs font-bold focus:outline-none focus:border-gold-500"
+                      />
                     </div>
                   </div>
                 </section>
@@ -2860,7 +2996,15 @@
                           </div>
                           <div className="bg-white p-2.5 rounded-xl border border-cream-200">
                             <div className="text-[10px] font-bold uppercase text-espresso-800/70">Excess / Pax (₱)</div>
-                            <input type="number" min="0" value={excessRatePerPax} onChange={e => setExcessRatePerPax(Math.max(0, Number(e.target.value) || 0))} className="w-full font-mono font-extrabold text-sm focus:outline-none" />
+                            <SmoothNumberInput
+                              min={0}
+                              fallback={0}
+                              allowDecimal
+                              value={excessRatePerPax}
+                              onValueChange={val => setExcessRatePerPax(val)}
+                              ariaLabel="Excess Rate Per Pax"
+                              className="w-full font-mono font-extrabold text-sm focus:outline-none"
+                            />
                           </div>
                           <div className="bg-white p-2.5 rounded-xl border border-cream-200">
                             <div className="text-[10px] font-bold uppercase text-espresso-800/70">Excess ({packageBreakdown.excessPax}p)</div>
@@ -2984,7 +3128,15 @@
                     ) : (
                       <div className="bg-cream-50 p-3 rounded-xl border border-cream-200 flex items-center justify-between gap-3">
                         <label className="text-xs font-bold text-espresso-950">Custom Base Fee Override (₱)</label>
-                        <input type="number" min="0" value={customBaseFee} onChange={e => setCustomBaseFee(Math.max(0, Number(e.target.value) || 0))} className="w-36 px-3 py-1.5 rounded-xl border border-cream-200 bg-white font-mono text-sm font-bold text-right" />
+                        <SmoothNumberInput
+                          min={0}
+                          fallback={0}
+                          allowDecimal
+                          value={customBaseFee}
+                          onValueChange={val => setCustomBaseFee(val)}
+                          ariaLabel="Custom Base Fee Override"
+                          className="w-36 px-3 py-1.5 rounded-xl border border-cream-200 bg-white font-mono text-sm font-bold text-right focus:outline-none focus:border-gold-500"
+                        />
                       </div>
                     )}
 
@@ -3019,7 +3171,15 @@
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <input type="text" value={dayAgendas[activeScheduleDay] || ''} onChange={e => setDayAgendas(p => ({ ...p, [activeScheduleDay]: e.target.value }))} placeholder={`Day ${activeScheduleDay} Label`} className="sm:col-span-2 px-3 py-1.5 rounded-xl bg-espresso-900 border border-espresso-800 text-xs text-cream-50" />
-                      <input type="number" min="1" value={dayPaxOverrides[activeScheduleDay] ?? paxCount} onChange={e => setDayPaxOverrides(p => ({ ...p, [activeScheduleDay]: Math.max(1, parseInt(e.target.value, 10) || 1) }))} className="px-3 py-1.5 rounded-xl bg-espresso-900 border border-espresso-800 font-mono text-xs font-bold text-gold-300" />
+                      <SmoothNumberInput
+                        key={`day_pax_${activeScheduleDay}`}
+                        min={1}
+                        fallback={paxCount}
+                        value={dayPaxOverrides[activeScheduleDay] ?? paxCount}
+                        onValueChange={val => setDayPaxOverrides(p => ({ ...p, [activeScheduleDay]: val }))}
+                        ariaLabel={`Day ${activeScheduleDay} Pax`}
+                        className="px-3 py-1.5 rounded-xl bg-espresso-900 border border-espresso-800 font-mono text-xs font-bold text-gold-300 focus:outline-none focus:border-gold-500"
+                      />
                     </div>
                   </section>
                 )}
@@ -3062,44 +3222,18 @@
                                     packedMealDaysCount === d ? 'bg-espresso-950 text-gold-300' : 'bg-cream-100 text-espresso-900'
                                   }`}
                                 >
-                                  {d}d
+                                  {d}
                                 </button>
                               ))}
-                              <input
-                                type="number"
-                                min="1"
-                                max="30"
-                                value={packedMealDaysCount}
-                                onChange={e => handleSetPackedMealDaysCount(e.target.value)}
-                                className="w-16 px-2 py-1 rounded-lg border border-cream-200 font-mono text-xs font-bold text-center"
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-[11px] font-extrabold uppercase text-espresso-950 mb-1">
-                              2. Meals on Day {activePackedMealDay}
-                            </label>
-                            <div className="flex items-center gap-1.5">
-                              {[1, 2, 3, 4].map(cnt => (
-                                <button
-                                  key={cnt}
-                                  type="button"
-                                  onClick={() => handleSetPackedMealCountForDay(activePackedMealDay, cnt)}
-                                  className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold ${
-                                    activeDayPackedBatches.length === cnt ? 'bg-espresso-950 text-gold-300' : 'bg-cream-100 text-espresso-900'
-                                  }`}
-                                >
-                                  {cnt}
-                                </button>
-                              ))}
-                              <input
-                                type="number"
-                                min="1"
-                                max="15"
+                              <SmoothNumberInput
+                                key={`meals_day_${activePackedMealDay}`}
+                                min={1}
+                                max={15}
+                                fallback={1}
                                 value={activeDayPackedBatches.length}
-                                onChange={e => handleSetPackedMealCountForDay(activePackedMealDay, e.target.value)}
-                                className="w-16 px-2 py-1 rounded-lg border border-cream-200 font-mono text-xs font-bold text-center"
+                                onValueChange={val => handleSetPackedMealCountForDay(activePackedMealDay, val)}
+                                ariaLabel={`Meals on Day ${activePackedMealDay}`}
+                                className="w-16 px-2 py-1 rounded-lg border border-cream-200 font-mono text-xs font-bold text-center focus:outline-none focus:border-gold-500"
                               />
                             </div>
                           </div>
@@ -3188,23 +3322,28 @@
                               </div>
                               <div>
                                 <label className="block text-[10px] font-bold uppercase text-espresso-800/80 mb-1">Packs (Qty)</label>
-                                <input
-                                  type="number"
-                                  min="1"
+                                <SmoothNumberInput
+                                  key={`${activePackedBatch.id}_packs`}
+                                  min={1}
+                                  fallback={1}
                                   value={activePackedBatch.packs}
-                                  onChange={e => handleUpdatePackedMealBatch(activePackedBatch.id, { packs: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-                                  className="w-full px-2.5 py-1.5 rounded-lg border border-cream-200 font-mono text-xs font-bold"
+                                  onValueChange={val => handleUpdatePackedMealBatch(activePackedBatch.id, { packs: val })}
+                                  ariaLabel="Packs Quantity"
+                                  className="w-full px-2.5 py-1.5 rounded-lg border border-cream-200 font-mono text-xs font-bold focus:outline-none focus:border-gold-500"
                                 />
                               </div>
                               <div>
                                 <label className="block text-[10px] font-bold uppercase text-espresso-800/80 mb-1">Rate/Pack Override (₱)</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={activePackedBatch.unitRate || ''}
-                                  onChange={e => handleUpdatePackedMealBatch(activePackedBatch.id, { unitRate: Math.max(0, Number(e.target.value) || 0) })}
+                                <SmoothNumberInput
+                                  key={`${activePackedBatch.id}_rate`}
+                                  min={0}
+                                  allowEmpty
+                                  allowDecimal
+                                  value={activePackedBatch.unitRate || 0}
+                                  onValueChange={val => handleUpdatePackedMealBatch(activePackedBatch.id, { unitRate: val })}
                                   placeholder={`Auto: ₱${activePackedBatch.dishesRateSum}`}
-                                  className="w-full px-2.5 py-1.5 rounded-lg border border-cream-200 font-mono text-xs font-bold"
+                                  ariaLabel="Rate Per Pack Override"
+                                  className="w-full px-2.5 py-1.5 rounded-lg border border-cream-200 font-mono text-xs font-bold focus:outline-none focus:border-gold-500"
                                 />
                               </div>
                             </div>
@@ -3402,17 +3541,12 @@
                               )}
                               <div className="flex items-center gap-1 bg-cream-100 p-0.5 rounded-xl border border-cream-200">
                                 <button type="button" onClick={() => handleStepMenuLinePax(line.key, -1, line.effectivePax)} className="w-7 h-7 rounded-lg hover:bg-white font-bold text-xs transition" title="Decrease pax">−</button>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  value={line.customPax === '' ? '' : line.effectivePax}
-                                  onChange={e => handleUpdateMenuLinePax(line.key, e.target.value)}
-                                  onBlur={() => {
-                                    if (line.customPax === '' || (line.customPax !== null && Number(line.customPax) < 1)) {
-                                      handleUpdateMenuLinePax(line.key, 1);
-                                    }
-                                  }}
-                                  aria-label={`Pax for ${line.name}`}
+                                <SmoothNumberInput
+                                  min={1}
+                                  fallback={1}
+                                  value={line.effectivePax}
+                                  onValueChange={val => handleUpdateMenuLinePax(line.key, String(val))}
+                                  ariaLabel={`Pax for ${line.name}`}
                                   className="w-12 text-center bg-white rounded-lg py-1 font-mono text-xs font-extrabold border border-cream-200 focus:outline-none focus:border-gold-500"
                                 />
                                 <span className="text-[10px] font-bold text-espresso-800/75 pr-1">pax</span>
@@ -3546,7 +3680,14 @@
                               </button>
                             )}
                             <button type="button" onClick={() => handleUpdateServiceLineQty(line.key, line.qty - 1)} className="w-7 h-7 rounded-lg bg-cream-100 font-bold text-xs">−</button>
-                            <input type="number" min="1" value={line.qty} onChange={e => handleUpdateServiceLineQty(line.key, Math.max(1, parseInt(e.target.value, 10) || 1))} className="w-10 text-center font-mono text-xs font-extrabold border border-cream-200 rounded-lg py-1" />
+                            <SmoothNumberInput
+                              min={1}
+                              fallback={1}
+                              value={line.qty}
+                              onValueChange={val => handleUpdateServiceLineQty(line.key, val)}
+                              ariaLabel={`Quantity for ${line.name}`}
+                              className="w-12 text-center font-mono text-xs font-extrabold border border-cream-200 rounded-lg py-1 focus:outline-none focus:border-gold-500"
+                            />
                             <button type="button" onClick={() => handleUpdateServiceLineQty(line.key, line.qty + 1)} className="w-7 h-7 rounded-lg bg-cream-100 font-bold text-xs">+</button>
                           </div>
                         </div>
@@ -3635,11 +3776,28 @@
                     </div>
                     <div className="sm:col-span-4">
                       <label className="block text-[11px] font-bold text-espresso-900 mb-1">Discount (₱)</label>
-                      <input type="number" min="0" value={discountAmount} onChange={e => setDiscountAmount(Math.max(0, Number(e.target.value) || 0))} className="w-full px-3 py-1.5 rounded-xl border border-cream-200 font-mono text-xs text-right font-bold" />
+                      <SmoothNumberInput
+                        min={0}
+                        fallback={0}
+                        allowDecimal
+                        value={discountAmount}
+                        onValueChange={val => setDiscountAmount(val)}
+                        ariaLabel="Discount Amount"
+                        className="w-full px-3 py-1.5 rounded-xl border border-cream-200 font-mono text-xs text-right font-bold focus:outline-none focus:border-gold-500"
+                      />
                     </div>
                     <div className="sm:col-span-3">
                       <label className="block text-[11px] font-bold text-espresso-900 mb-1">Tax / VAT (%)</label>
-                      <input type="number" min="0" max="50" value={taxRatePercent} onChange={e => setTaxRatePercent(Math.max(0, Number(e.target.value) || 0))} className="w-full px-3 py-1.5 rounded-xl border border-cream-200 font-mono text-xs text-right font-bold" />
+                      <SmoothNumberInput
+                        min={0}
+                        max={50}
+                        fallback={0}
+                        allowDecimal
+                        value={taxRatePercent}
+                        onValueChange={val => setTaxRatePercent(val)}
+                        ariaLabel="Tax / VAT Percentage"
+                        className="w-full px-3 py-1.5 rounded-xl border border-cream-200 font-mono text-xs text-right font-bold focus:outline-none focus:border-gold-500"
+                      />
                     </div>
                   </div>
 
