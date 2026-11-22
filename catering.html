@@ -119,6 +119,10 @@
         margin: 0 !important;
         padding: 8mm !important;
       }
+      tr, .print-avoid-break {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
     }
   </style>
 </head>
@@ -129,12 +133,12 @@
     const { useState, useEffect, useMemo, useRef } = React;
 
     // =========================================================================
-    // 0. OPTIONAL PERMANENT GOOGLE SHEET LINKS (FOR GITHUB / TEAM DEPLOYMENT)
-    // Paste your two Google Sheet URLs below so every staff device connects
-    // automatically without asking for links.
+    // 0. PERMANENT GOOGLE SHEET LINKS (PRE-LINKED FOR TEAM DEVICES)
     // =========================================================================
     const HARDCODED_MENU_SHEET_URL = '';
     const HARDCODED_SERVICES_SHEET_URL = '';
+    const HARDCODED_ROOMS_SHEET_URL =
+      'https://docs.google.com/spreadsheets/d/1xG0ifkbMivQ6ycSWvAAHB4_HmNiFM7LkwGqMUpA7SzE/edit?gid=0#gid=0';
 
     // =========================================================================
     // 1. MULTI-LAYER STORAGE, PERSISTENCE & FORMATTING HELPERS
@@ -142,9 +146,10 @@
     const STORAGE_KEYS = {
       MENU_ITEMS: 'eyns_menu_items_stable',
       SERVICE_ITEMS: 'eyns_service_items_stable',
+      ROOM_ITEMS: 'eyns_room_items_stable',
       MENU_SCRIPT_URL: 'eyns_menu_script_url_stable',
       SERVICES_SCRIPT_URL: 'eyns_services_script_url_stable',
-      ADMIN_PIN: 'eyns_admin_pin_stable',
+      ROOMS_SCRIPT_URL: 'eyns_rooms_script_url_stable',
       SAVED_QUOTES: 'eyns_saved_quotes_v1',
       BUSINESS_PROFILE: 'eyns_business_profile_v1'
     };
@@ -163,18 +168,28 @@
       'eyns_services_script_url'
     ];
 
+    const LEGACY_ROOM_URL_KEYS = [
+      'eyns_rooms_script_url_stable',
+      'eyns_rooms_script_url'
+    ];
+
     const LEGACY_SERVICE_ITEM_KEYS = [
       'eyns_service_items_stable',
       'eyns_service_items_v7',
       'eyns_service_items'
     ];
 
+    const LEGACY_ROOM_ITEM_KEYS = [
+      'eyns_room_items_stable',
+      'eyns_room_items'
+    ];
+
     const DEFAULT_BUSINESS_PROFILE = {
       businessName: 'EYNS HOTEL & RESTAURANT',
-      tagline: 'Banquet Catering, Events Styling, Hotel Accommodations & Equipment Rentals',
-      address: 'Main Highway / Hotel Compound (Update in Profile)',
-      contactLine: 'Mobile / Viber / FB Page: Update in Profile',
-      preparedBy: 'EYNS Hotel & Restaurant Events Team',
+      tagline: 'Creating Memorable Celebrations Since 1988 • Catanauan, Quezon',
+      address: 'Catanauan, Quezon',
+      contactLine: 'Contact Person: Jem Medina (0917-841-7553)',
+      preparedBy: 'Jem Medina — EYNS Hotel & Restaurant Events Team',
       paymentAccounts:
         'GCash / Bank Transfer: Update your official BDO, BPI, or GCash account details in Profile.',
       cateringTerms:
@@ -241,11 +256,12 @@
       }
     }
 
-    function syncHashStorageParams(menuUrl, servicesUrl) {
+    function syncHashStorageParams(menuUrl, servicesUrl, roomsUrl) {
       try {
         const params = new URLSearchParams();
         if (menuUrl) params.set('menu', menuUrl);
         if (servicesUrl) params.set('services', servicesUrl);
+        if (roomsUrl) params.set('rooms', roomsUrl);
         const nextHash = params.toString();
         if (window.history && window.history.replaceState) {
           window.history.replaceState(
@@ -338,7 +354,7 @@
 
     function formatPrettyDate(isoStr) {
       if (!isoStr) return 'TBD';
-      const parts = isoStr.split('-');
+      const parts = String(isoStr).split('-');
       if (parts.length !== 3) return isoStr;
       const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
       if (isNaN(dt.getTime())) return isoStr;
@@ -347,7 +363,7 @@
 
     function addDaysToIsoDate(isoStr, offsetDays) {
       if (!isoStr) return '';
-      const parts = isoStr.split('-');
+      const parts = String(isoStr).split('-');
       if (parts.length !== 3) return isoStr;
       const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
       if (isNaN(dt.getTime())) return isoStr;
@@ -366,6 +382,8 @@
     function copyTextFallback(text) {
       const el = document.createElement('textarea');
       el.value = text;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
       document.body.appendChild(el);
       el.select();
       document.execCommand('copy');
@@ -373,17 +391,58 @@
     }
 
     // =========================================================================
-    // 2. VERIFIED EYNS PACKAGES, OCCASIONS, MENU & ROOM CATALOGS
+    // 2. OFFICIAL EYNS PACKAGES, SAMPLE BUFFET MENUS, MENU & ROOM CATALOGS
     // =========================================================================
     const STANDARD_EXCESS_RATE = 400;
+
+    const SAMPLE_BUFFET_MENUS = [
+      {
+        id: 'menu_a_classic',
+        name: 'Sample Menu A (Classic)',
+        badge: 'INCLUDED IN BASE',
+        upgradePerPax: 0,
+        items: [
+          'Garden Salad',
+          'Roast Chicken w/ Dripping Sauce',
+          'Fish Fillet w/ Tartar Sauce',
+          'Plain Rice & Bottomless Iced Tea',
+          'Coffee Jelly'
+        ]
+      },
+      {
+        id: 'menu_b_deluxe',
+        name: 'Sample Menu B (Deluxe)',
+        badge: '+ ₱250 PER PAX',
+        upgradePerPax: 250,
+        items: [
+          'Vietnamese Spring Roll w/ Peanut Sauce',
+          'Hainanese Chicken & Peach BBQ',
+          'Creamy Garlic Butter Baked Salmon',
+          'Honey Calamansi Juice & Buko Pandan'
+        ]
+      },
+      {
+        id: 'menu_c_grand',
+        name: 'Sample Menu C (Grand)',
+        badge: '+ ₱600 PER PAX',
+        upgradePerPax: 600,
+        items: [
+          'Clam Soup & Garden Salad',
+          'Paella & Plain Rice | Chicken Kebab & Lengua',
+          'Lechon w/ Carving Station',
+          'Chami Tamis-Anghang (Live Cooking)',
+          'Calumpit Juice & Assorted Fruits'
+        ]
+      }
+    ];
 
     const PACKAGES = [
       {
         id: 'pkg_entry',
-        section: '1. ALL-INCLUSIVE EVENT PACKAGES',
+        section: '1. ALL-INCLUSIVE CATERING & STYLING PACKAGES',
         name: 'Package Entry',
-        tagline: 'Complete foundational banquet, venue & Classic Menu A setup',
-        venue: 'Eyns Air-Conditioned Function Hall (4 Hours)',
+        tagline: 'Open-Air Venue, Classic Menu A, Tables & Chairs, Basic Sound & Stage Backdrop',
+        venue: 'Eyns Open-Air Venue',
         foodIncluded: true,
         foodCreditPerPax: 300,
         tiers: [
@@ -392,20 +451,22 @@
           { pax: 150, price: 75000 }
         ],
         inclusions: [
-          '4-Hour Use of Air-Conditioned Eyns Function Hall',
-          'Classic Menu A Buffet Spread (Soup, Rice, 2 Main Viands, Pancit, Veggies, Dessert & Drinks)',
-          'Standard Tables & Tiffany / Monobloc Chairs with Linen & Motif Ribbon',
-          'Basic Stage Backdrop & Welcome Signage',
-          'Basic Sound System with 2 Microphones',
-          'Uniformed Waitstaff & Buffet Attendants'
+          'Classic Menu A included',
+          'Open-Air Venue',
+          'Dedicated Service Staff',
+          'Tables & Chairs Setup',
+          'Buffet, Cake, & Souvenir Tables',
+          'Wine Bucket and Birdcage',
+          'Basic Sound System',
+          'Basic Stage Backdrop (Fabric Drapes)'
         ]
       },
       {
         id: 'pkg_essential',
-        section: '1. ALL-INCLUSIVE EVENT PACKAGES',
+        section: '1. ALL-INCLUSIVE CATERING & STYLING PACKAGES',
         name: 'Package Essential',
-        tagline: 'Upgraded floral & ceiling styling, lights & sounds, and VIP setup',
-        venue: 'Eyns Air-Conditioned Function Hall (4 Hours)',
+        tagline: 'Air-conditioned Venue (4 hrs), Classic Menu A, Themed Stage & Prep Room',
+        venue: 'Eyns Air-conditioned Venue (4 hrs)',
         foodIncluded: true,
         foodCreditPerPax: 300,
         tiers: [
@@ -414,20 +475,23 @@
           { pax: 150, price: 90000 }
         ],
         inclusions: [
-          '4-Hour Use of Air-Conditioned Eyns Function Hall',
-          'Classic Menu A Buffet Spread with Upgraded Chafing Dishes & Tableware',
-          'Enhanced Stage Backdrop, Couple/Celebrant Couch & Floral Centerpieces',
-          'Upgraded Lights & Sounds System with Mood Uplights',
-          'Red Carpet & Presidential / VIP Long Table Setup',
-          'Dedicated Banquet Captain & Uniformed Waitstaff'
+          'Classic Menu A included',
+          'Air-conditioned Venue (4 hrs)',
+          'Dedicated Service Staff',
+          'Themed Stage Setup',
+          'Themed Tables & Chairs Setup',
+          'Complete Buffet & Specialty Tables',
+          'Basic Lights & Sound System',
+          'Prep Room Included',
+          'Professional Host'
         ]
       },
       {
         id: 'pkg_signature',
-        section: '1. ALL-INCLUSIVE EVENT PACKAGES',
+        section: '1. ALL-INCLUSIVE CATERING & STYLING PACKAGES',
         name: "Anna's Signature",
-        tagline: 'Grand luxury ceiling trusses, full bespoke styling & flagship hospitality',
-        venue: 'Eyns Grand Air-Conditioned Function Hall (5 Hours)',
+        tagline: 'Air-conditioned Venue (4 hrs), Triple-Zone Styling, Grazing Table & Pro Host',
+        venue: 'Eyns Air-conditioned Venue (4 hrs)',
         foodIncluded: true,
         foodCreditPerPax: 300,
         tiers: [
@@ -436,36 +500,37 @@
           { pax: 150, price: 120000 }
         ],
         inclusions: [
-          '5-Hour Use of Air-Conditioned Eyns Grand Function Hall',
-          'Full Ceiling Drapes, Chandeliers & Lush Floral Trusses',
-          'Bespoke Thematic Stage Styling, Tunnel Entrance & Luxury Lounge Chair',
-          'Classic Menu A Buffet Spread + Welcome Grazing / Refreshment Table',
-          'Full Lights & Sounds Package with Follow Spot & Smoke Machine',
-          'Complimentary Overnight Preparation Room for Celebrant/Couple',
-          'Full Banquet Service Crew & On-the-Day Floor Coordinator'
+          'Classic Menu A included',
+          'Air-conditioned Venue (4 hrs)',
+          'Dedicated Service Staff',
+          'Triple-Zone Styling (Entrance, Ceiling, Stage)',
+          'Professional Lights & Sound',
+          'Prep Room Included',
+          'Grazing Table (50 Pax)',
+          'Professional Host'
         ]
       },
       {
         id: 'any_venue_styling',
-        section: '2. STYLING-ONLY & CUSTOM PACKAGES',
-        name: 'ANY VENUE Full Event Styling Package (Food Excluded)',
-        tagline: 'Complete venue transformation, ceiling & stage styling at your chosen venue',
-        venue: 'Your Choice of Venue',
+        section: '2. FULL EVENT STYLING & SERVICE CATERING ONLY',
+        name: 'Full Event Styling & Service Package (Food Excluded)',
+        tagline: 'Eyns Restaurant, Eyns Resort, or Your Choice of Venue — Triple-Zone Styling',
+        venue: 'Eyns Restaurant, Eyns Resort, or Your Choice of Venue',
         foodIncluded: false,
         foodCreditPerPax: 0,
         flatPrice: 65000,
         inclusions: [
-          'Venue: Your Choice of Venue (Church, Resort, Covered Court, or Private Residence)',
-          'Full Ceiling Drapes, Fairy Lights & Floral Trusses',
-          'Custom Thematic Stage Backdrop, Platform & Celebrant/Couple Couch',
-          'Entrance Arch / Tunnel & Red Carpet Aisle Styling',
-          'Guest Table Centerpieces & Presidential Table Styling',
-          'Food Excluded — Add Custom Menu Dishes as Needed'
+          'Venue: Eyns Restaurant, Eyns Resort, or Your Choice of Venue',
+          'Dedicated Servers',
+          'Thematic Triple Zone Setup (Entrance, Ceiling & Stage Styling)',
+          'Themed Tables & Chairs Setup',
+          'Complete Buffet/Cake/Souvenir Tables',
+          'Professional Lights & Sound System'
         ]
       },
       {
         id: 'seminar_custom',
-        section: '2. STYLING-ONLY & CUSTOM PACKAGES',
+        section: '2. FULL EVENT STYLING & SERVICE CATERING ONLY',
         name: 'Seminar / Conference (Custom Per-Day Build)',
         tagline: '₱0 base fee — customize meals, snacks & function hall per day below',
         venue: 'Eyns Air-Conditioned Function Hall',
@@ -481,7 +546,7 @@
       },
       {
         id: 'from_scratch',
-        section: '2. STYLING-ONLY & CUSTOM PACKAGES',
+        section: '2. FULL EVENT STYLING & SERVICE CATERING ONLY',
         name: 'Custom / From Scratch (₱0 Base Fee)',
         tagline: 'Itemized custom food, rentals & services only — no fixed package fee',
         venue: 'Eyns Function Hall / Client Venue',
@@ -594,26 +659,26 @@
       { id: 'menu_56', category: 'Beverages & Snacks', name: 'Arroz Caldo / Chicken Mami Snack Bowl', price: 75, unit: 'per_pax', description: 'Warm hearty snack bowl with boiled egg' }
     ];
 
-    // 18 Hotel Rooms
-    const ROOM_CATALOG = [
-      { id: 'room_1', roomNo: 'Room 1', type: 'Standard Double Room', rate: 1800, capacity: '2 Pax' },
-      { id: 'room_2', roomNo: 'Room 2', type: 'Standard Double Room', rate: 1800, capacity: '2 Pax' },
-      { id: 'room_3', roomNo: 'Room 3', type: 'Standard Twin Room', rate: 1800, capacity: '2 Pax' },
-      { id: 'room_4', roomNo: 'Room 4', type: 'Standard Twin Room', rate: 1800, capacity: '2 Pax' },
-      { id: 'room_5', roomNo: 'Room 5', type: 'Deluxe Queen Room', rate: 2200, capacity: '2–3 Pax' },
-      { id: 'room_6', roomNo: 'Room 6', type: 'Deluxe Queen Room', rate: 2200, capacity: '2–3 Pax' },
-      { id: 'room_7', roomNo: 'Room 7', type: 'Deluxe Twin Room', rate: 2200, capacity: '2–3 Pax' },
-      { id: 'room_8', roomNo: 'Room 8', type: 'Deluxe Twin Room', rate: 2200, capacity: '2–3 Pax' },
-      { id: 'room_9', roomNo: 'Room 9', type: 'Executive King Room', rate: 2600, capacity: '2–3 Pax' },
-      { id: 'room_10', roomNo: 'Room 10', type: 'Executive King Room', rate: 2600, capacity: '2–3 Pax' },
-      { id: 'room_11', roomNo: 'Room 11', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax' },
-      { id: 'room_12', roomNo: 'Room 12', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax' },
-      { id: 'room_13', roomNo: 'Room 13', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax' },
-      { id: 'room_14', roomNo: 'Room 14', type: 'Junior Bridal / VIP Suite', rate: 3800, capacity: '2–4 Pax' },
-      { id: 'room_15', roomNo: 'Room 15', type: 'Junior Bridal / VIP Suite', rate: 3800, capacity: '2–4 Pax' },
-      { id: 'room_16', roomNo: 'Room 16', type: 'Barkada / Group Dorm Room', rate: 4200, capacity: '6 Pax' },
-      { id: 'room_17', roomNo: 'Room 17', type: 'Barkada / Group Dorm Room', rate: 4200, capacity: '6 Pax' },
-      { id: 'room_18', roomNo: 'Room 18', type: 'EYNS Grand Family Suite', rate: 4800, capacity: '6–8 Pax' }
+    // 18 Default Hotel Rooms (Auto-overridden when synced with Sheet #5)
+    const DEFAULT_ROOM_CATALOG = [
+      { id: 'room_1', roomNo: 'Room 1', type: 'Standard Double Room', rate: 1800, capacity: '2 Pax', inclusions: 'Aircon, Wi-Fi, Private Bath' },
+      { id: 'room_2', roomNo: 'Room 2', type: 'Standard Double Room', rate: 1800, capacity: '2 Pax', inclusions: 'Aircon, Wi-Fi, Private Bath' },
+      { id: 'room_3', roomNo: 'Room 3', type: 'Standard Twin Room', rate: 1800, capacity: '2 Pax', inclusions: 'Aircon, Wi-Fi, Private Bath' },
+      { id: 'room_4', roomNo: 'Room 4', type: 'Standard Twin Room', rate: 1800, capacity: '2 Pax', inclusions: 'Aircon, Wi-Fi, Private Bath' },
+      { id: 'room_5', roomNo: 'Room 5', type: 'Deluxe Queen Room', rate: 2200, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Cable TV, Private Bath' },
+      { id: 'room_6', roomNo: 'Room 6', type: 'Deluxe Queen Room', rate: 2200, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Cable TV, Private Bath' },
+      { id: 'room_7', roomNo: 'Room 7', type: 'Deluxe Twin Room', rate: 2200, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Cable TV, Private Bath' },
+      { id: 'room_8', roomNo: 'Room 8', type: 'Deluxe Twin Room', rate: 2200, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Cable TV, Private Bath' },
+      { id: 'room_9', roomNo: 'Room 9', type: 'Executive King Room', rate: 2600, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Smart TV, Hot & Cold Shower' },
+      { id: 'room_10', roomNo: 'Room 10', type: 'Executive King Room', rate: 2600, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Smart TV, Hot & Cold Shower' },
+      { id: 'room_11', roomNo: 'Room 11', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: 'Aircon, Wi-Fi, 2 Double Beds, Private Bath' },
+      { id: 'room_12', roomNo: 'Room 12', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: 'Aircon, Wi-Fi, 2 Double Beds, Private Bath' },
+      { id: 'room_13', roomNo: 'Room 13', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: 'Aircon, Wi-Fi, 2 Double Beds, Private Bath' },
+      { id: 'room_14', roomNo: 'Room 14', type: 'Junior Bridal / VIP Suite', rate: 3800, capacity: '2–4 Pax', inclusions: 'Aircon, Wi-Fi, Lounge Area, Prep Mirror' },
+      { id: 'room_15', roomNo: 'Room 15', type: 'Junior Bridal / VIP Suite', rate: 3800, capacity: '2–4 Pax', inclusions: 'Aircon, Wi-Fi, Lounge Area, Prep Mirror' },
+      { id: 'room_16', roomNo: 'Room 16', type: 'Barkada / Group Dorm Room', rate: 4200, capacity: '6 Pax', inclusions: 'Aircon, Wi-Fi, Group Beds, Private Bath' },
+      { id: 'room_17', roomNo: 'Room 17', type: 'Barkada / Group Dorm Room', rate: 4200, capacity: '6 Pax', inclusions: 'Aircon, Wi-Fi, Group Beds, Private Bath' },
+      { id: 'room_18', roomNo: 'Room 18', type: 'EYNS Grand Family Suite', rate: 4800, capacity: '6–8 Pax', inclusions: 'Aircon, Wi-Fi, Living Area, Private Bath' }
     ];
 
     // =========================================================================
@@ -713,7 +778,8 @@
       const KNOWN = [
         'id', 'dishname', 'dish', 'menuitem', 'category', 'priceperpax', 'price', 'createdat',
         'serviceitemname', 'servicename', 'service', 'itemname', 'item',
-        'eventservicescategory', 'subcategory', 'rate', 'billingtype', 'unit'
+        'eventservicescategory', 'subcategory', 'rate', 'billingtype', 'unit',
+        'roomno', 'roomnumber', 'roomname', 'roomtype', 'ratepernight', 'capacity', 'inclusions'
       ];
 
       let headerRowIdx = -1;
@@ -763,7 +829,7 @@
         const parsed = JSON.parse(trimmed);
         let list = Array.isArray(parsed)
           ? parsed
-          : parsed.items || parsed.data || parsed.services || parsed.menu || parsed.rows || Object.values(parsed).find(Array.isArray) || [];
+          : parsed.items || parsed.data || parsed.services || parsed.menu || parsed.rooms || parsed.rows || Object.values(parsed).find(Array.isArray) || [];
         if (list.length > 0 && Array.isArray(list[0])) return parseGridRows(list);
         return list.map(normalizeObjectRecord);
       }
@@ -957,6 +1023,8 @@
     // 4. MAIN APPLICATION COMPONENT
     // =========================================================================
     function App() {
+      const todayIsoDate = useMemo(() => new Date().toISOString().split('T')[0], []);
+
       // Navigation & Modals
       const [activeTab, setActiveTab] = useState('builder');
       const [toastMsg, setToastMsg] = useState(null);
@@ -981,20 +1049,26 @@
         return DEFAULT_BUSINESS_PROFILE;
       });
 
-      // Catalogs (#3 Menu & #4 Event Services)
+      // Catalogs (#3 Menu, #4 Event Services, #5 Hotel Rooms)
       const [menuItems, setMenuItems] = useState(() =>
         recoverSavedJsonArray([STORAGE_KEYS.MENU_ITEMS], DEFAULT_MENU_ITEMS)
       );
       const [serviceItems, setServiceItems] = useState(() =>
         recoverSavedJsonArray(LEGACY_SERVICE_ITEM_KEYS, [])
       );
+      const [roomItems, setRoomItems] = useState(() =>
+        recoverSavedJsonArray(LEGACY_ROOM_ITEM_KEYS, DEFAULT_ROOM_CATALOG)
+      );
 
-      // Google Sheets Sync State
+      // Google Sheets Sync State (3 Sheets)
       const [menuSheetUrl, setMenuSheetUrl] = useState(() =>
         recoverSavedString(LEGACY_MENU_URL_KEYS, HARDCODED_MENU_SHEET_URL, 'menu')
       );
       const [servicesSheetUrl, setServicesSheetUrl] = useState(() =>
         recoverSavedString(LEGACY_SERVICE_URL_KEYS, HARDCODED_SERVICES_SHEET_URL, 'services')
+      );
+      const [roomsSheetUrl, setRoomsSheetUrl] = useState(() =>
+        recoverSavedString(LEGACY_ROOM_URL_KEYS, HARDCODED_ROOMS_SHEET_URL, 'rooms')
       );
       const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
       const [isSyncingSheets, setIsSyncingSheets] = useState(false);
@@ -1005,14 +1079,18 @@
         menuOk: false,
         services: '',
         servicesOk: false,
+        rooms: '',
+        roomsOk: false,
         menuSample: [],
-        servicesSample: []
+        servicesSample: [],
+        roomsSample: []
       });
       const [showManualPasteFallback, setShowManualPasteFallback] = useState(false);
       const [manualServicesPaste, setManualServicesPaste] = useState('');
 
       const menuSheetUrlRef = useRef(menuSheetUrl);
       const servicesSheetUrlRef = useRef(servicesSheetUrl);
+      const roomsSheetUrlRef = useRef(roomsSheetUrl);
       const isSyncingRef = useRef(false);
       const printRef = useRef(null);
 
@@ -1028,22 +1106,32 @@
       const [occasion, setOccasion] = useState('Wedding Reception');
       const [eventMotif, setEventMotif] = useState('');
       const [specialNotes, setSpecialNotes] = useState('');
-      const [showInclusionsOnPrint, setShowInclusionsOnPrint] = useState(true);
       const [showPaymentTermsOnPrint, setShowPaymentTermsOnPrint] = useState(true);
-      const [eventVenue, setEventVenue] = useState('Eyns Air-Conditioned Function Hall');
-      const [eventDate, setEventDate] = useState(() => {
-        const d = new Date();
-        d.setDate(d.getDate() + 14);
-        return d.toISOString().split('T')[0];
-      });
-      const [rentalReturnDate, setRentalReturnDate] = useState(() => {
-        const d = new Date();
-        d.setDate(d.getDate() + 15);
-        return d.toISOString().split('T')[0];
-      });
+      const [eventVenue, setEventVenue] = useState('Eyns Air-conditioned Venue (4 hrs)');
+      const [eventDate, setEventDate] = useState(() => addDaysToIsoDate(new Date().toISOString().split('T')[0], 14));
+      const [rentalReturnDate, setRentalReturnDate] = useState(() => addDaysToIsoDate(new Date().toISOString().split('T')[0], 15));
       const [eventTime, setEventTime] = useState('10:00 AM - 2:00 PM');
       const [paxCount, setPaxCount] = useState(100);
       const [eventDays, setEventDays] = useState(1);
+
+      // Packed Meals Multi-Day & Multi-Meal State
+      const [packedMealDaysCount, setPackedMealDaysCount] = useState(1);
+      const [activePackedMealDay, setActivePackedMealDay] = useState(1);
+      const [packedMealBatches, setPackedMealBatches] = useState(() => [
+        {
+          id: 'pm_batch_init_1',
+          day: 1,
+          mealType: 'Packed Meal 1',
+          date: addDaysToIsoDate(new Date().toISOString().split('T')[0], 14),
+          time: '11:30 AM',
+          packs: 30,
+          unitRate: 0,
+          dishIds: [],
+          customItemsText: '',
+          notes: ''
+        }
+      ]);
+      const [activePackedMealId, setActivePackedMealId] = useState('pm_batch_init_1');
 
       // Rental Agreement Specific Fields
       const [securityDeposit, setSecurityDeposit] = useState(2000);
@@ -1051,8 +1139,9 @@
         '1. Lessee assumes full responsibility for all rented equipment upon pick-up until return.\n2. Any lost, damaged, or stained items shall be charged at replacement/repair value.\n3. Late returns beyond the agreed Return Date incur an additional daily rental fee.'
       );
 
-      // Step 2: Package Selection
+      // Step 2: Package & Built-In Sample Buffet Menu Selection
       const [selectedPackageId, setSelectedPackageId] = useState('pkg_essential');
+      const [selectedBuffetMenuId, setSelectedBuffetMenuId] = useState('menu_a_classic');
       const [selectedTierPax, setSelectedTierPax] = useState(100);
       const [excessRatePerPax, setExcessRatePerPax] = useState(STANDARD_EXCESS_RATE);
       const [customBaseFee, setCustomBaseFee] = useState(0);
@@ -1095,8 +1184,9 @@
       const [srvCatalogSearch, setSrvCatalogSearch] = useState('');
       const [srvCatalogCategoryFilter, setSrvCatalogCategoryFilter] = useState('All');
 
-      // Step 5: Hotel Rooms (1–18)
+      // Step 5: Hotel Rooms & Booked Check-In/Check-Out Dates
       const [roomNightsMap, setRoomNightsMap] = useState({});
+      const [roomDatesMap, setRoomDatesMap] = useState({});
 
       // Step 6: Discounts, Taxes & Payments
       const [discountLabel, setDiscountLabel] = useState('Promo / Management Discount');
@@ -1145,25 +1235,37 @@
       };
 
       // =======================================================================
-      // 6. PERSISTENCE & LIVE BACKGROUND GOOGLE SHEET SYNC
+      // 6. PERSISTENCE & LIVE BACKGROUND GOOGLE SHEET SYNC (3 SHEETS)
       // =======================================================================
       useEffect(() => {
         menuSheetUrlRef.current = menuSheetUrl;
         persistSavedString(STORAGE_KEYS.MENU_SCRIPT_URL, LEGACY_MENU_URL_KEYS, menuSheetUrl);
-        syncHashStorageParams(menuSheetUrl, servicesSheetUrl);
-      }, [menuSheetUrl, servicesSheetUrl]);
+        syncHashStorageParams(menuSheetUrl, servicesSheetUrl, roomsSheetUrl);
+      }, [menuSheetUrl, servicesSheetUrl, roomsSheetUrl]);
 
       useEffect(() => {
         servicesSheetUrlRef.current = servicesSheetUrl;
         persistSavedString(STORAGE_KEYS.SERVICES_SCRIPT_URL, LEGACY_SERVICE_URL_KEYS, servicesSheetUrl);
-        syncHashStorageParams(menuSheetUrl, servicesSheetUrl);
-      }, [servicesSheetUrl, menuSheetUrl]);
+        syncHashStorageParams(menuSheetUrl, servicesSheetUrl, roomsSheetUrl);
+      }, [servicesSheetUrl, menuSheetUrl, roomsSheetUrl]);
+
+      useEffect(() => {
+        roomsSheetUrlRef.current = roomsSheetUrl;
+        persistSavedString(STORAGE_KEYS.ROOMS_SCRIPT_URL, LEGACY_ROOM_URL_KEYS, roomsSheetUrl);
+        syncHashStorageParams(menuSheetUrl, servicesSheetUrl, roomsSheetUrl);
+      }, [roomsSheetUrl, menuSheetUrl, servicesSheetUrl]);
 
       useEffect(() => {
         try {
           if (serviceItems.length > 0) localStorage.setItem(STORAGE_KEYS.SERVICE_ITEMS, JSON.stringify(serviceItems));
         } catch (e) {}
       }, [serviceItems]);
+
+      useEffect(() => {
+        try {
+          if (roomItems.length > 0) localStorage.setItem(STORAGE_KEYS.ROOM_ITEMS, JSON.stringify(roomItems));
+        } catch (e) {}
+      }, [roomItems]);
 
       useEffect(() => {
         try {
@@ -1183,16 +1285,28 @@
         } catch (e) {}
       }, [businessProfile]);
 
-      async function syncAllSheets(overrideMenuUrl, overrideServicesUrl, silent = false) {
+      async function syncAllSheets(overrideMenuUrl, overrideServicesUrl, silent = false, overrideRoomsUrl) {
         if (isSyncingRef.current && silent) return;
         const targetMenuUrl = (overrideMenuUrl !== undefined ? overrideMenuUrl : menuSheetUrl).trim();
         const targetServicesUrl = (overrideServicesUrl !== undefined ? overrideServicesUrl : servicesSheetUrl).trim();
+        const targetRoomsUrl = (overrideRoomsUrl !== undefined ? overrideRoomsUrl : roomsSheetUrl).trim();
 
         isSyncingRef.current = true;
         setIsSyncingSheets(true);
-        const nextDiag = { menu: '', menuOk: false, services: '', servicesOk: false, menuSample: [], servicesSample: [] };
+        const nextDiag = {
+          menu: '',
+          menuOk: false,
+          services: '',
+          servicesOk: false,
+          rooms: '',
+          roomsOk: false,
+          menuSample: [],
+          servicesSample: [],
+          roomsSample: []
+        };
         let syncedMenuCount = 0;
         let syncedServicesCount = 0;
+        let syncedRoomsCount = 0;
 
         if (targetMenuUrl) {
           try {
@@ -1268,18 +1382,60 @@
           }
         }
 
+        if (targetRoomsUrl) {
+          try {
+            const { rows } = await fetchSheetRowsUniversal(targetRoomsUrl);
+            const parsedRooms = rows
+              .map((row, idx) => {
+                const cols = row._cols || [];
+                const rowId = row.id || cols[0] || `room_sheet_${idx + 1}`;
+                const roomNo = row.roomno || row.roomnumber || row.roomname || row.room || cols[1] || '';
+                if (!roomNo) return null;
+                const lower = String(roomNo).trim().toLowerCase();
+                if (lower === 'room no' || lower === 'room number' || lower === 'room name' || lower === 'id') return null;
+                const roomType = row.roomtype || row.type || row.category || cols[2] || 'Standard Room';
+                const rawRate = row.rate ?? row.price ?? row.ratepernight ?? cols[3] ?? 0;
+                const capacity = row.capacity || row.maxpax || row.pax || cols[4] || '2 Pax';
+                const inclusions = row.inclusions || row.amenities || row.description || cols[5] || '';
+                return {
+                  id: String(rowId).trim() || `room_sheet_${idx + 1}`,
+                  roomNo: String(roomNo).trim(),
+                  type: String(roomType).trim(),
+                  rate: parseNumericAmount(rawRate),
+                  capacity: String(capacity).trim() || '2 Pax',
+                  inclusions: String(inclusions).trim()
+                };
+              })
+              .filter(Boolean);
+
+            if (parsedRooms.length > 0) {
+              setRoomItems(parsedRooms);
+              syncedRoomsCount = parsedRooms.length;
+              nextDiag.roomsOk = true;
+              nextDiag.rooms = `Connected! Synced ${parsedRooms.length} hotel rooms.`;
+              nextDiag.roomsSample = parsedRooms.slice(0, 4);
+            } else {
+              nextDiag.rooms = 'Connected, but 0 rooms matched Row 1: ID | Room No | Room Type | Rate Per Night | Capacity | Inclusions';
+            }
+          } catch (err) {
+            nextDiag.rooms = err.message;
+          }
+        }
+
         setSyncDiagnostics(nextDiag);
         setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
         isSyncingRef.current = false;
         setIsSyncingSheets(false);
 
         if (!silent) {
-          if (syncedMenuCount > 0 && syncedServicesCount > 0) {
-            showToast(`Both sheets connected! (${syncedMenuCount} Menu & ${syncedServicesCount} Services)`);
-          } else if (syncedMenuCount > 0) {
-            showToast(`Menu Sheet (#3) connected: ${syncedMenuCount} dishes!`);
-          } else if (syncedServicesCount > 0) {
-            showToast(`Event Services Sheet (#4) connected: ${syncedServicesCount} items!`);
+          const summaryParts = [];
+          if (syncedMenuCount > 0) summaryParts.push(`${syncedMenuCount} Menu`);
+          if (syncedServicesCount > 0) summaryParts.push(`${syncedServicesCount} Services`);
+          if (syncedRoomsCount > 0) summaryParts.push(`${syncedRoomsCount} Rooms`);
+          if (summaryParts.length > 0) {
+            showToast(`Synced: ${summaryParts.join(' • ')}`);
+          } else if (nextDiag.rooms && !nextDiag.roomsOk) {
+            showToast(nextDiag.rooms);
           } else if (nextDiag.menu && !nextDiag.menuOk) {
             showToast(nextDiag.menu);
           } else if (nextDiag.services && !nextDiag.servicesOk) {
@@ -1291,14 +1447,16 @@
       }
 
       useEffect(() => {
-        if (menuSheetUrl || servicesSheetUrl) syncAllSheets(menuSheetUrl, servicesSheetUrl, true);
+        if (menuSheetUrl || servicesSheetUrl || roomsSheetUrl) {
+          syncAllSheets(menuSheetUrl, servicesSheetUrl, true, roomsSheetUrl);
+        }
       }, []);
 
       useEffect(() => {
         if (!autoSyncEnabled) return;
         const run = () => {
-          if ((menuSheetUrlRef.current || servicesSheetUrlRef.current) && !isSyncingRef.current) {
-            syncAllSheets(menuSheetUrlRef.current, servicesSheetUrlRef.current, true);
+          if ((menuSheetUrlRef.current || servicesSheetUrlRef.current || roomsSheetUrlRef.current) && !isSyncingRef.current) {
+            syncAllSheets(menuSheetUrlRef.current, servicesSheetUrlRef.current, true, roomsSheetUrlRef.current);
           }
         };
         const timer = setInterval(run, 20000);
@@ -1315,7 +1473,7 @@
       }, [autoSyncEnabled]);
 
       // =======================================================================
-      // 7. PACKAGE, CATEGORY & LINE ITEM HANDLERS
+      // 7. PACKAGE, PACKED MEALS, MENU, SERVICES & ROOMS COMPUTATIONS
       // =======================================================================
       const availablePackages = useMemo(() => {
         if (bookingCategory === 'seminar') {
@@ -1329,20 +1487,371 @@
         [selectedPackageId, availablePackages]
       );
 
+      const selectedBuffetMenu = useMemo(
+        () => SAMPLE_BUFFET_MENUS.find(m => m.id === selectedBuffetMenuId) || SAMPLE_BUFFET_MENUS[0],
+        [selectedBuffetMenuId]
+      );
+
       const packageBreakdown = useMemo(() => {
-        if (!showPackageStep) return { tierPax: 0, basePrice: 0, excessPax: 0, excessRate: 0, excessCharge: 0, total: 0 };
+        if (!showPackageStep) {
+          return {
+            tierPax: 0,
+            basePrice: 0,
+            excessPax: 0,
+            excessRate: 0,
+            excessCharge: 0,
+            menuUpgradePerPax: 0,
+            menuUpgradeCharge: 0,
+            total: 0
+          };
+        }
+        const effectiveGuests = Math.max(1, Number(paxCount) || 1);
+        const menuUpgradePerPax = selectedPackage.foodIncluded ? (Number(selectedBuffetMenu?.upgradePerPax) || 0) : 0;
+        const menuUpgradeCharge = menuUpgradePerPax * effectiveGuests;
         if (isTieredAllInclusivePackage(selectedPackage.id)) {
-          return calculateTieredPackageBreakdown(selectedPackage, selectedTierPax, paxCount, excessRatePerPax);
+          const base = calculateTieredPackageBreakdown(selectedPackage, selectedTierPax, paxCount, excessRatePerPax);
+          return {
+            ...base,
+            menuUpgradePerPax,
+            menuUpgradeCharge,
+            total: base.total + menuUpgradeCharge
+          };
         }
         const flat = Math.max(0, Number(customBaseFee) || 0);
-        return { tierPax: 0, basePrice: flat, excessPax: 0, excessRate: 0, excessCharge: 0, total: flat };
-      }, [showPackageStep, selectedPackage, selectedTierPax, paxCount, excessRatePerPax, customBaseFee]);
+        return {
+          tierPax: 0,
+          basePrice: flat,
+          excessPax: 0,
+          excessRate: 0,
+          excessCharge: 0,
+          menuUpgradePerPax: 0,
+          menuUpgradeCharge: 0,
+          total: flat
+        };
+      }, [showPackageStep, selectedPackage, selectedBuffetMenu, selectedTierPax, paxCount, excessRatePerPax, customBaseFee]);
 
       const effectiveDayForBuilder = bookingCategory === 'seminar' ? activeScheduleDay : 1;
+
       const getPaxForDay = dayNum =>
         bookingCategory === 'seminar' && dayPaxOverrides[dayNum] !== undefined
           ? Math.max(1, Number(dayPaxOverrides[dayNum]) || 1)
           : Math.max(1, Number(paxCount) || 1);
+
+      const computedPackedMealsSummary = useMemo(() => {
+        if (bookingCategory !== 'packed_meals') {
+          return { batches: [], totalPacks: 0, totalAmount: 0, avgPerPack: 0 };
+        }
+        const menuMap = new Map(menuItems.map(m => [m.id, m]));
+        const dayCounters = {};
+        const sortedRaw = [...packedMealBatches].sort((a, b) => (a.day || 1) - (b.day || 1));
+        const batches = sortedRaw.map(batch => {
+          const dayNum = Math.max(1, Number(batch.day) || 1);
+          dayCounters[dayNum] = (dayCounters[dayNum] || 0) + 1;
+          const mealIndexInDay = dayCounters[dayNum];
+          const packs = Math.max(1, Number(batch.packs) || 1);
+          const chosenDishes = (batch.dishIds || []).map(id => menuMap.get(id)).filter(Boolean);
+          const dishesRateSum = chosenDishes.reduce((s, d) => s + (Number(d.price) || 0), 0);
+          const customRate = Number(batch.unitRate) || 0;
+          const hasCustomRate = customRate > 0;
+          const effectiveRatePerPack = hasCustomRate ? customRate : dishesRateSum;
+          const batchTotal = effectiveRatePerPack * packs;
+          return {
+            ...batch,
+            day: dayNum,
+            mealIndexInDay,
+            displayLabel: `Packed Meal ${mealIndexInDay}`,
+            packs,
+            chosenDishes,
+            dishesRateSum,
+            hasCustomRate,
+            effectiveRatePerPack,
+            batchTotal
+          };
+        });
+        const totalPacks = batches.reduce((s, b) => s + b.packs, 0);
+        const totalAmount = batches.reduce((s, b) => s + b.batchTotal, 0);
+        return {
+          batches,
+          totalPacks,
+          totalAmount,
+          avgPerPack: totalAmount / Math.max(1, totalPacks)
+        };
+      }, [bookingCategory, packedMealBatches, menuItems]);
+
+      const activeDayPackedBatches = useMemo(
+        () => computedPackedMealsSummary.batches.filter(b => (b.day || 1) === activePackedMealDay),
+        [computedPackedMealsSummary.batches, activePackedMealDay]
+      );
+
+      const activePackedBatch = useMemo(
+        () =>
+          activeDayPackedBatches.find(b => b.id === activePackedMealId) ||
+          activeDayPackedBatches[0] ||
+          computedPackedMealsSummary.batches[0] ||
+          null,
+        [activeDayPackedBatches, computedPackedMealsSummary.batches, activePackedMealId]
+      );
+
+      const computedMenuSummary = useMemo(() => {
+        if (bookingCategory === 'packed_meals') {
+          return {
+            lines: [],
+            grossMenuTotal: computedPackedMealsSummary.totalAmount,
+            perPaxRateSum: computedPackedMealsSummary.avgPerPack,
+            appliedSwapCredit: 0,
+            netMenuTotal: computedPackedMealsSummary.totalAmount
+          };
+        }
+        if (!showMenuStep) {
+          return { lines: [], grossMenuTotal: 0, perPaxRateSum: 0, appliedSwapCredit: 0, netMenuTotal: 0 };
+        }
+        const lines = selectedMenuLines.map(line => {
+          const activeDays = bookingCategory === 'seminar' && line.allDays ? Math.max(1, eventDays) : 1;
+          const dayPax = getPaxForDay(line.day);
+          const lineTotal = line.price * (line.unit === 'per_pax' ? dayPax : 1) * line.qty * activeDays;
+          return { ...line, dayPax, lineTotal };
+        });
+        const grossMenuTotal = lines.reduce((s, l) => s + l.lineTotal, 0);
+        const perPaxRateSum = lines.reduce((s, l) => s + (l.unit === 'per_pax' ? l.price * l.qty : 0), 0);
+        const swapAvail = showPackageStep && selectedPackage.foodIncluded && useSwapMenuCredit
+          ? (Number(selectedPackage.foodCreditPerPax) || 300) * (Number(paxCount) || 0)
+          : 0;
+        const appliedSwapCredit = Math.min(grossMenuTotal, swapAvail);
+        return {
+          lines,
+          grossMenuTotal,
+          perPaxRateSum,
+          appliedSwapCredit,
+          netMenuTotal: Math.max(0, grossMenuTotal - appliedSwapCredit)
+        };
+      }, [bookingCategory, computedPackedMealsSummary, showMenuStep, showPackageStep, selectedMenuLines, eventDays, dayPaxOverrides, paxCount, selectedPackage, useSwapMenuCredit]);
+
+      const computedServiceLines = useMemo(() => {
+        const pool = bookingCategory === 'rental'
+          ? selectedServiceLines.filter(l => l.subcategory === 'Rental')
+          : selectedServiceLines;
+        return pool.map(line => {
+          const activeDays = bookingCategory === 'seminar' && line.allDays ? Math.max(1, eventDays) : 1;
+          const dayPax = getPaxForDay(line.day);
+          let lineTotal = 0;
+          if (line.billingType === 'per_pax') {
+            lineTotal = line.price * dayPax * line.qty * activeDays;
+          } else if (line.billingType === 'per_day') {
+            const multDays = bookingCategory === 'rental'
+              ? rentalDurationDays * line.qty
+              : (bookingCategory === 'seminar' && line.allDays ? Math.max(1, eventDays) * line.qty : line.qty);
+            lineTotal = line.price * multDays;
+          } else if (line.billingType === 'fixed') {
+            lineTotal = line.price * line.qty;
+          } else {
+            lineTotal = line.price * line.qty * activeDays;
+          }
+          return { ...line, dayPax, lineTotal };
+        });
+      }, [selectedServiceLines, bookingCategory, eventDays, rentalDurationDays, dayPaxOverrides, paxCount]);
+
+      const servicesSubtotal = useMemo(() => computedServiceLines.reduce((s, l) => s + l.lineTotal, 0), [computedServiceLines]);
+
+      const selectedRoomsList = useMemo(() => {
+        if (!showRoomsStep) return [];
+        return roomItems.filter(r => (Number(roomNightsMap[r.id]) || 0) > 0).map(r => {
+          const nights = Number(roomNightsMap[r.id]) || 0;
+          const savedDates = roomDatesMap[r.id] || {};
+          const checkIn = savedDates.checkIn || eventDate || todayIsoDate;
+          const checkOut = savedDates.checkOut || addDaysToIsoDate(checkIn, nights);
+          return { ...r, nights, checkIn, checkOut, total: r.rate * nights };
+        });
+      }, [showRoomsStep, roomItems, roomNightsMap, roomDatesMap, eventDate, todayIsoDate]);
+
+      const roomsSubtotal = useMemo(() => selectedRoomsList.reduce((s, r) => s + r.total, 0), [selectedRoomsList]);
+
+      const totals = useMemo(() => {
+        const subtotal = packageBreakdown.total + computedMenuSummary.netMenuTotal + servicesSubtotal + roomsSubtotal;
+        const discount = Math.max(0, Number(discountAmount) || 0);
+        const taxable = Math.max(0, subtotal - discount);
+        const taxAmount = taxable * ((Number(taxRatePercent) || 0) / 100);
+        const deposit = bookingCategory === 'rental' ? Math.max(0, Number(securityDeposit) || 0) : 0;
+        const grandTotal = taxable + taxAmount + deposit;
+        const totalPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        return { subtotal, discount, taxAmount, deposit, grandTotal, totalPaid, balanceDue: Math.max(0, grandTotal - totalPaid) };
+      }, [packageBreakdown, computedMenuSummary, servicesSubtotal, roomsSubtotal, discountAmount, taxRatePercent, bookingCategory, securityDeposit, payments]);
+
+      const quoteValidUntilDate = useMemo(
+        () => addDaysToIsoDate(todayIsoDate, Math.max(1, Number(quoteValidDays) || 15)),
+        [todayIsoDate, quoteValidDays]
+      );
+
+      const effectivePerHeadCost = useMemo(() => {
+        if (bookingCategory === 'rental') return 0;
+        if (bookingCategory === 'packed_meals') {
+          return totals.grandTotal / Math.max(1, computedPackedMealsSummary.totalPacks || 1);
+        }
+        return totals.grandTotal / Math.max(1, Number(paxCount) || 1);
+      }, [bookingCategory, paxCount, totals.grandTotal, computedPackedMealsSummary.totalPacks]);
+
+      // =======================================================================
+      // 8. PACKED MEALS, ROOMS, MENU, SERVICES & CATEGORY HANDLERS
+      // =======================================================================
+      const handleSetPackedMealDaysCount = rawDays => {
+        const targetDays = Math.max(1, Math.min(30, parseInt(rawDays, 10) || 1));
+        const day1Date = packedMealBatches.find(b => (b.day || 1) === 1)?.date || eventDate || todayIsoDate;
+        setPackedMealDaysCount(targetDays);
+        if (activePackedMealDay > targetDays) setActivePackedMealDay(targetDays);
+        setPackedMealBatches(prev => {
+          const kept = prev.filter(b => (b.day || 1) <= targetDays);
+          const additions = [];
+          const defaultMealsPerNewDay = Math.max(1, prev.filter(b => (b.day || 1) === 1).length || 1);
+          for (let d = 1; d <= targetDays; d++) {
+            if (!kept.some(b => (b.day || 1) === d)) {
+              const autoDate = addDaysToIsoDate(day1Date, d - 1);
+              for (let m = 0; m < defaultMealsPerNewDay; m++) {
+                additions.push({
+                  id: `pm_batch_${Date.now()}_d${d}_m${m}_${Math.floor(Math.random() * 1000)}`,
+                  day: d,
+                  mealType: `Packed Meal ${m + 1}`,
+                  date: autoDate,
+                  time: m === 0 ? '8:00 AM' : m === 1 ? '12:00 PM' : '3:30 PM',
+                  packs: Math.max(1, Number(prev[0]?.packs) || 30),
+                  unitRate: 0,
+                  dishIds: [],
+                  customItemsText: '',
+                  notes: ''
+                });
+              }
+            }
+          }
+          const merged = [...kept, ...additions].sort((a, b) => (a.day || 1) - (b.day || 1));
+          if (!merged.some(b => b.id === activePackedMealId) && merged[0]) {
+            setActivePackedMealId(merged[0].id);
+          }
+          return merged;
+        });
+      };
+
+      const handleSetPackedMealCountForDay = (dayNum, rawCount) => {
+        const targetCount = Math.max(1, Math.min(15, parseInt(rawCount, 10) || 1));
+        const dNum = Math.max(1, Number(dayNum) || 1);
+        const day1Date = packedMealBatches.find(b => (b.day || 1) === 1)?.date || eventDate || todayIsoDate;
+        setPackedMealBatches(prev => {
+          const otherDays = prev.filter(b => (b.day || 1) !== dNum);
+          const currentDayBatches = prev.filter(b => (b.day || 1) === dNum);
+          const baseDate = currentDayBatches[0]?.date || addDaysToIsoDate(day1Date, dNum - 1);
+          const defaultTimes = ['8:00 AM', '12:00 PM', '3:30 PM', '6:30 PM'];
+
+          let nextDayBatches = [];
+          if (targetCount <= currentDayBatches.length) {
+            nextDayBatches = currentDayBatches.slice(0, targetCount).map((b, idx) => ({
+              ...b,
+              day: dNum,
+              mealType: `Packed Meal ${idx + 1}`
+            }));
+          } else {
+            const existing = currentDayBatches.map((b, idx) => ({
+              ...b,
+              day: dNum,
+              mealType: `Packed Meal ${idx + 1}`
+            }));
+            const additions = [];
+            for (let i = currentDayBatches.length; i < targetCount; i++) {
+              additions.push({
+                id: `pm_batch_${Date.now()}_d${dNum}_${i}_${Math.floor(Math.random() * 1000)}`,
+                day: dNum,
+                mealType: `Packed Meal ${i + 1}`,
+                date: baseDate,
+                time: defaultTimes[i] || '11:30 AM',
+                packs: Math.max(1, Number(currentDayBatches[currentDayBatches.length - 1]?.packs) || Number(prev[0]?.packs) || 30),
+                unitRate: 0,
+                dishIds: [],
+                customItemsText: '',
+                notes: ''
+              });
+            }
+            nextDayBatches = [...existing, ...additions];
+          }
+          const combined = [...otherDays, ...nextDayBatches].sort((a, b) => (a.day || 1) - (b.day || 1));
+          if (!combined.some(b => b.id === activePackedMealId) && nextDayBatches[0]) {
+            setActivePackedMealId(nextDayBatches[0].id);
+          }
+          return combined;
+        });
+      };
+
+      const handleUpdatePackedMealBatch = (batchId, patchObj) => {
+        setPackedMealBatches(prev => prev.map(b => (b.id === batchId ? { ...b, ...patchObj } : b)));
+      };
+
+      const handleRemovePackedMealBatch = batchId => {
+        setPackedMealBatches(prev => {
+          const target = prev.find(b => b.id === batchId);
+          const dNum = target?.day || 1;
+          const sameDay = prev.filter(b => (b.day || 1) === dNum);
+          if (sameDay.length <= 1) {
+            return prev.map(b =>
+              b.id === batchId
+                ? { ...b, mealType: 'Packed Meal 1', time: '11:30 AM', unitRate: 0, dishIds: [], customItemsText: '', notes: '' }
+                : b
+            );
+          }
+          const otherDays = prev.filter(b => (b.day || 1) !== dNum);
+          const remainingSameDay = sameDay
+            .filter(b => b.id !== batchId)
+            .map((b, idx) => ({ ...b, day: dNum, mealType: `Packed Meal ${idx + 1}` }));
+          const merged = [...otherDays, ...remainingSameDay].sort((a, b) => (a.day || 1) - (b.day || 1));
+          if (activePackedMealId === batchId && remainingSameDay[0]) {
+            setActivePackedMealId(remainingSameDay[0].id);
+          }
+          return merged;
+        });
+      };
+
+      const handleToggleDishInPackedBatch = (batchId, dishId) => {
+        setPackedMealBatches(prev =>
+          prev.map(b => {
+            if (b.id !== batchId) return b;
+            const exists = (b.dishIds || []).includes(dishId);
+            return {
+              ...b,
+              dishIds: exists ? b.dishIds.filter(id => id !== dishId) : [...(b.dishIds || []), dishId]
+            };
+          })
+        );
+      };
+
+      const handleUpdateRoomNights = (roomId, nextNights) => {
+        const cleanNights = Math.max(0, Number(nextNights) || 0);
+        setRoomNightsMap(p => ({ ...p, [roomId]: cleanNights }));
+        if (cleanNights > 0) {
+          setRoomDatesMap(prev => {
+            const existing = prev[roomId] || {};
+            const checkIn = existing.checkIn || eventDate || todayIsoDate;
+            return {
+              ...prev,
+              [roomId]: { checkIn, checkOut: addDaysToIsoDate(checkIn, cleanNights) }
+            };
+          });
+        }
+      };
+
+      const handleUpdateRoomDates = (roomId, field, isoVal) => {
+        if (!isoVal) return;
+        const currentNights = Math.max(1, Number(roomNightsMap[roomId]) || 1);
+        const existing = roomDatesMap[roomId] || {};
+        let nextCheckIn = existing.checkIn || eventDate || todayIsoDate;
+        let nextCheckOut = existing.checkOut || addDaysToIsoDate(nextCheckIn, currentNights);
+
+        if (field === 'checkIn') {
+          nextCheckIn = isoVal;
+          nextCheckOut = addDaysToIsoDate(nextCheckIn, currentNights);
+        } else {
+          nextCheckOut = isoVal;
+        }
+        const computedNights = computeDaysBetweenDates(nextCheckIn, nextCheckOut);
+        setRoomDatesMap(prev => ({
+          ...prev,
+          [roomId]: { checkIn: nextCheckIn, checkOut: nextCheckOut }
+        }));
+        setRoomNightsMap(prev => ({ ...prev, [roomId]: computedNights }));
+      };
 
       const handleBookingCategoryChange = nextCat => {
         setBookingCategory(nextCat);
@@ -1364,8 +1873,27 @@
           setServiceSubcategoryFilter('All');
           setCustomServiceCategory('Catering');
           setEventVenue('Delivery / Pick-up at EYNS Restaurant');
-          setEventTime('11:30 AM Delivery');
-          if (paxCount > 100 || paxCount < 10) setPaxCount(30);
+          setPackedMealBatches(prev => {
+            if (!prev || prev.length === 0) {
+              const id = `pm_batch_${Date.now()}`;
+              setActivePackedMealId(id);
+              setPackedMealDaysCount(1);
+              setActivePackedMealDay(1);
+              return [{
+                id,
+                day: 1,
+                mealType: 'Packed Meal 1',
+                date: eventDate || todayIsoDate,
+                time: '11:30 AM',
+                packs: 30,
+                unitRate: 0,
+                dishIds: [],
+                customItemsText: '',
+                notes: ''
+              }];
+            }
+            return prev;
+          });
         } else if (nextCat === 'seminar') {
           setDocType('Quotation');
           setSelectedPackageId('seminar_custom');
@@ -1383,7 +1911,7 @@
           setOccasion('Wedding Reception');
           setServiceSubcategoryFilter('All');
           setCustomServiceCategory('Catering');
-          setEventVenue('Eyns Air-Conditioned Function Hall');
+          setEventVenue('Eyns Air-conditioned Venue (4 hrs)');
         }
       };
 
@@ -1417,19 +1945,44 @@
         setClientContact('');
         setEventMotif('');
         setSpecialNotes('');
+        setSelectedBuffetMenuId('menu_a_classic');
         setSelectedMenuLines([]);
         setSelectedServiceLines([]);
         setRoomNightsMap({});
+        setRoomDatesMap({});
         setDiscountAmount(0);
         setPayments([]);
         setPoNumber('');
         setPoApprovedBudget('');
         setPoNotes('');
+        const resetId = `pm_batch_${Date.now()}`;
+        setPackedMealDaysCount(1);
+        setActivePackedMealDay(1);
+        setPackedMealBatches([
+          {
+            id: resetId,
+            day: 1,
+            mealType: 'Packed Meal 1',
+            date: eventDate || todayIsoDate,
+            time: '11:30 AM',
+            packs: 30,
+            unitRate: 0,
+            dishIds: [],
+            customItemsText: '',
+            notes: ''
+          }
+        ]);
+        setActivePackedMealId(resetId);
         setPreviewMode('client');
         showToast('Started a fresh quotation (your linked sheets stay synced).');
       };
 
       const handleOneClickAddDish = dish => {
+        if (bookingCategory === 'packed_meals' && activePackedBatch) {
+          handleToggleDishInPackedBatch(activePackedBatch.id, dish.id);
+          showToast(`Toggled "${dish.name}" in Day ${activePackedBatch.day} — ${activePackedBatch.displayLabel}.`);
+          return;
+        }
         const lineKey = `${effectiveDayForBuilder}__${dish.id}`;
         if (selectedMenuLines.some(i => i.key === lineKey)) {
           showToast(`"${dish.name}" is already in Chosen Menu — adjust servings below.`);
@@ -1474,14 +2027,14 @@
           price: Math.max(0, parseNumericAmount(menuBuilderPrice)),
           unit: 'per_pax',
           description: '',
-          createdAt: new Date().toISOString().split('T')[0]
+          createdAt: todayIsoDate
         };
 
         if (isAppsScriptWebAppUrl(menuSheetUrl)) {
           try {
             setIsMutatingSheet(true);
             await mutateSheetViaAppsScript(menuSheetUrl, 'upsert', { item: dishPayload });
-            await syncAllSheets(menuSheetUrl, servicesSheetUrl, true);
+            await syncAllSheets(menuSheetUrl, servicesSheetUrl, true, roomsSheetUrl);
           } catch (err) {
             showToast(err.message);
           } finally {
@@ -1509,7 +2062,7 @@
           try {
             setIsMutatingSheet(true);
             await mutateSheetViaAppsScript(menuSheetUrl, 'delete', { id: dish.id });
-            await syncAllSheets(menuSheetUrl, servicesSheetUrl, true);
+            await syncAllSheets(menuSheetUrl, servicesSheetUrl, true, roomsSheetUrl);
           } catch (err) {
             showToast(err.message);
           } finally {
@@ -1532,14 +2085,14 @@
           category: srvBuilderCategory,
           price: Math.max(0, parseNumericAmount(srvBuilderRate)),
           billingType: srvBuilderBilling,
-          createdAt: new Date().toISOString().split('T')[0]
+          createdAt: todayIsoDate
         };
 
         if (isAppsScriptWebAppUrl(servicesSheetUrl)) {
           try {
             setIsMutatingSheet(true);
             await mutateSheetViaAppsScript(servicesSheetUrl, 'upsert', { item: srvPayload });
-            await syncAllSheets(menuSheetUrl, servicesSheetUrl, true);
+            await syncAllSheets(menuSheetUrl, servicesSheetUrl, true, roomsSheetUrl);
           } catch (err) {
             showToast(err.message);
           } finally {
@@ -1561,7 +2114,7 @@
           try {
             setIsMutatingSheet(true);
             await mutateSheetViaAppsScript(servicesSheetUrl, 'delete', { id: srv.id });
-            await syncAllSheets(menuSheetUrl, servicesSheetUrl, true);
+            await syncAllSheets(menuSheetUrl, servicesSheetUrl, true, roomsSheetUrl);
           } catch (err) {
             showToast(err.message);
           } finally {
@@ -1588,6 +2141,7 @@
               subcategory: srv.subcategory || 'Catering',
               price: Number(srv.price) || 0,
               billingType: srv.billingType || 'per_piece',
+              description: srv.description || '',
               qty: 1
             }
           ];
@@ -1620,6 +2174,7 @@
             subcategory: bookingCategory === 'rental' ? 'Rental' : customServiceCategory,
             price: parseNumericAmount(customServicePrice),
             billingType: customServiceBilling,
+            description: '',
             qty: 1
           }
         ]);
@@ -1659,83 +2214,6 @@
       };
 
       // =======================================================================
-      // 8. FINANCIAL CALCULATIONS (STRICTLY ISOLATED PER BOOKING CATEGORY)
-      // =======================================================================
-      const computedMenuSummary = useMemo(() => {
-        if (!showMenuStep) {
-          return { lines: [], grossMenuTotal: 0, perPaxRateSum: 0, appliedSwapCredit: 0, netMenuTotal: 0 };
-        }
-        const lines = selectedMenuLines.map(line => {
-          const activeDays = bookingCategory === 'seminar' && line.allDays ? Math.max(1, eventDays) : 1;
-          const dayPax = getPaxForDay(line.day);
-          const lineTotal = line.price * (line.unit === 'per_pax' ? dayPax : 1) * line.qty * activeDays;
-          return { ...line, dayPax, lineTotal };
-        });
-        const grossMenuTotal = lines.reduce((s, l) => s + l.lineTotal, 0);
-        const perPaxRateSum = lines.reduce((s, l) => s + (l.unit === 'per_pax' ? l.price * l.qty : 0), 0);
-        const swapAvail = showPackageStep && selectedPackage.foodIncluded && useSwapMenuCredit
-          ? (Number(selectedPackage.foodCreditPerPax) || 300) * (Number(paxCount) || 0)
-          : 0;
-        const appliedSwapCredit = Math.min(grossMenuTotal, swapAvail);
-        return {
-          lines,
-          grossMenuTotal,
-          perPaxRateSum,
-          appliedSwapCredit,
-          netMenuTotal: Math.max(0, grossMenuTotal - appliedSwapCredit)
-        };
-      }, [showMenuStep, showPackageStep, selectedMenuLines, bookingCategory, eventDays, dayPaxOverrides, paxCount, selectedPackage, useSwapMenuCredit]);
-
-      const computedServiceLines = useMemo(() => {
-        const pool = bookingCategory === 'rental'
-          ? selectedServiceLines.filter(l => l.subcategory === 'Rental')
-          : selectedServiceLines;
-        return pool.map(line => {
-          const activeDays = bookingCategory === 'seminar' && line.allDays ? Math.max(1, eventDays) : 1;
-          const dayPax = getPaxForDay(line.day);
-          let lineTotal = 0;
-          if (line.billingType === 'per_pax') {
-            lineTotal = line.price * dayPax * line.qty * activeDays;
-          } else if (line.billingType === 'per_day') {
-            const multDays = bookingCategory === 'rental' ? rentalDurationDays * line.qty : (bookingCategory === 'seminar' && line.allDays ? Math.max(1, eventDays) : line.qty);
-            lineTotal = line.price * multDays;
-          } else if (line.billingType === 'fixed') {
-            lineTotal = line.price * line.qty;
-          } else {
-            lineTotal = line.price * line.qty * activeDays;
-          }
-          return { ...line, dayPax, lineTotal };
-        });
-      }, [selectedServiceLines, bookingCategory, eventDays, rentalDurationDays, dayPaxOverrides, paxCount]);
-
-      const servicesSubtotal = useMemo(() => computedServiceLines.reduce((s, l) => s + l.lineTotal, 0), [computedServiceLines]);
-
-      const selectedRoomsList = useMemo(() => {
-        if (!showRoomsStep) return [];
-        return ROOM_CATALOG.filter(r => (Number(roomNightsMap[r.id]) || 0) > 0).map(r => {
-          const nights = Number(roomNightsMap[r.id]) || 0;
-          return { ...r, nights, total: r.rate * nights };
-        });
-      }, [showRoomsStep, roomNightsMap]);
-
-      const roomsSubtotal = useMemo(() => selectedRoomsList.reduce((s, r) => s + r.total, 0), [selectedRoomsList]);
-
-      const totals = useMemo(() => {
-        const subtotal = packageBreakdown.total + computedMenuSummary.netMenuTotal + servicesSubtotal + roomsSubtotal;
-        const discount = Math.max(0, Number(discountAmount) || 0);
-        const taxable = Math.max(0, subtotal - discount);
-        const taxAmount = taxable * ((Number(taxRatePercent) || 0) / 100);
-        const deposit = bookingCategory === 'rental' ? Math.max(0, Number(securityDeposit) || 0) : 0;
-        const grandTotal = taxable + taxAmount + deposit;
-        const totalPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-        return { subtotal, discount, taxAmount, deposit, grandTotal, totalPaid, balanceDue: Math.max(0, grandTotal - totalPaid) };
-      }, [packageBreakdown, computedMenuSummary, servicesSubtotal, roomsSubtotal, discountAmount, taxRatePercent, bookingCategory, securityDeposit, payments]);
-
-      const todayIsoDate = useMemo(() => new Date().toISOString().split('T')[0], []);
-      const quoteValidUntilDate = useMemo(() => addDaysToIsoDate(todayIsoDate, Math.max(1, Number(quoteValidDays) || 15)), [todayIsoDate, quoteValidDays]);
-      const effectivePerHeadCost = useMemo(() => (bookingCategory === 'rental' ? 0 : totals.grandTotal / Math.max(1, Number(paxCount) || 1)), [bookingCategory, paxCount, totals.grandTotal]);
-
-      // =======================================================================
       // 9. SAVED QUOTES, CHAT SUMMARY, PAYMENTS & JPEG EXPORT
       // =======================================================================
       const handleSaveCurrentQuoteToLog = () => {
@@ -1745,11 +2223,11 @@
           bookingCategory, docType, quoteStatus, quoteValidDays, docNumber,
           clientName: clientName || 'Walk-In Client',
           clientOrg, clientContact, occasion, eventMotif, specialNotes,
-          showInclusionsOnPrint, showPaymentTermsOnPrint,
+          showPaymentTermsOnPrint,
           eventVenue, eventDate, rentalReturnDate, eventTime, paxCount, eventDays,
-          securityDeposit, rentalTermsText,
-          selectedPackageId, selectedTierPax, excessRatePerPax, customBaseFee,
-          selectedMenuLines, useSwapMenuCredit, selectedServiceLines, roomNightsMap,
+          securityDeposit, rentalTermsText, packedMealDaysCount, packedMealBatches,
+          selectedPackageId, selectedBuffetMenuId, selectedTierPax, excessRatePerPax, customBaseFee,
+          selectedMenuLines, useSwapMenuCredit, selectedServiceLines, roomNightsMap, roomDatesMap,
           discountLabel, discountAmount, taxRatePercent, payments,
           poNumber, poApprovedBudget, poNotes,
           grandTotal: totals.grandTotal, balanceDue: totals.balanceDue
@@ -1770,7 +2248,6 @@
         setOccasion(q.occasion || '');
         setEventMotif(q.eventMotif || '');
         setSpecialNotes(q.specialNotes || '');
-        setShowInclusionsOnPrint(q.showInclusionsOnPrint !== false);
         setShowPaymentTermsOnPrint(q.showPaymentTermsOnPrint !== false);
         setEventVenue(q.eventVenue || '');
         setEventDate(q.eventDate || todayIsoDate);
@@ -1780,7 +2257,16 @@
         setEventDays(q.eventDays || 1);
         setSecurityDeposit(q.securityDeposit ?? 2000);
         if (q.rentalTermsText) setRentalTermsText(q.rentalTermsText);
+        if (Array.isArray(q.packedMealBatches) && q.packedMealBatches.length > 0) {
+          const normalizedBatches = q.packedMealBatches.map(b => ({ ...b, day: b.day || 1 }));
+          const maxDay = Math.max(q.packedMealDaysCount || 1, ...normalizedBatches.map(b => b.day || 1));
+          setPackedMealDaysCount(maxDay);
+          setActivePackedMealDay(1);
+          setPackedMealBatches(normalizedBatches);
+          setActivePackedMealId(normalizedBatches[0].id);
+        }
         setSelectedPackageId(q.selectedPackageId || 'pkg_essential');
+        setSelectedBuffetMenuId(q.selectedBuffetMenuId || 'menu_a_classic');
         setSelectedTierPax(q.selectedTierPax || 100);
         setExcessRatePerPax(q.excessRatePerPax ?? STANDARD_EXCESS_RATE);
         setCustomBaseFee(q.customBaseFee || 0);
@@ -1788,6 +2274,7 @@
         setUseSwapMenuCredit(Boolean(q.useSwapMenuCredit));
         setSelectedServiceLines(q.selectedServiceLines || []);
         setRoomNightsMap(q.roomNightsMap || {});
+        setRoomDatesMap(q.roomDatesMap || {});
         setDiscountLabel(q.discountLabel || 'Promo / Management Discount');
         setDiscountAmount(q.discountAmount || 0);
         setTaxRatePercent(q.taxRatePercent || 0);
@@ -1810,24 +2297,30 @@
           lines.push(`🚚 Purpose: ${occasion}`);
           lines.push(`📅 Dates: ${formatPrettyDate(eventDate)} → ${formatPrettyDate(rentalReturnDate)} (${rentalDurationDays}d)`);
         } else if (bookingCategory === 'packed_meals') {
-          lines.push(`🍱 Order: ${occasion} — ${paxCount} Meal Packs`);
-          lines.push(`📅 Delivery: ${formatPrettyDate(eventDate)} (${eventTime || 'TBD'})`);
+          lines.push(`🍱 Order: ${occasion} — ${computedPackedMealsSummary.totalPacks} Total Packs (${packedMealDaysCount} ${packedMealDaysCount === 1 ? 'Day' : 'Days'}, ${computedPackedMealsSummary.batches.length} Meals)`);
+          computedPackedMealsSummary.batches.forEach(b => {
+            const dayTag = packedMealDaysCount > 1 ? `Day ${b.day} • ` : '';
+            const dishNames = b.chosenDishes.map(d => d.name).join(', ');
+            const itemSummary = [dishNames, b.customItemsText].filter(Boolean).join(' + ') || 'Custom Packed Meal';
+            lines.push(`   • ${dayTag}${b.displayLabel} (${formatPrettyDate(b.date)} @ ${b.time || 'TBD'}) — ${b.packs} packs: ${itemSummary} (${formatCurrency(b.batchTotal)})`);
+          });
         } else {
           lines.push(`🎉 Event: ${occasion} — ${paxCount} Pax${bookingCategory === 'seminar' && eventDays > 1 ? ` (${eventDays} Days)` : ''}`);
           lines.push(`📅 Date & Time: ${formatPrettyDate(eventDate)} | ${eventTime || 'TBD'}`);
         }
         lines.push(`📍 Location: ${eventVenue}`, '', '📋 SUMMARY OF CHARGES:');
         if (showPackageStep && (packageBreakdown.total > 0 || isTieredAllInclusivePackage(selectedPackage.id))) {
-          lines.push(`• ${selectedPackage.name}: ${formatCurrency(packageBreakdown.total)}`);
+          const menuSuffix = selectedPackage.foodIncluded ? ` + ${selectedBuffetMenu.name}` : '';
+          lines.push(`• ${selectedPackage.name}${menuSuffix}: ${formatCurrency(packageBreakdown.total)}`);
         }
-        if (computedMenuSummary.lines.length > 0) {
+        if (bookingCategory !== 'packed_meals' && computedMenuSummary.lines.length > 0) {
           lines.push(`• Menu (${computedMenuSummary.lines.map(l => l.name).join(', ')}): ${formatCurrency(computedMenuSummary.netMenuTotal)}`);
         }
         if (computedServiceLines.length > 0) {
           lines.push(`• ${bookingCategory === 'rental' ? 'Rentals' : 'Services'} (${computedServiceLines.map(l => `${l.name} x${l.qty}`).join(', ')}): ${formatCurrency(servicesSubtotal)}`);
         }
         if (selectedRoomsList.length > 0) {
-          lines.push(`• Rooms (${selectedRoomsList.map(r => `${r.roomNo} ${r.nights}nt`).join(', ')}): ${formatCurrency(roomsSubtotal)}`);
+          lines.push(`• Rooms (${selectedRoomsList.map(r => `${r.roomNo} [${formatPrettyDate(r.checkIn)}–${formatPrettyDate(r.checkOut)}]`).join(', ')}): ${formatCurrency(roomsSubtotal)}`);
         }
         if (totals.discount > 0) lines.push(`• Less ${discountLabel}: -${formatCurrency(totals.discount)}`);
         if (totals.deposit > 0) lines.push(`• Security Deposit: ${formatCurrency(totals.deposit)}`);
@@ -1904,7 +2397,6 @@
         }));
       }, [serviceItems]);
 
-      // Strictly filter to Rental ONLY when bookingCategory === 'rental'
       const filteredServiceItems = useMemo(() => {
         const pool = bookingCategory === 'rental' ? serviceItems.filter(s => s.subcategory === 'Rental') : serviceItems;
         const q = serviceSearchQuery.trim().toLowerCase();
@@ -1929,7 +2421,7 @@
       }, [savedQuotes, savedQuotesSearch, savedQuotesStatusFilter]);
 
       // =======================================================================
-      // 11. RENDER
+      // 11. RENDER UI
       // =======================================================================
       return (
         <div className="min-h-screen flex flex-col">
@@ -1962,7 +2454,7 @@
                   { id: 'packages', label: 'Official Packages', icon: 'fa-crown' },
                   { id: 'menu', label: 'A La Carte Menu (#3)', icon: 'fa-utensils', badge: menuItems.length },
                   { id: 'services', label: 'Event Services (#4)', icon: 'fa-champagne-glasses', badge: serviceItems.length },
-                  { id: 'rooms', label: 'Hotel Rooms', icon: 'fa-bed' }
+                  { id: 'rooms', label: 'Hotel Rooms (#5)', icon: 'fa-bed', badge: roomItems.length }
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -1998,8 +2490,8 @@
                 </button>
                 <button type="button" onClick={() => setIsSyncModalOpen(true)} className="px-3 py-2 rounded-xl bg-espresso-800 hover:bg-espresso-700 text-gold-300 border border-gold-500/30 text-xs font-bold flex items-center gap-1.5">
                   <i className={`fa-solid fa-rotate ${isSyncingSheets ? 'animate-spin' : ''}`}></i>
-                  <span>{menuSheetUrl || servicesSheetUrl ? (autoSyncEnabled ? 'Live Synced' : 'Sheets Linked') : 'Link Sheets'}</span>
-                  <span className={`w-2 h-2 rounded-full ${menuSheetUrl || servicesSheetUrl ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+                  <span>{menuSheetUrl || servicesSheetUrl || roomsSheetUrl ? (autoSyncEnabled ? 'Live Synced' : 'Sheets Linked') : 'Link Sheets'}</span>
+                  <span className={`w-2 h-2 rounded-full ${menuSheetUrl || servicesSheetUrl || roomsSheetUrl ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
                 </button>
                 <button type="button" onClick={handleCopyMessengerSummary} className="px-3 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-1.5 shadow">
                   <i className="fa-brands fa-facebook-messenger"></i>
@@ -2074,7 +2566,7 @@
                     {[
                       { id: 'celebration', num: '1', title: 'Celebrations', sub: 'Weddings, Debut, Party', icon: 'fa-champagne-glasses' },
                       { id: 'seminar', num: '2', title: 'Seminars', sub: 'Multi-Day, LGU / PO', icon: 'fa-chalkboard-user' },
-                      { id: 'packed_meals', num: '3', title: 'Packed Meals', sub: 'Boxed Food & Delivery', icon: 'fa-box-open' },
+                      { id: 'packed_meals', num: '3', title: 'Packed Meals', sub: 'Multi-Day & Per-Meal', icon: 'fa-box-open' },
                       { id: 'rental', num: '4', title: 'Rentals', sub: 'Rental Items Only', icon: 'fa-truck-ramp-box' }
                     ].map(cat => (
                       <button
@@ -2154,36 +2646,40 @@
                       </label>
                       <input type="text" value={eventVenue} onChange={e => setEventVenue(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-cream-200 text-sm" />
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-espresso-900 mb-1">
-                        {bookingCategory === 'rental' ? 'Pick-Up / Start Date' : bookingCategory === 'packed_meals' ? 'Delivery Date' : 'Event Date'}
-                      </label>
-                      <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-cream-200 text-sm" />
-                    </div>
-                    {bookingCategory === 'rental' ? (
-                      <div>
-                        <label className="block text-xs font-bold text-espresso-900 mb-1">Return Date</label>
-                        <input type="date" value={rentalReturnDate} onChange={e => setRentalReturnDate(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-cream-200 text-sm" />
-                      </div>
-                    ) : (
-                      <div>
-                        <label className="block text-xs font-bold text-espresso-900 mb-1">{bookingCategory === 'packed_meals' ? 'Delivery Time' : 'Time Schedule'}</label>
-                        <input type="text" value={eventTime} onChange={e => setEventTime(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-cream-200 text-sm" />
-                      </div>
+
+                    {/* Date & Time fields — hidden in Packed Meals because each meal has its own Date & Time */}
+                    {bookingCategory !== 'packed_meals' && (
+                      <>
+                        <div>
+                          <label className="block text-xs font-bold text-espresso-900 mb-1">
+                            {bookingCategory === 'rental' ? 'Pick-Up / Start Date' : 'Event Date'}
+                          </label>
+                          <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-cream-200 text-sm" />
+                        </div>
+                        {bookingCategory === 'rental' ? (
+                          <div>
+                            <label className="block text-xs font-bold text-espresso-900 mb-1">Return Date</label>
+                            <input type="date" value={rentalReturnDate} onChange={e => setRentalReturnDate(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-cream-200 text-sm" />
+                          </div>
+                        ) : (
+                          <div>
+                            <label className="block text-xs font-bold text-espresso-900 mb-1">Time Schedule</label>
+                            <input type="text" value={eventTime} onChange={e => setEventTime(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-cream-200 text-sm" />
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
 
-                  {/* Pax / Packs Selector (Hidden for Rentals) */}
-                  {bookingCategory !== 'rental' && (
+                  {/* Pax Selector (Hidden for Rentals & Packed Meals) */}
+                  {bookingCategory !== 'rental' && bookingCategory !== 'packed_meals' && (
                     <div className="bg-cream-50 p-3.5 rounded-xl border border-cream-200 space-y-2.5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <label className="text-xs font-bold text-espresso-950">
-                          {bookingCategory === 'packed_meals' ? 'Total Meal Packs (Qty)' : 'Number of Guests (Pax)'}
-                        </label>
+                        <label className="text-xs font-bold text-espresso-950">Number of Guests (Pax)</label>
                         <div className="flex flex-wrap gap-1.5">
                           {(bookingCategory === 'celebration' ? [50, 80, 100, 120, 150] : [20, 30, 50, 100, 150]).map(q => (
                             <button key={q} type="button" onClick={() => handlePaxChange(q)} className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold ${Number(paxCount) === q ? 'bg-espresso-950 text-gold-300' : 'bg-white border border-cream-200 text-espresso-900'}`}>
-                              {q} {bookingCategory === 'packed_meals' ? 'Packs' : 'Pax'}
+                              {q} Pax
                             </button>
                           ))}
                         </div>
@@ -2249,13 +2745,13 @@
                   </div>
                 </section>
 
-                {/* PACKAGE SELECTION (CELEBRATIONS & SEMINARS ONLY) */}
+                {/* STEP 2: PACKAGE & BUFFET MENU SELECTION (CELEBRATIONS & SEMINARS ONLY) */}
                 {showPackageStep && (
                   <section className="bg-white rounded-2xl p-5 border border-cream-200 shadow-sm space-y-4">
                     <div className="flex items-center justify-between border-b border-cream-200 pb-3">
                       <h2 className="font-serif text-lg font-bold text-espresso-950 flex items-center gap-2">
                         <span className="w-6 h-6 rounded-lg bg-espresso-950 text-gold-400 text-xs font-sans font-extrabold flex items-center justify-center">{stepNumbers.package}</span>
-                        <span>Package &amp; Base Rate</span>
+                        <span>Package &amp; Built-In Buffet Plan</span>
                       </h2>
                       <span className="font-mono text-sm font-extrabold text-espresso-950">{formatCurrency(packageBreakdown.total)}</span>
                     </div>
@@ -2304,6 +2800,57 @@
                             <div className="font-mono font-extrabold text-sm text-gold-600">+{formatWholeCurrency(packageBreakdown.excessCharge)}</div>
                           </div>
                         </div>
+
+                        {/* Section 3: Official Built-In Buffet Menu Selections */}
+                        <div className="pt-2 border-t border-cream-200 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-extrabold uppercase tracking-wider text-espresso-950">
+                              3. Buffet Menu Selections (Built-In Plan)
+                            </span>
+                            {packageBreakdown.menuUpgradeCharge > 0 && (
+                              <span className="font-mono text-xs font-extrabold text-gold-600">
+                                +{formatWholeCurrency(packageBreakdown.menuUpgradeCharge)} ({paxCount}p × ₱{packageBreakdown.menuUpgradePerPax})
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            {SAMPLE_BUFFET_MENUS.map(menuOpt => {
+                              const isMenuSelected = selectedBuffetMenu.id === menuOpt.id;
+                              return (
+                                <button
+                                  key={menuOpt.id}
+                                  type="button"
+                                  onClick={() => setSelectedBuffetMenuId(menuOpt.id)}
+                                  className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between gap-1.5 ${
+                                    isMenuSelected
+                                      ? 'bg-espresso-950 text-cream-50 border-gold-500 shadow'
+                                      : 'bg-white hover:bg-cream-100 text-espresso-950 border-cream-200'
+                                  }`}
+                                >
+                                  <div>
+                                    <span
+                                      className={`inline-block px-2 py-0.5 rounded text-[9px] font-extrabold uppercase ${
+                                        isMenuSelected ? 'bg-gold-500 text-espresso-950' : 'bg-cream-100 text-gold-600'
+                                      }`}
+                                    >
+                                      {menuOpt.badge}
+                                    </span>
+                                    <div className="font-bold text-xs mt-1">{menuOpt.name}</div>
+                                    <ul
+                                      className={`mt-1 space-y-0.5 text-[10px] list-disc pl-3.5 ${
+                                        isMenuSelected ? 'text-cream-200/85' : 'text-espresso-800/80'
+                                      }`}
+                                    >
+                                      {menuOpt.items.map((dishLine, idx) => (
+                                        <li key={idx}>{dishLine}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <div className="bg-cream-50 p-3 rounded-xl border border-cream-200 flex items-center justify-between gap-3">
@@ -2314,14 +2861,11 @@
 
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <button type="button" onClick={() => setShowPackageInclusions(v => !v)} className="text-xs font-bold text-gold-600 hover:underline">
-                        {showPackageInclusions ? 'Hide Inclusions ▲' : 'View Package Inclusions ▼'}
+                        {showPackageInclusions ? 'Hide Package Inclusions ▲' : 'View Package Inclusions ▼'}
                       </button>
-                      {selectedPackage.id !== 'from_scratch' && (
-                        <label className="inline-flex items-center gap-1.5 text-[11px] font-bold text-espresso-900 cursor-pointer">
-                          <input type="checkbox" checked={showInclusionsOnPrint} onChange={e => setShowInclusionsOnPrint(e.target.checked)} className="accent-espresso-950" />
-                          <span>Print Inclusions on A4</span>
-                        </label>
-                      )}
+                      <span className="text-[11px] font-semibold text-emerald-700">
+                        <i className="fa-solid fa-check-circle mr-1"></i>Full inclusions always detailed on A4
+                      </span>
                     </div>
                     {showPackageInclusions && (
                       <ul className="bg-cream-50 p-3 rounded-xl border border-cream-200 space-y-1 text-xs list-disc pl-6">
@@ -2351,20 +2895,18 @@
                   </section>
                 )}
 
-                {/* MENU SELECTION STEP (HIDDEN IN RENTALS) */}
+                {/* STEP 3: MENU SELECTION OR MULTI-DAY PACKED MEALS BUILDER */}
                 {showMenuStep && (
                   <section className="bg-white rounded-2xl p-5 border border-cream-200 shadow-sm space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cream-200 pb-3">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h2 className="font-serif text-lg font-bold text-espresso-950 flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-lg bg-espresso-950 text-gold-400 text-xs font-sans font-extrabold flex items-center justify-center">{stepNumbers.menu}</span>
-                            <span>{bookingCategory === 'packed_meals' ? 'Packed Meal Menu & Drinks' : 'A La Carte Menu Selection'}</span>
-                          </h2>
-                          <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${menuSheetUrl ? 'bg-emerald-100 text-emerald-800' : 'bg-cream-100 text-espresso-800'}`}>
-                            {menuSheetUrl ? `Sheet #3 Synced (${menuItems.length})` : `Catalog (${menuItems.length})`}
-                          </span>
-                        </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="font-serif text-lg font-bold text-espresso-950 flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-lg bg-espresso-950 text-gold-400 text-xs font-sans font-extrabold flex items-center justify-center">{stepNumbers.menu}</span>
+                          <span>{bookingCategory === 'packed_meals' ? 'Packed Meals Schedule & Menu Builder' : 'Additional A La Carte Menu Selection'}</span>
+                        </h2>
+                        <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${menuSheetUrl ? 'bg-emerald-100 text-emerald-800' : 'bg-cream-100 text-espresso-800'}`}>
+                          {menuSheetUrl ? `Sheet #3 Synced (${menuItems.length})` : `Catalog (${menuItems.length})`}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <button type="button" onClick={() => setShowQuickNewDishInStep3(v => !v)} className="px-2.5 py-1.5 rounded-xl bg-cream-100 hover:bg-gold-400/30 text-espresso-950 text-xs font-bold">+ Dish</button>
@@ -2372,6 +2914,229 @@
                       </div>
                     </div>
 
+                    {/* MULTI-DAY & MULTI-MEAL PACKED MEALS BUILDER */}
+                    {bookingCategory === 'packed_meals' && (
+                      <div className="bg-cream-50 p-4 rounded-2xl border border-gold-400/60 space-y-3.5">
+                        {/* How Many Days + Meals on Active Day */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-cream-200">
+                          <div>
+                            <label className="block text-[11px] font-extrabold uppercase text-espresso-950 mb-1">
+                              1. How Many Days?
+                            </label>
+                            <div className="flex items-center gap-1.5">
+                              {[1, 2, 3, 4, 5].map(d => (
+                                <button
+                                  key={d}
+                                  type="button"
+                                  onClick={() => handleSetPackedMealDaysCount(d)}
+                                  className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold ${
+                                    packedMealDaysCount === d ? 'bg-espresso-950 text-gold-300' : 'bg-cream-100 text-espresso-900'
+                                  }`}
+                                >
+                                  {d}d
+                                </button>
+                              ))}
+                              <input
+                                type="number"
+                                min="1"
+                                max="30"
+                                value={packedMealDaysCount}
+                                onChange={e => handleSetPackedMealDaysCount(e.target.value)}
+                                className="w-16 px-2 py-1 rounded-lg border border-cream-200 font-mono text-xs font-bold text-center"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-extrabold uppercase text-espresso-950 mb-1">
+                              2. Meals on Day {activePackedMealDay}
+                            </label>
+                            <div className="flex items-center gap-1.5">
+                              {[1, 2, 3, 4].map(cnt => (
+                                <button
+                                  key={cnt}
+                                  type="button"
+                                  onClick={() => handleSetPackedMealCountForDay(activePackedMealDay, cnt)}
+                                  className={`px-2.5 py-1 rounded-lg font-mono text-xs font-bold ${
+                                    activeDayPackedBatches.length === cnt ? 'bg-espresso-950 text-gold-300' : 'bg-cream-100 text-espresso-900'
+                                  }`}
+                                >
+                                  {cnt}
+                                </button>
+                              ))}
+                              <input
+                                type="number"
+                                min="1"
+                                max="15"
+                                value={activeDayPackedBatches.length}
+                                onChange={e => handleSetPackedMealCountForDay(activePackedMealDay, e.target.value)}
+                                className="w-16 px-2 py-1 rounded-lg border border-cream-200 font-mono text-xs font-bold text-center"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Day Tabs (Shown when > 1 Day) */}
+                        {packedMealDaysCount > 1 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {Array.from({ length: packedMealDaysCount }, (_, i) => i + 1).map(dayNum => {
+                              const countForDay = computedPackedMealsSummary.batches.filter(b => b.day === dayNum).length;
+                              return (
+                                <button
+                                  key={dayNum}
+                                  type="button"
+                                  onClick={() => {
+                                    setActivePackedMealDay(dayNum);
+                                    const firstOfDay = packedMealBatches.find(b => (b.day || 1) === dayNum);
+                                    if (firstOfDay) setActivePackedMealId(firstOfDay.id);
+                                  }}
+                                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold ${
+                                    activePackedMealDay === dayNum
+                                      ? 'bg-espresso-950 text-gold-300 shadow'
+                                      : 'bg-white border border-cream-200 text-espresso-900'
+                                  }`}
+                                >
+                                  Day {dayNum} ({countForDay} {countForDay === 1 ? 'Meal' : 'Meals'})
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Packed Meal 1, Packed Meal 2... Tabs for Selected Day */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {activeDayPackedBatches.map(b => (
+                            <button
+                              key={b.id}
+                              type="button"
+                              onClick={() => setActivePackedMealId(b.id)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                                activePackedBatch?.id === b.id
+                                  ? 'bg-gold-500 text-espresso-950 border-espresso-950 shadow'
+                                  : 'bg-white text-espresso-900 border-cream-200 hover:bg-cream-100'
+                              }`}
+                            >
+                              {b.displayLabel} • {b.packs}p ({formatWholeCurrency(b.batchTotal)})
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Active Packed Meal Customization Panel */}
+                        {activePackedBatch && (
+                          <div className="bg-white p-3.5 rounded-xl border border-cream-200 space-y-3">
+                            <div className="flex items-center justify-between border-b border-cream-200 pb-2">
+                              <span className="text-xs font-extrabold text-espresso-950">
+                                Editing: {packedMealDaysCount > 1 ? `Day ${activePackedBatch.day} — ` : ''}{activePackedBatch.displayLabel}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemovePackedMealBatch(activePackedBatch.id)}
+                                className="text-[11px] font-bold text-red-600 hover:underline"
+                              >
+                                {activeDayPackedBatches.length > 1 ? 'Remove Meal' : 'Reset Meal'}
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                              <div>
+                                <label className="block text-[10px] font-bold uppercase text-espresso-800/80 mb-1">Delivery Date</label>
+                                <input
+                                  type="date"
+                                  value={activePackedBatch.date || todayIsoDate}
+                                  onChange={e => handleUpdatePackedMealBatch(activePackedBatch.id, { date: e.target.value })}
+                                  className="w-full px-2.5 py-1.5 rounded-lg border border-cream-200 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold uppercase text-espresso-800/80 mb-1">Delivery Time</label>
+                                <input
+                                  type="text"
+                                  value={activePackedBatch.time || ''}
+                                  onChange={e => handleUpdatePackedMealBatch(activePackedBatch.id, { time: e.target.value })}
+                                  placeholder="e.g., 11:30 AM"
+                                  className="w-full px-2.5 py-1.5 rounded-lg border border-cream-200 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold uppercase text-espresso-800/80 mb-1">Packs (Qty)</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={activePackedBatch.packs}
+                                  onChange={e => handleUpdatePackedMealBatch(activePackedBatch.id, { packs: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                                  className="w-full px-2.5 py-1.5 rounded-lg border border-cream-200 font-mono text-xs font-bold"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold uppercase text-espresso-800/80 mb-1">Rate/Pack Override (₱)</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={activePackedBatch.unitRate || ''}
+                                  onChange={e => handleUpdatePackedMealBatch(activePackedBatch.id, { unitRate: Math.max(0, Number(e.target.value) || 0) })}
+                                  placeholder={`Auto: ₱${activePackedBatch.dishesRateSum}`}
+                                  className="w-full px-2.5 py-1.5 rounded-lg border border-cream-200 font-mono text-xs font-bold"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                              <div>
+                                <label className="block text-[10px] font-bold uppercase text-espresso-800/80 mb-1">Extra Box Inclusions (Optional)</label>
+                                <input
+                                  type="text"
+                                  value={activePackedBatch.customItemsText || ''}
+                                  onChange={e => handleUpdatePackedMealBatch(activePackedBatch.id, { customItemsText: e.target.value })}
+                                  placeholder="e.g., Bottled Water, Utensils, Banana"
+                                  className="w-full px-2.5 py-1.5 rounded-lg border border-cream-200 text-xs"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-bold uppercase text-espresso-800/80 mb-1">Customization Notes</label>
+                                <input
+                                  type="text"
+                                  value={activePackedBatch.notes || ''}
+                                  onChange={e => handleUpdatePackedMealBatch(activePackedBatch.id, { notes: e.target.value })}
+                                  placeholder="e.g., Separate sauce, 5 Vegetarian packs"
+                                  className="w-full px-2.5 py-1.5 rounded-lg border border-cream-200 text-xs"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Selected Dishes inside this Packed Meal */}
+                            <div className="bg-cream-50 p-2.5 rounded-lg border border-cream-200 text-xs">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-bold text-espresso-950">
+                                  Dishes inside {activePackedBatch.displayLabel} ({activePackedBatch.chosenDishes.length}):
+                                </span>
+                                <span className="font-mono font-extrabold text-gold-600">
+                                  ₱{activePackedBatch.effectiveRatePerPack}/pack × {activePackedBatch.packs} = {formatWholeCurrency(activePackedBatch.batchTotal)}
+                                </span>
+                              </div>
+                              {activePackedBatch.chosenDishes.length === 0 ? (
+                                <p className="text-[11px] text-espresso-800/70">Tap any dishes from the Menu catalog below to add them into this packed meal.</p>
+                              ) : (
+                                <div className="flex flex-wrap gap-1.5 mt-1">
+                                  {activePackedBatch.chosenDishes.map(d => (
+                                    <button
+                                      key={d.id}
+                                      type="button"
+                                      onClick={() => handleToggleDishInPackedBatch(activePackedBatch.id, d.id)}
+                                      className="px-2 py-0.5 rounded-full bg-espresso-950 text-gold-300 text-[10px] font-bold flex items-center gap-1"
+                                    >
+                                      <span>{d.name} (₱{d.price})</span>
+                                      <span>×</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Quick + Dish Form */}
                     {showQuickNewDishInStep3 && (
                       <form onSubmit={e => handleSaveMenuDish(e, true)} className="bg-cream-50 p-3 rounded-xl border border-gold-400/60 grid grid-cols-1 sm:grid-cols-12 gap-2">
                         <input type="text" required value={menuBuilderName} onChange={e => setMenuBuilderName(e.target.value)} placeholder="Dish Name" className="sm:col-span-5 px-2.5 py-1.5 rounded-lg border border-cream-200 bg-white text-xs" />
@@ -2387,7 +3152,7 @@
                       <label className="flex items-center justify-between gap-3 bg-amber-50/70 p-3 rounded-xl border border-gold-400/50 cursor-pointer">
                         <div>
                           <span className="text-xs font-extrabold text-espresso-950">Apply Swap Menu Food Credit (₱{selectedPackage.foodCreditPerPax}/pax)</span>
-                          <span className="block text-[11px] text-espresso-800/80">Deducts up to {formatWholeCurrency((Number(selectedPackage.foodCreditPerPax) || 300) * (Number(paxCount) || 0))} when replacing Classic Menu A</span>
+                          <span className="block text-[11px] text-espresso-800/80">Deducts up to {formatWholeCurrency((Number(selectedPackage.foodCreditPerPax) || 300) * (Number(paxCount) || 0))} when replacing built-in menu with custom A La Carte dishes</span>
                         </div>
                         <input type="checkbox" checked={useSwapMenuCredit} onChange={e => setUseSwapMenuCredit(e.target.checked)} className="w-4 h-4 accent-espresso-950" />
                       </label>
@@ -2408,17 +3173,26 @@
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto custom-scroll pr-1">
                       {filteredMenuItems.map(dish => {
-                        const existingLine = selectedMenuLines.find(l => l.key === `${effectiveDayForBuilder}__${dish.id}`);
+                        const isSelectedInPacked =
+                          bookingCategory === 'packed_meals' &&
+                          Boolean(activePackedBatch?.dishIds?.includes(dish.id));
+                        const existingLine =
+                          bookingCategory !== 'packed_meals'
+                            ? selectedMenuLines.find(l => l.key === `${effectiveDayForBuilder}__${dish.id}`)
+                            : null;
+                        const activeCard = isSelectedInPacked || Boolean(existingLine);
                         return (
-                          <button key={dish.id} type="button" onClick={() => handleOneClickAddDish(dish)} className={`p-3 rounded-xl border text-left transition flex items-start justify-between gap-2 ${existingLine ? 'bg-espresso-950 text-cream-50 border-gold-500' : 'bg-cream-50 hover:bg-white text-espresso-950 border-cream-200'}`}>
+                          <button key={dish.id} type="button" onClick={() => handleOneClickAddDish(dish)} className={`p-3 rounded-xl border text-left transition flex items-start justify-between gap-2 ${activeCard ? 'bg-espresso-950 text-cream-50 border-gold-500' : 'bg-cream-50 hover:bg-white text-espresso-950 border-cream-200'}`}>
                             <div className="min-w-0">
-                              <span className={`text-[10px] font-extrabold uppercase ${existingLine ? 'text-gold-400' : 'text-gold-600'}`}>{dish.category}</span>
+                              <span className={`text-[10px] font-extrabold uppercase ${activeCard ? 'text-gold-400' : 'text-gold-600'}`}>{dish.category}</span>
                               <div className="font-bold text-xs mt-0.5 leading-snug">{dish.name}</div>
                             </div>
                             <div className="text-right shrink-0">
                               <div className="font-mono font-extrabold text-xs">₱{dish.price}/{bookingCategory === 'packed_meals' ? 'pk' : 'pax'}</div>
-                              {existingLine ? (
-                                <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-gold-500 text-espresso-950 text-[10px] font-extrabold">In Menu ({existingLine.qty})</span>
+                              {activeCard ? (
+                                <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-gold-500 text-espresso-950 text-[10px] font-extrabold">
+                                  {bookingCategory === 'packed_meals' ? 'In Box' : `In Menu (${existingLine.qty})`}
+                                </span>
                               ) : (
                                 <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-white border border-cream-200 text-espresso-800 text-[10px] font-bold">+ Add</span>
                               )}
@@ -2428,10 +3202,10 @@
                       })}
                     </div>
 
-                    {computedMenuSummary.lines.length > 0 && (
+                    {bookingCategory !== 'packed_meals' && computedMenuSummary.lines.length > 0 && (
                       <div className="bg-cream-50 p-3.5 rounded-2xl border border-gold-400/60 space-y-2">
                         <div className="flex items-center justify-between border-b border-cream-200 pb-2">
-                          <span className="text-xs font-extrabold uppercase text-espresso-950">Chosen Menu ({computedMenuSummary.lines.length}) — ₱{computedMenuSummary.perPaxRateSum}/{bookingCategory === 'packed_meals' ? 'pack' : 'pax'}</span>
+                          <span className="text-xs font-extrabold uppercase text-espresso-950">Chosen A La Carte Menu ({computedMenuSummary.lines.length}) — ₱{computedMenuSummary.perPaxRateSum}/pax</span>
                           <button type="button" onClick={() => setSelectedMenuLines([])} className="text-[11px] font-bold text-red-600 hover:underline">Clear</button>
                         </div>
                         {computedMenuSummary.lines.map(line => (
@@ -2462,17 +3236,15 @@
                   </section>
                 )}
 
-                {/* EVENT SERVICES / RENTALS STEP (STRICTLY RENTAL-ONLY IN RENTALS MODE) */}
+                {/* STEP 4: EVENT SERVICES / RENTALS (STRICTLY RENTAL-ONLY IN RENTALS MODE) */}
                 <section className="bg-white rounded-2xl p-5 border border-cream-200 shadow-sm space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cream-200 pb-3">
-                    <div>
-                      <h2 className="font-serif text-lg font-bold text-espresso-950 flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-lg bg-espresso-950 text-gold-400 text-xs font-sans font-extrabold flex items-center justify-center">{stepNumbers.services}</span>
-                        <span>
-                          {bookingCategory === 'rental' ? 'Rental Equipment & Items (Rental Only)' : bookingCategory === 'packed_meals' ? 'Packaging, Delivery & Add-Ons' : 'Event Services, Rentals & Suppliers'}
-                        </span>
-                      </h2>
-                    </div>
+                    <h2 className="font-serif text-lg font-bold text-espresso-950 flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-espresso-950 text-gold-400 text-xs font-sans font-extrabold flex items-center justify-center">{stepNumbers.services}</span>
+                      <span>
+                        {bookingCategory === 'rental' ? 'Rental Equipment & Items (Rental Only)' : bookingCategory === 'packed_meals' ? 'Packaging, Delivery & Add-Ons' : 'Event Services, Rentals & Suppliers'}
+                      </span>
+                    </h2>
                     <div className="flex items-center gap-1.5">
                       <button type="button" onClick={() => setShowCustomServiceForm(v => !v)} className="px-2.5 py-1.5 rounded-xl bg-cream-100 hover:bg-gold-400/30 text-espresso-950 text-xs font-bold">
                         + {bookingCategory === 'rental' ? 'Custom Rental' : 'Custom Line'}
@@ -2564,7 +3336,9 @@
                           <div className="min-w-0">
                             <div className="text-xs font-bold text-espresso-950">{line.name}</div>
                             <div className="text-[11px] text-espresso-800/75 font-mono">
-                              {formatWholeCurrency(line.price)} ({billingBadgeLabel(line.billingType)}) × {line.qty} = <strong className="text-espresso-950">{formatWholeCurrency(line.lineTotal)}</strong>
+                              {formatWholeCurrency(line.price)} ({billingBadgeLabel(line.billingType)}) × {line.qty}
+                              {bookingCategory === 'rental' && line.billingType === 'per_day' ? ` × ${rentalDurationDays}d` : ''} ={' '}
+                              <strong className="text-espresso-950">{formatWholeCurrency(line.lineTotal)}</strong>
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5">
@@ -2583,18 +3357,24 @@
                   )}
                 </section>
 
-                {/* HOTEL ROOMS (CELEBRATIONS & SEMINARS ONLY) */}
+                {/* STEP 5: HOTEL ROOMS WITH BOOKED CHECK-IN & CHECK-OUT DATES */}
                 {showRoomsStep && (
                   <section className="bg-white rounded-2xl p-5 border border-cream-200 shadow-sm space-y-3">
-                    <div className="flex items-center justify-between border-b border-cream-200 pb-3">
-                      <h2 className="font-serif text-lg font-bold text-espresso-950 flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-lg bg-espresso-950 text-gold-400 text-xs font-sans font-extrabold flex items-center justify-center">{stepNumbers.rooms}</span>
-                        <span>Hotel Rooms (Rooms 1–18)</span>
-                      </h2>
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cream-200 pb-3">
+                      <div className="flex items-center gap-2">
+                        <h2 className="font-serif text-lg font-bold text-espresso-950 flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-lg bg-espresso-950 text-gold-400 text-xs font-sans font-extrabold flex items-center justify-center">{stepNumbers.rooms}</span>
+                          <span>Hotel Rooms ({roomItems.length} Rooms)</span>
+                        </h2>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${syncDiagnostics.roomsOk ? 'bg-emerald-100 text-emerald-800' : 'bg-cream-100 text-espresso-800'}`}>
+                          {syncDiagnostics.roomsOk ? 'Sheet #5 Synced' : 'Sheet #5 Linked'}
+                        </span>
+                      </div>
                       <span className="font-mono text-sm font-extrabold text-espresso-950 bg-cream-100 px-2.5 py-1 rounded-xl">{formatCurrency(roomsSubtotal)}</span>
                     </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-56 overflow-y-auto custom-scroll pr-1">
-                      {ROOM_CATALOG.map(room => {
+                      {roomItems.map(room => {
                         const nights = Number(roomNightsMap[room.id]) || 0;
                         return (
                           <div key={room.id} className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 ${nights > 0 ? 'bg-espresso-950 text-cream-50 border-gold-500' : 'bg-cream-50 text-espresso-950 border-cream-200'}`}>
@@ -2603,18 +3383,44 @@
                               <div className="text-[10px] truncate opacity-75">{room.type}</div>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
-                              <button type="button" onClick={() => setRoomNightsMap(p => ({ ...p, [room.id]: Math.max(0, nights - 1) }))} className="w-6 h-6 rounded-lg bg-white/15 border border-cream-200/40 font-bold text-xs">−</button>
+                              <button type="button" onClick={() => handleUpdateRoomNights(room.id, nights - 1)} className="w-6 h-6 rounded-lg bg-white/15 border border-cream-200/40 font-bold text-xs">−</button>
                               <span className="w-5 text-center font-mono text-xs font-bold">{nights}</span>
-                              <button type="button" onClick={() => setRoomNightsMap(p => ({ ...p, [room.id]: nights + 1 }))} className="w-6 h-6 rounded-lg bg-gold-500 text-espresso-950 font-bold text-xs">+</button>
+                              <button type="button" onClick={() => handleUpdateRoomNights(room.id, nights + 1)} className="w-6 h-6 rounded-lg bg-gold-500 text-espresso-950 font-bold text-xs">+</button>
                             </div>
                           </div>
                         );
                       })}
                     </div>
+
+                    {/* Booked Dates for Selected Rooms */}
+                    {selectedRoomsList.length > 0 && (
+                      <div className="bg-cream-50 p-3.5 rounded-2xl border border-gold-400/60 space-y-2">
+                        <div className="text-xs font-extrabold uppercase text-espresso-950 flex items-center gap-1.5">
+                          <i className="fa-solid fa-calendar-check text-gold-600"></i>
+                          <span>Booked Room Dates ({selectedRoomsList.length} Selected)</span>
+                        </div>
+                        {selectedRoomsList.map(room => (
+                          <div key={room.id} className="bg-white p-2.5 rounded-xl border border-cream-200 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center text-xs">
+                            <div className="sm:col-span-4 min-w-0">
+                              <div className="font-bold text-espresso-950 truncate">{room.roomNo} — {room.type}</div>
+                              <div className="text-[10px] font-mono text-espresso-800/75">{room.nights} nt(s) • {formatWholeCurrency(room.total)}</div>
+                            </div>
+                            <div className="sm:col-span-4">
+                              <label className="block text-[9px] font-bold uppercase text-espresso-800/70">Check-In</label>
+                              <input type="date" value={room.checkIn} onChange={e => handleUpdateRoomDates(room.id, 'checkIn', e.target.value)} className="w-full px-2 py-1 rounded-lg border border-cream-200 text-xs" />
+                            </div>
+                            <div className="sm:col-span-4">
+                              <label className="block text-[9px] font-bold uppercase text-espresso-800/70">Check-Out</label>
+                              <input type="date" value={room.checkOut} onChange={e => handleUpdateRoomDates(room.id, 'checkOut', e.target.value)} className="w-full px-2 py-1 rounded-lg border border-cream-200 text-xs" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </section>
                 )}
 
-                {/* DISCOUNTS, TAXES & PAYMENT LEDGER */}
+                {/* STEP 6: DISCOUNTS, TAXES & PAYMENT LEDGER */}
                 <section className="bg-white rounded-2xl p-5 border border-cream-200 shadow-sm space-y-3">
                   <div className="flex items-center justify-between border-b border-cream-200 pb-3">
                     <h2 className="font-serif text-lg font-bold text-espresso-950 flex items-center gap-2">
@@ -2662,7 +3468,7 @@
                   ))}
                 </section>
 
-                {/* PO / LGU REFERENCE (HIDDEN IN RENTALS) */}
+                {/* STEP 7: PO / LGU REFERENCE (HIDDEN IN RENTALS) */}
                 {showPoStep && (
                   <section className="bg-white rounded-2xl p-4 border border-cream-200 shadow-sm">
                     <button type="button" onClick={() => setIsPoOpen(v => !v)} className="w-full flex items-center justify-between text-left">
@@ -2702,6 +3508,7 @@
                 {previewMode === 'client' ? (
                   <div ref={printRef} className="a4-sheet p-8 flex flex-col justify-between">
                     <div>
+                      {/* Letterhead */}
                       <div className="flex items-start justify-between border-b-2 border-espresso-950 pb-4 gap-4">
                         <div>
                           <h2 className="font-serif text-2xl font-extrabold text-espresso-950">{businessProfile.businessName}</h2>
@@ -2721,114 +3528,230 @@
                         </div>
                       </div>
 
+                      {/* Client & Event Metadata */}
                       <div className="grid grid-cols-2 gap-4 py-4 border-b border-cream-200 text-xs">
                         <div className="space-y-1">
-                          <div><strong>{bookingCategory === 'rental' ? 'Lessee: ' : 'Prepared For: '}</strong>{clientName || 'Valued Client'}</div>
+                          <div>
+                            <strong>{bookingCategory === 'rental' ? 'Lessee: ' : 'Prepared For: '}</strong>
+                            <span>{clientName || 'Valued Client'}</span>
+                          </div>
                           {clientOrg && <div><strong>Organization: </strong>{clientOrg}</div>}
                           {clientContact && <div><strong>Contact: </strong>{clientContact}</div>}
-                          {eventMotif && bookingCategory === 'celebration' && <div><strong>Motif: </strong>{eventMotif}</div>}
-                          {poNumber && bookingCategory !== 'rental' && <div><strong>PO Ref: </strong><span className="font-mono">{poNumber}</span></div>}
+                          {eventMotif && bookingCategory === 'celebration' && <div><strong>Motif / Theme: </strong>{eventMotif}</div>}
+                          {poNumber && bookingCategory !== 'rental' && (
+                            <div>
+                              <strong>PO Ref: </strong>
+                              <span className="font-mono">{poNumber}</span>
+                              {poApprovedBudget && <span> (ABC: {poApprovedBudget})</span>}
+                            </div>
+                          )}
                         </div>
                         <div className="space-y-1 text-right">
-                          <div><strong>{bookingCategory === 'rental' ? 'Purpose: ' : 'Occasion: '}</strong>{occasion}</div>
-                          <div><strong>Date: </strong>{formatPrettyDate(eventDate)}{bookingCategory !== 'rental' && eventTime ? ` • ${eventTime}` : ''}</div>
-                          {bookingCategory === 'rental' ? (
-                            <div><strong>Return: </strong>{formatPrettyDate(rentalReturnDate)} ({rentalDurationDays}d)</div>
+                          <div><strong>{bookingCategory === 'rental' ? 'Purpose: ' : bookingCategory === 'packed_meals' ? 'Order Title: ' : 'Occasion: '}</strong>{occasion}</div>
+                          {bookingCategory === 'packed_meals' ? (
+                            <div>
+                              <strong>Schedule: </strong>
+                              {packedMealDaysCount} {packedMealDaysCount === 1 ? 'Day' : 'Days'} • {computedPackedMealsSummary.batches.length} {computedPackedMealsSummary.batches.length === 1 ? 'Meal' : 'Meals'} ({computedPackedMealsSummary.totalPacks} Total Packs)
+                            </div>
                           ) : (
-                            <div><strong>{bookingCategory === 'packed_meals' ? 'Qty: ' : 'Guests: '}</strong>{paxCount} {bookingCategory === 'packed_meals' ? 'Packs' : 'Pax'}{bookingCategory === 'seminar' && eventDays > 1 ? ` (${eventDays}d)` : ''}</div>
+                            <>
+                              <div>
+                                <strong>{bookingCategory === 'rental' ? 'Pick-Up Date: ' : 'Event Date: '}</strong>
+                                {formatPrettyDate(eventDate)}
+                                {bookingCategory !== 'rental' && eventTime ? ` • ${eventTime}` : ''}
+                              </div>
+                              {bookingCategory === 'rental' ? (
+                                <div><strong>Return Date: </strong>{formatPrettyDate(rentalReturnDate)} ({rentalDurationDays} {rentalDurationDays === 1 ? 'Day' : 'Days'})</div>
+                              ) : (
+                                <div>
+                                  <strong>Guests: </strong>{paxCount} Pax
+                                  {bookingCategory === 'seminar' && eventDays > 1 ? ` (${eventDays} Days)` : ''}
+                                </div>
+                              )}
+                            </>
                           )}
                           <div><strong>Location: </strong>{eventVenue}</div>
                         </div>
                       </div>
 
+                      {/* Itemized Charges Table (Always Detailed) */}
                       <table className="w-full mt-4 text-xs border-collapse">
                         <thead>
                           <tr className="bg-espresso-950 text-gold-300 text-left">
-                            <th className="py-2 px-3 rounded-tl-lg">Particulars / Description</th>
+                            <th className="py-2 px-3 rounded-tl-lg">Particulars &amp; Detailed Inclusions</th>
                             <th className="py-2 px-3 text-right">Qty / Pax</th>
                             <th className="py-2 px-3 text-right">Unit Rate</th>
                             <th className="py-2 px-3 text-right rounded-tr-lg">Amount</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-cream-200">
+                          {/* Package & Built-In Buffet Menu Plan */}
                           {showPackageStep && (packageBreakdown.total > 0 || isTieredAllInclusivePackage(selectedPackage.id)) && (
                             <tr>
                               <td className="py-2.5 px-3">
                                 <div className="font-bold text-espresso-950">{selectedPackage.name}</div>
                                 {isTieredAllInclusivePackage(selectedPackage.id) && (
                                   <div className="text-[11px] text-espresso-800">
-                                    Base ({packageBreakdown.tierPax} Pax): {formatWholeCurrency(packageBreakdown.basePrice)}
-                                    {packageBreakdown.excessPax > 0 && ` + ${packageBreakdown.excessPax} Excess @ ₱${packageBreakdown.excessRate}`}
+                                    Base Tier ({packageBreakdown.tierPax} Pax): {formatWholeCurrency(packageBreakdown.basePrice)}
+                                    {packageBreakdown.excessPax > 0 && ` + ${packageBreakdown.excessPax} Excess Pax @ ₱${packageBreakdown.excessRate}/pax`}
+                                  </div>
+                                )}
+                                {selectedPackage.inclusions?.length > 0 && (
+                                  <ul className="mt-1.5 text-[10px] text-espresso-900 list-disc pl-4 space-y-0.5">
+                                    {selectedPackage.inclusions.map((inc, idx) => (
+                                      <li key={idx}>{inc}</li>
+                                    ))}
+                                  </ul>
+                                )}
+                                {selectedPackage.foodIncluded && (
+                                  <div className="mt-1.5 bg-cream-50 p-2 rounded-lg border border-cream-200">
+                                    <div className="text-[10px] font-extrabold text-espresso-950">
+                                      Built-In Buffet Plan: {selectedBuffetMenu.name} ({selectedBuffetMenu.badge})
+                                      {packageBreakdown.menuUpgradeCharge > 0 && ` — +${formatWholeCurrency(packageBreakdown.menuUpgradeCharge)}`}
+                                    </div>
+                                    <ul className="mt-0.5 text-[10px] text-espresso-900 list-disc pl-4 space-y-0.5">
+                                      {selectedBuffetMenu.items.map((dishLine, idx) => (
+                                        <li key={idx}>{dishLine}</li>
+                                      ))}
+                                    </ul>
                                   </div>
                                 )}
                               </td>
-                              <td className="py-2.5 px-3 text-right font-mono">{isTieredAllInclusivePackage(selectedPackage.id) ? `${paxCount} pax` : '1 lot'}</td>
-                              <td className="py-2.5 px-3 text-right font-mono">{formatCurrency(packageBreakdown.total)}</td>
-                              <td className="py-2.5 px-3 text-right font-mono font-bold">{formatCurrency(packageBreakdown.total)}</td>
+                              <td className="py-2.5 px-3 text-right font-mono align-top">
+                                {isTieredAllInclusivePackage(selectedPackage.id) ? `${paxCount} pax` : '1 lot'}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-mono align-top">
+                                {formatCurrency(packageBreakdown.total)}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-mono font-bold align-top">
+                                {formatCurrency(packageBreakdown.total)}
+                              </td>
                             </tr>
                           )}
 
-                          {computedMenuSummary.lines.map(line => (
+                          {/* Packed Meals Detailed Rows */}
+                          {bookingCategory === 'packed_meals' && computedPackedMealsSummary.batches.map(batch => (
+                            <tr key={batch.id}>
+                              <td className="py-2.5 px-3">
+                                <div className="font-bold text-espresso-950">
+                                  {packedMealDaysCount > 1 ? `Day ${batch.day} — ` : ''}{batch.displayLabel}
+                                  <span className="font-normal text-espresso-800 ml-1.5">
+                                    ({formatPrettyDate(batch.date)}{batch.time ? ` @ ${batch.time}` : ''})
+                                  </span>
+                                </div>
+                                {batch.chosenDishes.length > 0 && (
+                                  <ul className="mt-1 text-[10px] text-espresso-900 list-disc pl-4 space-y-0.5">
+                                    {batch.chosenDishes.map(d => (
+                                      <li key={d.id}>
+                                        <strong>[{d.category}]</strong> {d.name} (₱{d.price}/pack)
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                                {batch.customItemsText && (
+                                  <div className="text-[10px] text-espresso-800 mt-1">
+                                    <strong>Box Inclusions:</strong> {batch.customItemsText}
+                                  </div>
+                                )}
+                                {batch.notes && (
+                                  <div className="text-[10px] text-gold-600 italic mt-0.5">
+                                    Note: {batch.notes}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-mono align-top">{batch.packs} packs</td>
+                              <td className="py-2.5 px-3 text-right font-mono align-top">{formatCurrency(batch.effectiveRatePerPack)}</td>
+                              <td className="py-2.5 px-3 text-right font-mono font-bold align-top">{formatCurrency(batch.batchTotal)}</td>
+                            </tr>
+                          ))}
+
+                          {/* A La Carte Menu Items (Celebration / Seminar) */}
+                          {bookingCategory !== 'packed_meals' && computedMenuSummary.lines.map(line => (
                             <tr key={line.key}>
                               <td className="py-2 px-3">
-                                <div className="font-bold text-espresso-950">{bookingCategory === 'seminar' ? `[Day ${line.day}] ` : ''}{line.name}</div>
-                                <div className="text-[10px] text-espresso-800/75">{line.category}</div>
+                                <div className="font-bold text-espresso-950">
+                                  {bookingCategory === 'seminar' ? `[Day ${line.day}] ` : ''}{line.name}
+                                </div>
+                                <div className="text-[10px] text-espresso-800/80">
+                                  Category: {line.category}
+                                  {line.allDays && eventDays > 1 ? ` • All ${eventDays} Days` : ''}
+                                </div>
                               </td>
-                              <td className="py-2 px-3 text-right font-mono">{line.dayPax} × {line.qty}</td>
+                              <td className="py-2 px-3 text-right font-mono">{line.dayPax} pax × {line.qty}</td>
                               <td className="py-2 px-3 text-right font-mono">{formatCurrency(line.price)}</td>
                               <td className="py-2 px-3 text-right font-mono font-bold">{formatCurrency(line.lineTotal)}</td>
                             </tr>
                           ))}
 
-                          {computedMenuSummary.appliedSwapCredit > 0 && (
+                          {bookingCategory !== 'packed_meals' && computedMenuSummary.appliedSwapCredit > 0 && (
                             <tr className="bg-emerald-50">
-                              <td className="py-2 px-3 font-bold text-emerald-800" colSpan="3">Swap Menu Food Credit (₱{selectedPackage.foodCreditPerPax}/pax)</td>
-                              <td className="py-2 px-3 text-right font-mono font-bold text-emerald-800">−{formatCurrency(computedMenuSummary.appliedSwapCredit)}</td>
+                              <td className="py-2 px-3 font-bold text-emerald-800" colSpan="3">
+                                Swap Menu Food Credit (₱{selectedPackage.foodCreditPerPax}/pax)
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono font-bold text-emerald-800">
+                                −{formatCurrency(computedMenuSummary.appliedSwapCredit)}
+                              </td>
                             </tr>
                           )}
 
+                          {/* Event Services & Rentals Detailed Rows */}
                           {computedServiceLines.map(line => (
                             <tr key={line.key}>
                               <td className="py-2 px-3">
-                                <div className="font-bold text-espresso-950">{bookingCategory === 'seminar' ? `[Day ${line.day}] ` : ''}{line.name}</div>
-                                <div className="text-[10px] text-espresso-800/75">{line.subcategory} • {billingBadgeLabel(line.billingType)}</div>
+                                <div className="font-bold text-espresso-950">
+                                  {bookingCategory === 'seminar' ? `[Day ${line.day}] ` : ''}{line.name}
+                                </div>
+                                <div className="text-[10px] text-espresso-800/80">
+                                  {line.subcategory} • {billingBadgeLabel(line.billingType)}
+                                  {bookingCategory === 'rental' && line.billingType === 'per_day' ? ` • ${rentalDurationDays} Rental Day(s)` : ''}
+                                  {line.allDays && bookingCategory === 'seminar' && eventDays > 1 ? ` • All ${eventDays} Days` : ''}
+                                </div>
+                                {line.description && (
+                                  <div className="text-[10px] text-espresso-800/75 mt-0.5">{line.description}</div>
+                                )}
                               </td>
-                              <td className="py-2 px-3 text-right font-mono">{line.billingType === 'per_pax' ? `${line.dayPax} × ${line.qty}` : line.qty}</td>
-                              <td className="py-2 px-3 text-right font-mono">{formatCurrency(line.price)}</td>
-                              <td className="py-2 px-3 text-right font-mono font-bold">{formatCurrency(line.lineTotal)}</td>
+                              <td className="py-2 px-3 text-right font-mono align-top">
+                                {line.billingType === 'per_pax'
+                                  ? `${line.dayPax} pax × ${line.qty}`
+                                  : bookingCategory === 'rental' && line.billingType === 'per_day'
+                                  ? `${line.qty} × ${rentalDurationDays}d`
+                                  : line.qty}
+                              </td>
+                              <td className="py-2 px-3 text-right font-mono align-top">{formatCurrency(line.price)}</td>
+                              <td className="py-2 px-3 text-right font-mono font-bold align-top">{formatCurrency(line.lineTotal)}</td>
                             </tr>
                           ))}
 
+                          {/* Hotel Rooms with Booked Dates & Inclusions */}
                           {selectedRoomsList.map(room => (
                             <tr key={room.id}>
                               <td className="py-2 px-3">
                                 <div className="font-bold text-espresso-950">{room.roomNo} — {room.type}</div>
-                                <div className="text-[10px] text-espresso-800/75">Hotel Accommodation ({room.capacity})</div>
+                                <div className="text-[10px] text-espresso-900 font-semibold">
+                                  Booked Dates: {formatPrettyDate(room.checkIn)} to {formatPrettyDate(room.checkOut)} ({room.capacity})
+                                </div>
+                                {room.inclusions && (
+                                  <div className="text-[10px] text-espresso-800/75">Inclusions: {room.inclusions}</div>
+                                )}
                               </td>
-                              <td className="py-2 px-3 text-right font-mono">{room.nights} nt(s)</td>
-                              <td className="py-2 px-3 text-right font-mono">{formatCurrency(room.rate)}</td>
-                              <td className="py-2 px-3 text-right font-mono font-bold">{formatCurrency(room.total)}</td>
+                              <td className="py-2 px-3 text-right font-mono align-top">{room.nights} {room.nights === 1 ? 'night' : 'nights'}</td>
+                              <td className="py-2 px-3 text-right font-mono align-top">{formatCurrency(room.rate)}</td>
+                              <td className="py-2 px-3 text-right font-mono font-bold align-top">{formatCurrency(room.total)}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
 
-                      {showPackageStep && showInclusionsOnPrint && selectedPackage.id !== 'from_scratch' && (
-                        <div className="mt-4 p-3 rounded-xl bg-cream-50 border border-cream-200">
-                          <div className="text-[10px] font-extrabold uppercase text-espresso-950 mb-1">{selectedPackage.name} — Inclusions</div>
-                          <ul className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px] text-espresso-900 list-disc pl-4">
-                            {selectedPackage.inclusions.map((inc, i) => <li key={i}>{inc}</li>)}
-                          </ul>
+                      {/* Special & PO Notes */}
+                      {(specialNotes.trim() || poNotes.trim()) && (
+                        <div className="mt-3 p-2.5 rounded-xl bg-amber-50/70 border border-gold-400/40 text-[11px] space-y-1 print-avoid-break">
+                          {specialNotes.trim() && <div><strong>Special Notes: </strong>{specialNotes}</div>}
+                          {poNotes.trim() && bookingCategory !== 'rental' && <div><strong>PO / Billing Notes: </strong>{poNotes}</div>}
                         </div>
                       )}
 
-                      {specialNotes.trim() && (
-                        <div className="mt-3 p-2.5 rounded-xl bg-amber-50/70 border border-gold-400/40 text-[11px]">
-                          <strong>Notes: </strong>{specialNotes}
-                        </div>
-                      )}
-
-                      <div className="mt-4 grid grid-cols-12 gap-4 items-start">
+                      {/* Terms, Payment History & Financial Summary */}
+                      <div className="mt-4 grid grid-cols-12 gap-4 items-start print-avoid-break">
                         <div className="col-span-7 space-y-2">
                           {payments.length > 0 && (
                             <div className="border border-cream-200 rounded-xl overflow-hidden text-[10px]">
@@ -2850,32 +3773,63 @@
                             <div className="p-3 rounded-xl bg-cream-50 border border-cream-200 text-[10px] space-y-1">
                               <div className="font-extrabold uppercase">Booking Terms &amp; Payment Channels</div>
                               <div className="whitespace-pre-line">{businessProfile.cateringTerms}</div>
-                              {businessProfile.paymentAccounts && <div className="pt-1 border-t border-cream-200 font-semibold">{businessProfile.paymentAccounts}</div>}
+                              {businessProfile.paymentAccounts && (
+                                <div className="pt-1 border-t border-cream-200 font-semibold">{businessProfile.paymentAccounts}</div>
+                              )}
                             </div>
                           )}
                         </div>
 
                         <div className="col-span-5 space-y-1.5 text-xs bg-cream-50 p-3.5 rounded-xl border border-cream-200">
-                          <div className="flex justify-between"><span>Subtotal:</span><span className="font-mono font-bold">{formatCurrency(totals.subtotal)}</span></div>
-                          {totals.discount > 0 && <div className="flex justify-between text-emerald-700"><span>{discountLabel}:</span><span className="font-mono font-bold">−{formatCurrency(totals.discount)}</span></div>}
-                          {totals.taxAmount > 0 && <div className="flex justify-between"><span>VAT ({taxRatePercent}%):</span><span className="font-mono font-bold">{formatCurrency(totals.taxAmount)}</span></div>}
-                          {totals.deposit > 0 && <div className="flex justify-between"><span>Security Deposit:</span><span className="font-mono font-bold">{formatCurrency(totals.deposit)}</span></div>}
-                          <div className="flex justify-between pt-2 border-t border-espresso-950/20 text-sm font-extrabold"><span>GRAND TOTAL:</span><span className="font-mono">{formatCurrency(totals.grandTotal)}</span></div>
+                          <div className="flex justify-between">
+                            <span>Subtotal:</span>
+                            <span className="font-mono font-bold">{formatCurrency(totals.subtotal)}</span>
+                          </div>
+                          {totals.discount > 0 && (
+                            <div className="flex justify-between text-emerald-700">
+                              <span>{discountLabel}:</span>
+                              <span className="font-mono font-bold">−{formatCurrency(totals.discount)}</span>
+                            </div>
+                          )}
+                          {totals.taxAmount > 0 && (
+                            <div className="flex justify-between">
+                              <span>VAT ({taxRatePercent}%):</span>
+                              <span className="font-mono font-bold">{formatCurrency(totals.taxAmount)}</span>
+                            </div>
+                          )}
+                          {totals.deposit > 0 && (
+                            <div className="flex justify-between">
+                              <span>Security Deposit:</span>
+                              <span className="font-mono font-bold">{formatCurrency(totals.deposit)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between pt-2 border-t border-espresso-950/20 text-sm font-extrabold">
+                            <span>GRAND TOTAL:</span>
+                            <span className="font-mono">{formatCurrency(totals.grandTotal)}</span>
+                          </div>
                           {totals.totalPaid > 0 ? (
                             <>
-                              <div className="flex justify-between text-emerald-700 font-bold"><span>Total Paid:</span><span className="font-mono">−{formatCurrency(totals.totalPaid)}</span></div>
-                              <div className="flex justify-between pt-1 border-t border-cream-200 font-extrabold"><span>BALANCE DUE:</span><span className="font-mono">{formatCurrency(totals.balanceDue)}</span></div>
+                              <div className="flex justify-between text-emerald-700 font-bold">
+                                <span>Total Paid:</span>
+                                <span className="font-mono">−{formatCurrency(totals.totalPaid)}</span>
+                              </div>
+                              <div className="flex justify-between pt-1 border-t border-cream-200 font-extrabold">
+                                <span>BALANCE DUE:</span>
+                                <span className="font-mono">{formatCurrency(totals.balanceDue)}</span>
+                              </div>
                             </>
                           ) : totals.grandTotal > 0 && (
                             <div className="flex justify-between pt-1 border-t border-cream-200 text-[11px] font-bold text-gold-600">
-                              <span>50% Reservation:</span><span className="font-mono">{formatCurrency(totals.grandTotal * 0.5)}</span>
+                              <span>50% Reservation:</span>
+                              <span className="font-mono">{formatCurrency(totals.grandTotal * 0.5)}</span>
                             </div>
                           )}
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-6 pt-5 border-t border-cream-200 grid grid-cols-2 gap-8 text-xs">
+                    {/* Signature Footer */}
+                    <div className="mt-6 pt-5 border-t border-cream-200 grid grid-cols-2 gap-8 text-xs print-avoid-break">
                       <div>
                         <div className="text-espresso-800/75 mb-6">Prepared By:</div>
                         <div className="border-t border-espresso-950 pt-1 font-bold">{businessProfile.preparedBy}</div>
@@ -2894,7 +3848,11 @@
                         <div>
                           <div className="text-[10px] font-extrabold uppercase text-gold-600">INTERNAL OPERATIONS COPY • NO PRICES</div>
                           <h2 className="font-serif text-2xl font-extrabold text-espresso-950">
-                            {bookingCategory === 'rental' ? 'EQUIPMENT DISPATCH & RETURN SHEET' : bookingCategory === 'packed_meals' ? 'KITCHEN PACKING & DELIVERY SHEET' : 'BANQUET EVENT ORDER (BEO)'}
+                            {bookingCategory === 'rental'
+                              ? 'EQUIPMENT DISPATCH & RETURN SHEET'
+                              : bookingCategory === 'packed_meals'
+                              ? 'KITCHEN PACKING & DELIVERY SHEET'
+                              : 'BANQUET EVENT ORDER (BEO)'}
                           </h2>
                         </div>
                         <div className="text-right">
@@ -2905,9 +3863,24 @@
 
                       <div className="grid grid-cols-2 gap-3 bg-cream-50 p-3.5 rounded-xl border border-cream-200 text-xs">
                         <div><strong>Client: </strong>{clientName || 'Walk-In'} {clientContact && `(${clientContact})`}</div>
-                        <div><strong>Date: </strong>{formatPrettyDate(eventDate)} • {bookingCategory === 'rental' ? `Return ${formatPrettyDate(rentalReturnDate)}` : eventTime}</div>
+                        <div>
+                          <strong>Schedule: </strong>
+                          {bookingCategory === 'packed_meals'
+                            ? `${packedMealDaysCount} Day(s) • ${computedPackedMealsSummary.batches.length} Meal(s)`
+                            : bookingCategory === 'rental'
+                            ? `${formatPrettyDate(eventDate)} → ${formatPrettyDate(rentalReturnDate)}`
+                            : `${formatPrettyDate(eventDate)} • ${eventTime}`}
+                        </div>
                         <div><strong>Location: </strong>{eventVenue}</div>
-                        <div><strong>Count: </strong>{bookingCategory === 'rental' ? `${rentalDurationDays} Day(s)` : `${paxCount} ${bookingCategory === 'packed_meals' ? 'Packs' : 'Pax'}`} {eventMotif && `• Motif: ${eventMotif}`}</div>
+                        <div>
+                          <strong>Count: </strong>
+                          {bookingCategory === 'rental'
+                            ? `${rentalDurationDays} Day(s)`
+                            : bookingCategory === 'packed_meals'
+                            ? `${computedPackedMealsSummary.totalPacks} Total Packs`
+                            : `${paxCount} Pax`}
+                          {eventMotif && bookingCategory === 'celebration' ? ` • Motif: ${eventMotif}` : ''}
+                        </div>
                       </div>
 
                       {specialNotes.trim() && (
@@ -2916,18 +3889,68 @@
                         </div>
                       )}
 
-                      {showMenuStep && computedMenuSummary.lines.length > 0 && (
+                      {/* Built-In Package & Buffet Menu Checklist */}
+                      {showPackageStep && selectedPackage.id !== 'from_scratch' && (
+                        <div className="border border-cream-200 rounded-xl overflow-hidden text-xs">
+                          <div className="bg-espresso-950 text-gold-300 px-3 py-1.5 font-extrabold uppercase">
+                            Package Setup: {selectedPackage.name}
+                          </div>
+                          <div className="p-3 space-y-2">
+                            <ul className="grid grid-cols-2 gap-1 text-[11px] list-disc pl-4">
+                              {selectedPackage.inclusions.map((inc, i) => <li key={i}>{inc}</li>)}
+                            </ul>
+                            {selectedPackage.foodIncluded && (
+                              <div className="pt-2 border-t border-cream-200">
+                                <div className="font-bold text-espresso-950 mb-1">Built-In Kitchen Menu ({selectedBuffetMenu.name} — {paxCount} Pax):</div>
+                                <ul className="text-[11px] list-disc pl-4 space-y-0.5">
+                                  {selectedBuffetMenu.items.map((item, i) => <li key={i}>☐ {item}</li>)}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Packed Meals Kitchen Production List */}
+                      {bookingCategory === 'packed_meals' && computedPackedMealsSummary.batches.length > 0 && (
                         <div className="border border-cream-200 rounded-xl overflow-hidden">
-                          <div className="bg-espresso-950 text-gold-300 px-3 py-1.5 text-xs font-extrabold uppercase">Kitchen Production List</div>
-                          {computedMenuSummary.lines.map(l => (
-                            <div key={l.key} className="flex items-center justify-between px-3 py-2 border-t border-cream-200 text-xs">
-                              <span>☐ <strong>[{l.category}]</strong> {l.name}</span>
-                              <span className="font-mono font-bold">{l.dayPax} × {l.qty}</span>
+                          <div className="bg-espresso-950 text-gold-300 px-3 py-1.5 text-xs font-extrabold uppercase">
+                            Packed Meals Kitchen Schedule
+                          </div>
+                          {computedPackedMealsSummary.batches.map(b => (
+                            <div key={b.id} className="p-3 border-t border-cream-200 text-xs space-y-1">
+                              <div className="flex justify-between font-bold text-espresso-950">
+                                <span>
+                                  ☐ {packedMealDaysCount > 1 ? `Day ${b.day} — ` : ''}{b.displayLabel} ({formatPrettyDate(b.date)} @ {b.time || 'TBD'})
+                                </span>
+                                <span className="font-mono">{b.packs} Packs</span>
+                              </div>
+                              {b.chosenDishes.length > 0 && (
+                                <div className="text-[11px] pl-4 text-espresso-900">
+                                  Dishes: {b.chosenDishes.map(d => d.name).join(', ')}
+                                </div>
+                              )}
+                              {b.customItemsText && <div className="text-[11px] pl-4">Box Inclusions: {b.customItemsText}</div>}
+                              {b.notes && <div className="text-[11px] pl-4 text-gold-600 font-semibold">Note: {b.notes}</div>}
                             </div>
                           ))}
                         </div>
                       )}
 
+                      {/* A La Carte Kitchen Production List */}
+                      {bookingCategory !== 'packed_meals' && showMenuStep && computedMenuSummary.lines.length > 0 && (
+                        <div className="border border-cream-200 rounded-xl overflow-hidden">
+                          <div className="bg-espresso-950 text-gold-300 px-3 py-1.5 text-xs font-extrabold uppercase">Additional A La Carte Kitchen List</div>
+                          {computedMenuSummary.lines.map(l => (
+                            <div key={l.key} className="flex items-center justify-between px-3 py-2 border-t border-cream-200 text-xs">
+                              <span>☐ <strong>[{l.category}]</strong> {l.name}</span>
+                              <span className="font-mono font-bold">{l.dayPax} pax × {l.qty}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Services & Equipment Checklist */}
                       {computedServiceLines.length > 0 && (
                         <div className="border border-cream-200 rounded-xl overflow-hidden">
                           <div className="bg-espresso-950 text-gold-300 px-3 py-1.5 text-xs font-extrabold uppercase">
@@ -2942,14 +3965,15 @@
                         </div>
                       )}
 
+                      {/* Hotel Rooming List with Booked Dates */}
                       {selectedRoomsList.length > 0 && (
                         <div className="border border-cream-200 rounded-xl overflow-hidden">
-                          <div className="bg-espresso-950 text-gold-300 px-3 py-1.5 text-xs font-extrabold uppercase">Rooming List</div>
-                          <div className="p-3 grid grid-cols-2 gap-2 text-xs">
+                          <div className="bg-espresso-950 text-gold-300 px-3 py-1.5 text-xs font-extrabold uppercase">Hotel Rooming List</div>
+                          <div className="p-3 space-y-1.5 text-xs">
                             {selectedRoomsList.map(r => (
                               <div key={r.id} className="bg-cream-50 px-2.5 py-1.5 rounded-lg border border-cream-200 flex justify-between">
-                                <span className="font-bold">{r.roomNo}</span>
-                                <span className="font-mono">{r.nights} nt(s)</span>
+                                <span>☐ <strong>{r.roomNo}</strong> ({r.type})</span>
+                                <span className="font-mono">{formatPrettyDate(r.checkIn)} → {formatPrettyDate(r.checkOut)} ({r.nights} nt)</span>
                               </div>
                             ))}
                           </div>
@@ -2957,7 +3981,7 @@
                       )}
                     </div>
 
-                    <div className="mt-8 pt-5 border-t border-cream-200 grid grid-cols-3 gap-6 text-[11px]">
+                    <div className="mt-8 pt-5 border-t border-cream-200 grid grid-cols-3 gap-6 text-[11px] print-avoid-break">
                       <div><div className="mb-6">Head Chef:</div><div className="border-t border-espresso-950 pt-1 font-bold">Signature</div></div>
                       <div><div className="mb-6">Logistics / Styling:</div><div className="border-t border-espresso-950 pt-1 font-bold">Signature</div></div>
                       <div><div className="mb-6">Coordinator:</div><div className="border-t border-espresso-950 pt-1 font-bold">{businessProfile.preparedBy}</div></div>
@@ -2968,18 +3992,19 @@
             </main>
           )}
 
-          {/* TAB 2: OFFICIAL PACKAGES RATE CARD */}
+          {/* TAB 2: OFFICIAL PACKAGES & BUILT-IN BUFFET MENU RATE CARD */}
           {activeTab === 'packages' && (
             <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 space-y-6">
               <div className="bg-espresso-950 text-cream-50 rounded-2xl p-6 border border-gold-500/30 flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <h2 className="font-serif text-2xl font-bold text-gold-300">Official EYNS Event Packages</h2>
-                  <p className="text-xs text-cream-200/80 mt-1">Standard excess guest rate above tier: <strong>₱{STANDARD_EXCESS_RATE}/pax</strong>.</p>
+                  <h2 className="font-serif text-2xl font-bold text-gold-300">Official EYNS Catering &amp; Styling Packages</h2>
+                  <p className="text-xs text-cream-200/80 mt-1">Standard excess guest rate above tier: <strong>+₱{STANDARD_EXCESS_RATE} per excess pax</strong>.</p>
                 </div>
                 <button type="button" onClick={() => setActiveTab('builder')} className="px-4 py-2 rounded-xl bg-gold-500 text-espresso-950 text-xs font-extrabold">
                   Back to Builder →
                 </button>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {PACKAGES.map(pkg => (
                   <div key={pkg.id} className="bg-white rounded-2xl p-5 border border-cream-200 shadow-sm space-y-3">
@@ -3012,13 +4037,46 @@
                         ))}
                       </div>
                     ) : (
-                      <div className="bg-cream-50 p-2.5 rounded-xl border border-cream-200 font-mono text-sm font-extrabold">Base Rate: {formatWholeCurrency(pkg.flatPrice || 0)}</div>
+                      <div className="bg-cream-50 p-2.5 rounded-xl border border-cream-200 font-mono text-sm font-extrabold">
+                        Base Rate: {formatWholeCurrency(pkg.flatPrice || 0)}
+                      </div>
                     )}
                     <ul className="text-xs text-espresso-900 space-y-1 list-disc pl-5">
                       {pkg.inclusions.map((inc, i) => <li key={i}>{inc}</li>)}
                     </ul>
                   </div>
                 ))}
+              </div>
+
+              {/* Section 3: Sample Buffet Menu Selections */}
+              <div className="space-y-3">
+                <h3 className="font-serif text-xl font-bold text-espresso-950">3. Built-In Buffet Menu Selections</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {SAMPLE_BUFFET_MENUS.map(menuOpt => (
+                    <div key={menuOpt.id} className="bg-white rounded-2xl p-5 border border-cream-200 shadow-sm flex flex-col justify-between gap-3">
+                      <div>
+                        <span className="inline-block px-2.5 py-0.5 rounded-lg bg-espresso-950 text-gold-300 text-[10px] font-extrabold uppercase">
+                          {menuOpt.badge}
+                        </span>
+                        <h4 className="font-serif text-lg font-bold text-espresso-950 mt-2">{menuOpt.name}</h4>
+                        <ul className="mt-2 text-xs text-espresso-900 space-y-1 list-disc pl-5">
+                          {menuOpt.items.map((item, idx) => <li key={idx}>{item}</li>)}
+                        </ul>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedBuffetMenuId(menuOpt.id);
+                          setActiveTab('builder');
+                          showToast(`Selected ${menuOpt.name}.`);
+                        }}
+                        className="w-full py-2 rounded-xl bg-cream-100 hover:bg-espresso-950 hover:text-gold-300 text-espresso-950 text-xs font-extrabold transition"
+                      >
+                        Select {menuOpt.name}
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </main>
           )}
@@ -3169,29 +4227,74 @@
             </main>
           )}
 
-          {/* TAB 5: HOTEL ROOMS DIRECTORY */}
+          {/* TAB 5: HOTEL ROOMS DIRECTORY (#5) */}
           {activeTab === 'rooms' && (
             <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 space-y-5">
-              <div className="bg-espresso-950 text-cream-50 rounded-2xl p-6 border border-gold-500/30 flex items-center justify-between">
-                <h2 className="font-serif text-2xl font-bold text-gold-300">EYNS Hotel Rooms (Rooms 1–18)</h2>
-                <button type="button" onClick={() => setActiveTab('builder')} className="px-4 py-2 rounded-xl bg-gold-500 text-espresso-950 text-xs font-extrabold">Back to Builder →</button>
+              <div className="bg-espresso-950 text-cream-50 rounded-2xl p-6 border border-gold-500/30 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-serif text-2xl font-bold text-gold-300">EYNS Hotel Rooms Directory ({roomItems.length} Rooms)</h2>
+                  <p className="text-xs text-cream-200/80 mt-1">
+                    Google Sheet #5 Row 1 Columns: <strong>ID | Room No | Room Type | Rate Per Night | Capacity | Inclusions</strong>
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rows = [
+                        ['ID', 'Room No', 'Room Type', 'Rate Per Night', 'Capacity', 'Inclusions'],
+                        ...roomItems.map(r => [r.id, r.roomNo, r.type, r.rate, r.capacity || '2 Pax', r.inclusions || 'Aircon, Wi-Fi, Private Bath'])
+                      ];
+                      copyTextFallback(rows.map(r => r.join('\t')).join('\n'));
+                      showToast('Hotel Rooms template copied! Paste directly into cell A1 of your Google Sheet.');
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-espresso-800 hover:bg-espresso-700 text-cream-100 text-xs font-bold"
+                  >
+                    Copy Template for Google Sheets
+                  </button>
+                  <button type="button" onClick={() => setIsSyncModalOpen(true)} className="px-3.5 py-2 rounded-xl bg-gold-500 text-espresso-950 text-xs font-extrabold">
+                    Sync Sheet #5
+                  </button>
+                  <button type="button" onClick={() => setActiveTab('builder')} className="px-3.5 py-2 rounded-xl bg-cream-100 text-espresso-950 text-xs font-extrabold">
+                    Back to Builder →
+                  </button>
+                </div>
               </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {ROOM_CATALOG.map(room => {
+                {roomItems.map(room => {
                   const nights = Number(roomNightsMap[room.id]) || 0;
+                  const dates = roomDatesMap[room.id] || {};
+                  const checkIn = dates.checkIn || eventDate || todayIsoDate;
+                  const checkOut = dates.checkOut || addDaysToIsoDate(checkIn, Math.max(1, nights));
                   return (
-                    <div key={room.id} className="bg-white rounded-2xl p-4 border border-cream-200 shadow-sm flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] font-extrabold uppercase text-gold-600">{room.capacity}</span>
-                        <h3 className="font-serif text-lg font-bold">{room.roomNo}</h3>
-                        <p className="text-xs text-espresso-800/75">{room.type}</p>
-                        <div className="font-mono text-sm font-extrabold mt-1">{formatWholeCurrency(room.rate)} / night</div>
+                    <div key={room.id} className="bg-white rounded-2xl p-4 border border-cream-200 shadow-sm space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] font-extrabold uppercase text-gold-600">{room.capacity}</span>
+                          <h3 className="font-serif text-lg font-bold">{room.roomNo}</h3>
+                          <p className="text-xs text-espresso-800/75">{room.type}</p>
+                          {room.inclusions && <p className="text-[10px] text-espresso-800/65 mt-0.5">{room.inclusions}</p>}
+                          <div className="font-mono text-sm font-extrabold mt-1">{formatWholeCurrency(room.rate)} / night</div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button type="button" onClick={() => handleUpdateRoomNights(room.id, nights - 1)} className="w-8 h-8 rounded-xl bg-cream-100 font-bold text-xs">−</button>
+                          <span className="w-6 text-center font-mono text-xs font-extrabold">{nights}</span>
+                          <button type="button" onClick={() => handleUpdateRoomNights(room.id, nights + 1)} className="w-8 h-8 rounded-xl bg-espresso-950 text-gold-300 font-bold text-xs">+</button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <button type="button" onClick={() => setRoomNightsMap(p => ({ ...p, [room.id]: Math.max(0, nights - 1) }))} className="w-8 h-8 rounded-xl bg-cream-100 font-bold text-xs">−</button>
-                        <span className="w-6 text-center font-mono text-xs font-extrabold">{nights}</span>
-                        <button type="button" onClick={() => setRoomNightsMap(p => ({ ...p, [room.id]: nights + 1 }))} className="w-8 h-8 rounded-xl bg-espresso-950 text-gold-300 font-bold text-xs">+</button>
-                      </div>
+                      {nights > 0 && (
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-cream-200 text-xs">
+                          <div>
+                            <label className="block text-[9px] font-bold uppercase text-espresso-800/70">Check-In</label>
+                            <input type="date" value={checkIn} onChange={e => handleUpdateRoomDates(room.id, 'checkIn', e.target.value)} className="w-full px-2 py-1 rounded-lg border border-cream-200 text-xs" />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-bold uppercase text-espresso-800/70">Check-Out</label>
+                            <input type="date" value={checkOut} onChange={e => handleUpdateRoomDates(room.id, 'checkOut', e.target.value)} className="w-full px-2 py-1 rounded-lg border border-cream-200 text-xs" />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -3274,12 +4377,16 @@
                   <input type="text" value={businessProfile.businessName} onChange={e => setBusinessProfile(p => ({ ...p, businessName: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-cream-200" />
                 </div>
                 <div>
+                  <label className="block font-bold mb-1">Tagline</label>
+                  <input type="text" value={businessProfile.tagline} onChange={e => setBusinessProfile(p => ({ ...p, tagline: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-cream-200" />
+                </div>
+                <div>
                   <label className="block font-bold mb-1">Address</label>
                   <input type="text" value={businessProfile.address} onChange={e => setBusinessProfile(p => ({ ...p, address: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-cream-200" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-bold mb-1">Hotline / Viber / FB</label>
+                    <label className="block font-bold mb-1">Contact Person / Hotline</label>
                     <input type="text" value={businessProfile.contactLine} onChange={e => setBusinessProfile(p => ({ ...p, contactLine: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-cream-200" />
                   </div>
                   <div>
@@ -3302,19 +4409,19 @@
             </div>
           )}
 
-          {/* MODAL: GOOGLE SHEETS LIVE SYNC */}
+          {/* MODAL: GOOGLE SHEETS LIVE SYNC (3 SHEETS) */}
           {isSyncModalOpen && (
             <div className="no-print fixed inset-0 z-50 bg-espresso-950/70 backdrop-blur-sm flex items-center justify-center p-4">
               <div className="bg-white rounded-2xl max-w-2xl w-full p-6 border border-cream-200 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto text-xs">
                 <div className="flex items-center justify-between border-b border-cream-200 pb-3">
                   <div>
-                    <h3 className="font-serif text-xl font-bold text-espresso-950">Connect Your 2 Google Sheets</h3>
-                    <p className="text-espresso-800/80">Set Share → <strong>Anyone with the link (Viewer)</strong> on both sheets, then paste their links below.</p>
+                    <h3 className="font-serif text-xl font-bold text-espresso-950">Connect Your 3 Google Sheets</h3>
+                    <p className="text-espresso-800/80">Set Share → <strong>Anyone with the link (Viewer)</strong> on each sheet, then paste the links below.</p>
                   </div>
                   <button type="button" onClick={() => setIsSyncModalOpen(false)} className="w-8 h-8 rounded-lg bg-cream-100 font-bold">×</button>
                 </div>
 
-                {/* Sheet #3 */}
+                {/* Sheet #3: Menu */}
                 <div className="bg-cream-50 p-4 rounded-2xl border border-cream-200 space-y-2">
                   <div className="font-extrabold text-sm">3. A La Carte Menu Google Sheet (#3)</div>
                   <div className="flex gap-2">
@@ -3326,13 +4433,13 @@
                         const pasted = e.clipboardData?.getData('text')?.trim();
                         if (pasted && pasted.startsWith('http')) {
                           setMenuSheetUrl(pasted);
-                          setTimeout(() => syncAllSheets(pasted, servicesSheetUrl, false), 150);
+                          setTimeout(() => syncAllSheets(pasted, servicesSheetUrl, false, roomsSheetUrl), 150);
                         }
                       }}
                       placeholder="https://docs.google.com/spreadsheets/d/..."
                       className="flex-1 px-3 py-2 rounded-xl border border-cream-200 bg-white font-mono text-xs"
                     />
-                    <button type="button" onClick={() => syncAllSheets(menuSheetUrl, servicesSheetUrl, false)} className="px-4 py-2 rounded-xl bg-espresso-950 text-gold-300 font-extrabold">Connect</button>
+                    <button type="button" onClick={() => syncAllSheets(menuSheetUrl, servicesSheetUrl, false, roomsSheetUrl)} className="px-4 py-2 rounded-xl bg-espresso-950 text-gold-300 font-extrabold">Connect</button>
                   </div>
                   {syncDiagnostics.menu && (
                     <div className={`p-2 rounded-lg border ${syncDiagnostics.menuOk ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-red-50 border-red-200 text-red-900'}`}>
@@ -3341,7 +4448,7 @@
                   )}
                 </div>
 
-                {/* Sheet #4 */}
+                {/* Sheet #4: Services */}
                 <div className="bg-cream-50 p-4 rounded-2xl border border-cream-200 space-y-2">
                   <div className="font-extrabold text-sm">4. Event Services Google Sheet (#4)</div>
                   <div className="flex gap-2">
@@ -3353,13 +4460,13 @@
                         const pasted = e.clipboardData?.getData('text')?.trim();
                         if (pasted && pasted.startsWith('http')) {
                           setServicesSheetUrl(pasted);
-                          setTimeout(() => syncAllSheets(menuSheetUrl, pasted, false), 150);
+                          setTimeout(() => syncAllSheets(menuSheetUrl, pasted, false, roomsSheetUrl), 150);
                         }
                       }}
                       placeholder="https://docs.google.com/spreadsheets/d/..."
                       className="flex-1 px-3 py-2 rounded-xl border border-cream-200 bg-white font-mono text-xs"
                     />
-                    <button type="button" onClick={() => syncAllSheets(menuSheetUrl, servicesSheetUrl, false)} className="px-4 py-2 rounded-xl bg-espresso-950 text-gold-300 font-extrabold">Connect</button>
+                    <button type="button" onClick={() => syncAllSheets(menuSheetUrl, servicesSheetUrl, false, roomsSheetUrl)} className="px-4 py-2 rounded-xl bg-espresso-950 text-gold-300 font-extrabold">Connect</button>
                   </div>
                   {syncDiagnostics.services && (
                     <div className={`p-2 rounded-lg border ${syncDiagnostics.servicesOk ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-red-50 border-red-200 text-red-900'}`}>
@@ -3368,11 +4475,57 @@
                   )}
                 </div>
 
-                {/* Auto-Sync & Bookmarkable Business Link */}
+                {/* Sheet #5: Hotel Rooms */}
+                <div className="bg-cream-50 p-4 rounded-2xl border border-cream-200 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-extrabold text-sm">5. Hotel Rooms Google Sheet (#5)</div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const rows = [
+                          ['ID', 'Room No', 'Room Type', 'Rate Per Night', 'Capacity', 'Inclusions'],
+                          ...roomItems.map(r => [r.id, r.roomNo, r.type, r.rate, r.capacity || '2 Pax', r.inclusions || 'Aircon, Wi-Fi, Private Bath'])
+                        ];
+                        copyTextFallback(rows.map(r => r.join('\t')).join('\n'));
+                        showToast('Hotel Rooms template copied! Paste in cell A1 of your Google Sheet.');
+                      }}
+                      className="text-[11px] font-bold text-gold-600 hover:underline"
+                    >
+                      Copy Sheet #5 Template
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={roomsSheetUrl}
+                      onChange={e => setRoomsSheetUrl(e.target.value)}
+                      onPaste={e => {
+                        const pasted = e.clipboardData?.getData('text')?.trim();
+                        if (pasted && pasted.startsWith('http')) {
+                          setRoomsSheetUrl(pasted);
+                          setTimeout(() => syncAllSheets(menuSheetUrl, servicesSheetUrl, false, pasted), 150);
+                        }
+                      }}
+                      placeholder="https://docs.google.com/spreadsheets/d/..."
+                      className="flex-1 px-3 py-2 rounded-xl border border-cream-200 bg-white font-mono text-xs"
+                    />
+                    <button type="button" onClick={() => syncAllSheets(menuSheetUrl, servicesSheetUrl, false, roomsSheetUrl)} className="px-4 py-2 rounded-xl bg-espresso-950 text-gold-300 font-extrabold">Connect</button>
+                  </div>
+                  <p className="text-[10px] text-espresso-800/75">
+                    Row 1 Columns: <strong>ID | Room No | Room Type | Rate Per Night | Capacity | Inclusions</strong>
+                  </p>
+                  {syncDiagnostics.rooms && (
+                    <div className={`p-2 rounded-lg border ${syncDiagnostics.roomsOk ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-red-50 border-red-200 text-red-900'}`}>
+                      {syncDiagnostics.roomsOk ? '✅ ' : '⚠️ '}{syncDiagnostics.rooms}
+                    </div>
+                  )}
+                </div>
+
+                {/* Auto-Sync & Bookmarkable Link */}
                 <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div className="font-extrabold text-espresso-950">Live Auto-Sync: {autoSyncEnabled ? 'ACTIVE (Every 20s)' : 'PAUSED'}</div>
-                    <div className="text-[11px] text-espresso-800/80">{lastSyncTime ? `Last synced at ${lastSyncTime}` : 'Bookmark your Business Link so links never disconnect.'}</div>
+                    <div className="text-[11px] text-espresso-800/80">{lastSyncTime ? `Last synced at ${lastSyncTime}` : 'Bookmark your Business Link so links stay saved.'}</div>
                   </div>
                   <div className="flex gap-1.5">
                     <button
@@ -3382,8 +4535,9 @@
                         const p = new URLSearchParams();
                         if (menuSheetUrl.trim()) p.set('menu', menuSheetUrl.trim());
                         if (servicesSheetUrl.trim()) p.set('services', servicesSheetUrl.trim());
+                        if (roomsSheetUrl.trim()) p.set('rooms', roomsSheetUrl.trim());
                         copyTextFallback(p.toString() ? `${base}#${p.toString()}` : base);
-                        showToast('Permanent Business Link copied! Bookmark it in your browser.');
+                        showToast('Permanent Business Link copied!');
                       }}
                       className="px-3 py-1.5 rounded-lg bg-espresso-950 text-gold-300 font-bold"
                     >
@@ -3395,7 +4549,7 @@
                   </div>
                 </div>
 
-                {/* Direct Copy-Paste Fallback */}
+                {/* Copy-Paste Fallback */}
                 <div className="bg-cream-50 p-3 rounded-xl border border-cream-200">
                   <button type="button" onClick={() => setShowManualPasteFallback(v => !v)} className="w-full flex justify-between font-bold">
                     <span>Fallback: Copy &amp; paste Event Services rows directly from Google Sheets</span>
@@ -3415,15 +4569,18 @@
                     onClick={() => {
                       persistSavedString(STORAGE_KEYS.MENU_SCRIPT_URL, LEGACY_MENU_URL_KEYS, '');
                       persistSavedString(STORAGE_KEYS.SERVICES_SCRIPT_URL, LEGACY_SERVICE_URL_KEYS, '');
+                      persistSavedString(STORAGE_KEYS.ROOMS_SCRIPT_URL, LEGACY_ROOM_URL_KEYS, '');
                       setMenuSheetUrl('');
                       setServicesSheetUrl('');
+                      setRoomsSheetUrl(HARDCODED_ROOMS_SHEET_URL);
                       setServiceItems([]);
                       setMenuItems(DEFAULT_MENU_ITEMS);
-                      showToast('Sheet links cleared.');
+                      setRoomItems(DEFAULT_ROOM_CATALOG);
+                      showToast('Sheet links reset.');
                     }}
                     className="px-3 py-2 rounded-xl bg-red-50 text-red-700 font-bold"
                   >
-                    Clear Links
+                    Reset Links
                   </button>
                   <button type="button" onClick={() => setIsSyncModalOpen(false)} className="px-4 py-2 rounded-xl bg-espresso-950 text-gold-300 font-extrabold">Done</button>
                 </div>
