@@ -153,41 +153,24 @@
       SERVICES_SCRIPT_URL: 'eyns_services_sheet_url_v2',
       ROOMS_SCRIPT_URL: 'eyns_rooms_sheet_url_v2',
       SAVED_QUOTES: 'eyns_saved_quotes_v2',
-      BUSINESS_PROFILE: 'eyns_business_profile_v2',
-      ACTIVE_DRAFT: 'eyns_active_draft_v2'
+      BUSINESS_PROFILE: 'eyns_business_profile_v2'
     };
 
     const DEFAULT_BUSINESS_PROFILE = {
       businessName: 'EYNS HOTEL & RESTAURANT',
+      logoUrl: 'assets/logo.png',
       tagline: 'Catering Services & Event Styling • Creating Memorable Celebrations Since 1988',
       address: 'Catanauan, Quezon',
       contactLine: 'Contact Person: Jem Medina (0917-841-7553)',
-      preparedBy: 'Jem Medina — EYNS Hotel & Restaurant',
-      paymentAccounts: 'GCash / Bank Transfer: Contact Jem Medina (0917-841-7553) for official payment details.',
+      preparedBy: 'Jem Medina — EYNS Events Team',
+      paymentAccounts:
+        'GCash / Bank Transfer: Request official EYNS account details upon date confirmation.',
       cateringTerms:
         '1. 50% Reservation Downpayment is required to officially lock your event date and venue.\n2. Remaining 50% balance is due at least 3 days prior to the event (or per approved LGU/Corporate PO terms).\n3. Final guest count (pax) must be confirmed 5 days before the event. Prices are subject to change after quote validity.',
       defaultValidityDays: 15
     };
 
-    function readUrlParam(paramName) {
-      try {
-        const searchParams = new URLSearchParams(window.location.search || '');
-        const fromSearch = (searchParams.get(paramName) || '').trim();
-        if (fromSearch) return fromSearch;
-        const rawHash = (window.location.hash || '').replace(/^#/, '');
-        if (!rawHash) return '';
-        const hashParams = new URLSearchParams(rawHash);
-        return (hashParams.get(paramName) || '').trim();
-      } catch (e) {
-        return '';
-      }
-    }
-
-    function recoverSavedString(key, fallbackValue = '', urlParamName = '') {
-      if (urlParamName) {
-        const fromUrl = readUrlParam(urlParamName);
-        if (fromUrl) return fromUrl;
-      }
+    function recoverSavedString(key, fallbackValue = '') {
       try {
         const val = localStorage.getItem(key) || sessionStorage.getItem(key);
         if (val && val.trim()) return val.trim();
@@ -208,15 +191,15 @@
       } catch (e) {}
     }
 
-    function recoverSavedJson(key, fallbackVal) {
+    function recoverSavedJsonArray(key, fallbackArray = []) {
       try {
         const raw = localStorage.getItem(key);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (parsed !== null && parsed !== undefined) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
       } catch (e) {}
-      return fallbackVal;
+      return fallbackArray;
     }
 
     function generateDocNumber() {
@@ -239,7 +222,7 @@
 
     function formatPrettyDate(isoStr) {
       if (!isoStr) return 'TBD';
-      const parts = String(isoStr).split('-');
+      const parts = isoStr.split('-');
       if (parts.length !== 3) return isoStr;
       const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
       if (isNaN(dt.getTime())) return isoStr;
@@ -248,7 +231,7 @@
 
     function addDaysToIsoDate(isoStr, offsetDays) {
       if (!isoStr) return '';
-      const parts = String(isoStr).split('-');
+      const parts = isoStr.split('-');
       if (parts.length !== 3) return isoStr;
       const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
       if (isNaN(dt.getTime())) return isoStr;
@@ -264,104 +247,85 @@
       return Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000));
     }
 
-    function parseNumericAmount(val) {
-      if (typeof val === 'number') return isNaN(val) ? 0 : val;
-      const num = parseFloat(String(val || '').replace(/[^0-9.]/g, ''));
-      return isNaN(num) ? 0 : num;
-    }
-
     function copyTextFallback(text) {
-      try {
-        const el = document.createElement('textarea');
-        el.value = text;
-        el.style.position = 'fixed';
-        el.style.opacity = '0';
-        document.body.appendChild(el);
-        el.focus();
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-      } catch (e) {}
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
     }
 
-    // =========================================================================
-    // 2. SMOOTH NUMERIC INPUT COMPONENT (NO CURSOR FIGHTING / FREE TYPING)
-    // =========================================================================
-    function SmoothNumberInput({
-      value,
-      onValueChange,
-      min = 0,
-      max = 999999,
-      allowDecimal = false,
-      placeholder = '',
-      className = ''
-    }) {
-      const [localVal, setLocalVal] = useState(
-        value === '' || value === null || value === undefined ? '' : String(value)
-      );
-      const isFocusedRef = useRef(false);
+    // Smooth Numeric Input Component (allows clearing & typing freely)
+    function SmoothNumberInput({ value, onValueChange, min = 0, max = 9999999, allowDecimal = false, className = '', placeholder = '' }) {
+      const [draft, setDraft] = useState(String(value ?? ''));
+      const [isFocused, setIsFocused] = useState(false);
 
       useEffect(() => {
-        if (!isFocusedRef.current) {
-          setLocalVal(value === '' || value === null || value === undefined ? '' : String(value));
+        if (!isFocused) {
+          setDraft(String(value ?? ''));
         }
-      }, [value]);
+      }, [value, isFocused]);
 
-      const clamp = num => {
-        let out = num;
-        if (typeof min === 'number' && out < min) out = min;
-        if (typeof max === 'number' && out > max) out = max;
-        return out;
-      };
-
-      const handleChange = e => {
-        const raw = e.target.value;
-        const regex = allowDecimal ? /^[0-9]*\.?[0-9]*$/ : /^[0-9]*$/;
-        if (!regex.test(raw)) return;
-        setLocalVal(raw);
-        if (raw === '' || raw === '.') return;
+      const commitDraft = raw => {
         const parsed = allowDecimal ? parseFloat(raw) : parseInt(raw, 10);
-        if (!isNaN(parsed)) {
-          onValueChange(clamp(parsed));
-        }
-      };
-
-      const handleBlur = () => {
-        isFocusedRef.current = false;
-        if (localVal === '' || localVal === '.') {
-          const fallback = typeof min === 'number' ? min : 0;
-          setLocalVal(String(fallback));
+        if (isNaN(parsed)) {
+          const fallback = Math.max(0, min);
+          setDraft(String(fallback));
           onValueChange(fallback);
           return;
         }
-        const parsed = allowDecimal ? parseFloat(localVal) : parseInt(localVal, 10);
-        const finalVal = isNaN(parsed) ? (typeof min === 'number' ? min : 0) : clamp(parsed);
-        setLocalVal(String(finalVal));
-        onValueChange(finalVal);
+        const clamped = Math.min(max, Math.max(min, parsed));
+        setDraft(String(clamped));
+        onValueChange(clamped);
       };
 
       return (
         <input
           type="text"
           inputMode={allowDecimal ? 'decimal' : 'numeric'}
-          value={localVal}
+          value={draft}
           placeholder={placeholder}
           onFocus={e => {
-            isFocusedRef.current = true;
+            setIsFocused(true);
             e.target.select();
           }}
-          onChange={handleChange}
-          onBlur={handleBlur}
+          onChange={e => {
+            const raw = e.target.value;
+            setDraft(raw);
+            if (raw.trim() === '') return;
+            const parsed = allowDecimal ? parseFloat(raw) : parseInt(raw, 10);
+            if (!isNaN(parsed) && parsed >= min && parsed <= max) {
+              onValueChange(parsed);
+            }
+          }}
+          onBlur={() => {
+            setIsFocused(false);
+            commitDraft(draft);
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              e.currentTarget.blur();
+            }
+          }}
           className={className}
         />
       );
     }
 
     // =========================================================================
-    // 3. OFFICIAL EYNS PACKAGES, SAMPLE BUFFET MENUS A/B/C & DEFAULT CATALOGS
+    // 2. OFFICIAL EYNS PACKAGES, SAMPLE BUFFET MENUS, MENU & ROOM CATALOGS
     // =========================================================================
     const STANDARD_EXCESS_RATE = 400;
     const BASE_FOOD_CREDIT_PER_PAX = 300;
+
+    const MEAL_PERIOD_OPTIONS = [
+      { id: 'Breakfast', icon: 'fa-mug-saucer', defaultTime: '7:30 AM' },
+      { id: 'AM Snack', icon: 'fa-cookie-bite', defaultTime: '10:00 AM' },
+      { id: 'Lunch', icon: 'fa-utensils', defaultTime: '12:00 PM' },
+      { id: 'PM Snack', icon: 'fa-cake-candles', defaultTime: '3:00 PM' },
+      { id: 'Dinner', icon: 'fa-moon', defaultTime: '6:30 PM' }
+    ];
 
     const SAMPLE_BUFFET_MENUS = [
       {
@@ -409,21 +373,21 @@
         id: 'pkg_entry',
         section: '1. ALL-INCLUSIVE CATERING & STYLING PACKAGES',
         name: 'Package Entry',
-        tagline: 'Open-Air Venue, Basic Stage Backdrop & Classic Menu A Included',
+        tagline: 'Open-Air Venue, Classic Menu A, Basic Sound & Stage Backdrop (Fabric Drapes)',
         venue: 'Eyns Open-Air Venue',
         foodIncluded: true,
-        foodCreditPerPax: BASE_FOOD_CREDIT_PER_PAX,
         tiers: [
           { pax: 50, price: 45000 },
           { pax: 100, price: 60000 },
           { pax: 150, price: 75000 }
         ],
         inclusions: [
+          'Classic Menu A included',
           'Open-Air Venue',
           'Dedicated Service Staff',
           'Tables & Chairs Setup',
           'Buffet, Cake, & Souvenir Tables',
-          'Wine Bucket & Birdcage',
+          'Wine Bucket and Birdcage',
           'Basic Sound System',
           'Basic Stage Backdrop (Fabric Drapes)'
         ]
@@ -432,16 +396,16 @@
         id: 'pkg_essential',
         section: '1. ALL-INCLUSIVE CATERING & STYLING PACKAGES',
         name: 'Package Essential',
-        tagline: 'Air-Conditioned Venue (4 hrs), Themed Stage, Prep Room & Host',
-        venue: 'Eyns Air-Conditioned Venue (4 hrs)',
+        tagline: 'Air-conditioned Venue (4 hrs), Themed Stage & Tables, Prep Room & Host',
+        venue: 'Eyns Air-Conditioned Venue (4 Hours)',
         foodIncluded: true,
-        foodCreditPerPax: BASE_FOOD_CREDIT_PER_PAX,
         tiers: [
           { pax: 50, price: 60000 },
           { pax: 100, price: 75000 },
           { pax: 150, price: 90000 }
         ],
         inclusions: [
+          'Classic Menu A included',
           'Air-conditioned Venue (4 hrs)',
           'Dedicated Service Staff',
           'Themed Stage Setup',
@@ -456,16 +420,16 @@
         id: 'pkg_signature',
         section: '1. ALL-INCLUSIVE CATERING & STYLING PACKAGES',
         name: "Anna's Signature",
-        tagline: 'Triple-Zone Styling, Grazing Table (50 Pax), Pro Lights & Sound & Host',
-        venue: 'Eyns Air-Conditioned Venue (4 hrs)',
+        tagline: 'Triple-Zone Styling, Grazing Table (50 Pax), Pro Lights & Sound, Prep Room & Host',
+        venue: 'Eyns Air-Conditioned Venue (4 Hours)',
         foodIncluded: true,
-        foodCreditPerPax: BASE_FOOD_CREDIT_PER_PAX,
         tiers: [
           { pax: 50, price: 90000 },
           { pax: 100, price: 105000 },
           { pax: 150, price: 120000 }
         ],
         inclusions: [
+          'Classic Menu A included',
           'Air-conditioned Venue (4 hrs)',
           'Dedicated Service Staff',
           'Triple-Zone Styling (Entrance, Ceiling, Stage)',
@@ -479,18 +443,18 @@
         id: 'any_venue_styling',
         section: '2. FULL EVENT STYLING & SERVICE CATERING ONLY',
         name: 'Full Event Styling & Service Package (Food Excluded)',
-        tagline: 'Eyns Restaurant, Eyns Resort, or Your Choice of Venue — Triple Zone Setup',
+        tagline: 'Eyns Restaurant, Eyns Resort, or Your Choice of Venue — Triple-Zone Styling',
         venue: 'Eyns Restaurant, Eyns Resort, or Your Choice of Venue',
         foodIncluded: false,
-        foodCreditPerPax: 0,
         flatPrice: 65000,
         inclusions: [
           'Venue: Eyns Restaurant, Eyns Resort, or Your Choice of Venue',
           'Dedicated Servers',
           'Thematic Triple Zone Setup (Entrance, Ceiling & Stage Styling)',
           'Themed Tables & Chairs Setup',
-          'Complete Buffet / Cake / Souvenir Tables',
-          'Professional Lights & Sound System'
+          'Complete Buffet/Cake/Souvenir Tables',
+          'Professional Lights & Sound System',
+          'Food Excluded — Add Custom Menu Dishes as Needed'
         ]
       },
       {
@@ -500,7 +464,6 @@
         tagline: '₱0 base fee — customize meals, snacks & function hall per day below',
         venue: 'Eyns Air-Conditioned Function Hall',
         foodIncluded: false,
-        foodCreditPerPax: 0,
         flatPrice: 0,
         inclusions: [
           'Custom Per-Day Meal & AM/PM Snack Selection',
@@ -516,7 +479,6 @@
         tagline: 'Itemized custom food, rentals & services only — no fixed package fee',
         venue: 'Eyns Function Hall / Client Venue',
         foodIncluded: false,
-        foodCreditPerPax: 0,
         flatPrice: 0,
         inclusions: [
           'No Fixed Package Base Fee (₱0)',
@@ -547,71 +509,96 @@
       return 50;
     }
 
-    function calculateTieredPackageBreakdown(pkg, tierPax, totalPax, excessRate) {
+    function calculateTieredPackageBreakdown(pkg, tierPax, totalPax, excessRate, selectedBuffetMenuId) {
       const tiers = pkg?.tiers || [];
       const matchedTier = tiers.find(t => t.pax === tierPax) || tiers[0] || { pax: 50, price: 0 };
-      const effectiveTotalPax = Math.max(matchedTier.pax, Number(totalPax) || matchedTier.pax);
-      const excessPax = Math.max(0, effectiveTotalPax - matchedTier.pax);
+      const effectivePax = Math.max(matchedTier.pax, Number(totalPax) || matchedTier.pax);
+      const excessPax = Math.max(0, effectivePax - matchedTier.pax);
       const rate = Math.max(0, Number(excessRate) || 0);
       const excessCharge = excessPax * rate;
+      const grossPackageTotal = matchedTier.price + excessCharge;
+
+      if (selectedBuffetMenuId === 'custom_menu') {
+        const customMenuCredit = BASE_FOOD_CREDIT_PER_PAX * effectivePax;
+        return {
+          tierPax: matchedTier.pax,
+          effectivePax,
+          basePrice: matchedTier.price,
+          excessPax,
+          excessRate: rate,
+          excessCharge,
+          grossPackageTotal,
+          menuUpgradePerPax: 0,
+          menuUpgradeCharge: 0,
+          customMenuCredit,
+          total: Math.max(0, grossPackageTotal - customMenuCredit)
+        };
+      }
+
+      const menuObj = SAMPLE_BUFFET_MENUS.find(m => m.id === selectedBuffetMenuId) || SAMPLE_BUFFET_MENUS[0];
+      const menuUpgradePerPax = Number(menuObj?.upgradePerPax) || 0;
+      const menuUpgradeCharge = menuUpgradePerPax * effectivePax;
       return {
         tierPax: matchedTier.pax,
+        effectivePax,
         basePrice: matchedTier.price,
         excessPax,
         excessRate: rate,
         excessCharge,
-        total: matchedTier.price + excessCharge
+        grossPackageTotal,
+        menuUpgradePerPax,
+        menuUpgradeCharge,
+        customMenuCredit: 0,
+        total: grossPackageTotal + menuUpgradeCharge
       };
     }
 
-    // Fallback A La Carte Menu Catalog (immediately replaced on live sync from Sheet #3)
+    // Fallback A La Carte Dishes (overridden automatically once Sheet #3 syncs)
     const DEFAULT_MENU_ITEMS = [
-      { id: 'menu_1', category: 'Soup', name: 'Creamy Mushroom Soup', price: 35, unit: 'per_pax', description: 'Rich velvety mushroom cream soup' },
-      { id: 'menu_2', category: 'Soup', name: 'Crab & Corn Soup', price: 40, unit: 'per_pax', description: 'Sweet corn kernels with shredded crabmeat' },
-      { id: 'menu_5', category: 'Beef', name: 'Beef Caldereta', price: 95, unit: 'per_pax', description: 'Slow-braised beef in rich tomato-liver sauce' },
-      { id: 'menu_6', category: 'Beef', name: 'Beef Broccoli', price: 95, unit: 'per_pax', description: 'Tender beef strips wok-seared with broccoli' },
-      { id: 'menu_8', category: 'Beef', name: 'Roast Beef with Mushroom Gravy', price: 105, unit: 'per_pax', description: 'Sliced slow-roasted beef loin in mushroom gravy' },
-      { id: 'menu_11', category: 'Pork', name: 'Pork Caldereta', price: 80, unit: 'per_pax', description: 'Tender pork shoulder stewed in tomato sauce' },
-      { id: 'menu_13', category: 'Pork', name: 'Lechon Kawali', price: 85, unit: 'per_pax', description: 'Crispy golden deep-fried pork belly' },
-      { id: 'menu_17', category: 'Pork', name: 'Pork Lumpiang Shanghai', price: 65, unit: 'per_pax', description: 'Crispy ground pork spring rolls with dip' },
-      { id: 'menu_19', category: 'Chicken', name: 'Buttered Chicken', price: 75, unit: 'per_pax', description: 'Crispy golden fried chicken in garlic butter' },
-      { id: 'menu_21', category: 'Chicken', name: 'Chicken Cordon Bleu', price: 85, unit: 'per_pax', description: 'Breaded chicken rolled with ham & cheese' },
-      { id: 'menu_26', category: 'Seafood', name: 'Fish Fillet with Tartar Sauce', price: 75, unit: 'per_pax', description: 'Crispy cream dory fillet with lemon tartar dip' },
-      { id: 'menu_28', category: 'Seafood', name: 'Buttered Garlic Shrimp', price: 95, unit: 'per_pax', description: 'Succulent shrimp sautéed in garlic & butter' },
-      { id: 'menu_31', category: 'Veggies', name: 'Chopsuey Guisado', price: 55, unit: 'per_pax', description: 'Crisp garden vegetables with quail eggs' },
-      { id: 'menu_36', category: 'Pancit & Pasta', name: 'Pancit Canton Guisado', price: 55, unit: 'per_pax', description: 'Classic stir-fried egg noodles' },
-      { id: 'menu_39', category: 'Pancit & Pasta', name: 'Creamy Chicken Carbonara', price: 65, unit: 'per_pax', description: 'Fettuccine in rich bacon & mushroom cream' },
-      { id: 'menu_42', category: 'Rice', name: 'Steamed White Rice', price: 25, unit: 'per_pax', description: 'Fluffy steamed premium white rice' },
-      { id: 'menu_46', category: 'Dessert', name: 'Buko Pandan Salad', price: 40, unit: 'per_pax', description: 'Young coconut strips & pandan jelly in cream' },
-      { id: 'menu_49', category: 'Dessert', name: 'Coffee Jelly', price: 40, unit: 'per_pax', description: 'Chilled espresso cubes in sweet cream' },
-      { id: 'menu_51', category: 'Beverages & Snacks', name: 'Bottomless Iced Tea & Purified Water', price: 25, unit: 'per_pax', description: 'Chilled lemon iced tea & drinking water' },
-      { id: 'menu_53', category: 'Beverages & Snacks', name: 'Brewed Coffee & Tea Station', price: 35, unit: 'per_pax', description: 'Freshly brewed coffee with creamer & sugar' }
+      { id: 'menu_1', category: 'Soup', name: 'Creamy Mushroom Soup', price: 35, unit: 'per_pax' },
+      { id: 'menu_2', category: 'Soup', name: 'Crab & Corn Soup', price: 40, unit: 'per_pax' },
+      { id: 'menu_3', category: 'Beef', name: 'Beef Caldereta', price: 95, unit: 'per_pax' },
+      { id: 'menu_4', category: 'Beef', name: 'Beef Broccoli', price: 95, unit: 'per_pax' },
+      { id: 'menu_5', category: 'Beef', name: 'Roast Beef with Mushroom Gravy', price: 105, unit: 'per_pax' },
+      { id: 'menu_6', category: 'Pork', name: 'Pork Caldereta', price: 80, unit: 'per_pax' },
+      { id: 'menu_7', category: 'Pork', name: 'Lechon Kawali', price: 85, unit: 'per_pax' },
+      { id: 'menu_8', category: 'Pork', name: 'Pork Lumpiang Shanghai', price: 65, unit: 'per_pax' },
+      { id: 'menu_9', category: 'Chicken', name: 'Buttered Chicken', price: 75, unit: 'per_pax' },
+      { id: 'menu_10', category: 'Chicken', name: 'Chicken Cordon Bleu', price: 85, unit: 'per_pax' },
+      { id: 'menu_11', category: 'Seafood', name: 'Fish Fillet with Tartar Sauce', price: 75, unit: 'per_pax' },
+      { id: 'menu_12', category: 'Seafood', name: 'Buttered Garlic Shrimp', price: 95, unit: 'per_pax' },
+      { id: 'menu_13', category: 'Veggies', name: 'Chopsuey Guisado', price: 55, unit: 'per_pax' },
+      { id: 'menu_14', category: 'Pancit & Pasta', name: 'Pancit Canton Guisado', price: 55, unit: 'per_pax' },
+      { id: 'menu_15', category: 'Pancit & Pasta', name: 'Creamy Chicken Carbonara', price: 65, unit: 'per_pax' },
+      { id: 'menu_16', category: 'Rice', name: 'Steamed White Rice', price: 25, unit: 'per_pax' },
+      { id: 'menu_17', category: 'Dessert', name: 'Buko Pandan Salad', price: 40, unit: 'per_pax' },
+      { id: 'menu_18', category: 'Beverages & Snacks', name: 'Bottomless Iced Tea & Purified Water', price: 25, unit: 'per_pax' }
     ];
 
-    // Fallback Hotel Rooms (immediately replaced on live sync from Sheet #5)
-    const DEFAULT_ROOM_ITEMS = [
-      { id: 'room_1', roomNo: 'Room 1', type: 'Standard Double Room', rate: 1800, capacity: '2 Pax', inclusions: 'Aircon, Wi-Fi, Private Bath' },
-      { id: 'room_2', roomNo: 'Room 2', type: 'Standard Double Room', rate: 1800, capacity: '2 Pax', inclusions: 'Aircon, Wi-Fi, Private Bath' },
-      { id: 'room_3', roomNo: 'Room 3', type: 'Standard Twin Room', rate: 1800, capacity: '2 Pax', inclusions: 'Aircon, Wi-Fi, Private Bath' },
-      { id: 'room_4', roomNo: 'Room 4', type: 'Standard Twin Room', rate: 1800, capacity: '2 Pax', inclusions: 'Aircon, Wi-Fi, Private Bath' },
-      { id: 'room_5', roomNo: 'Room 5', type: 'Deluxe Queen Room', rate: 2200, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Cable TV, Hot Shower' },
-      { id: 'room_6', roomNo: 'Room 6', type: 'Deluxe Queen Room', rate: 2200, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Cable TV, Hot Shower' },
-      { id: 'room_7', roomNo: 'Room 7', type: 'Deluxe Twin Room', rate: 2200, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Cable TV, Hot Shower' },
-      { id: 'room_8', roomNo: 'Room 8', type: 'Deluxe Twin Room', rate: 2200, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Cable TV, Hot Shower' },
-      { id: 'room_9', roomNo: 'Room 9', type: 'Executive King Room', rate: 2600, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Smart TV, Complimentary Breakfast' },
-      { id: 'room_10', roomNo: 'Room 10', type: 'Executive King Room', rate: 2600, capacity: '2–3 Pax', inclusions: 'Aircon, Wi-Fi, Smart TV, Complimentary Breakfast' },
-      { id: 'room_11', roomNo: 'Room 11', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: 'Aircon, Wi-Fi, 2 Queen Beds, Hot Shower' },
-      { id: 'room_12', roomNo: 'Room 12', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: 'Aircon, Wi-Fi, 2 Queen Beds, Hot Shower' },
-      { id: 'room_13', roomNo: 'Room 13', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: 'Aircon, Wi-Fi, 2 Queen Beds, Hot Shower' },
-      { id: 'room_14', roomNo: 'Room 14', type: 'Junior Bridal / VIP Suite', rate: 3800, capacity: '2–4 Pax', inclusions: 'Aircon, Dressing Area, Lounge, Breakfast' },
-      { id: 'room_15', roomNo: 'Room 15', type: 'Junior Bridal / VIP Suite', rate: 3800, capacity: '2–4 Pax', inclusions: 'Aircon, Dressing Area, Lounge, Breakfast' },
-      { id: 'room_16', roomNo: 'Room 16', type: 'Barkada / Group Dorm Room', rate: 4200, capacity: '6 Pax', inclusions: 'Aircon, Wi-Fi, 3 Double Beds, Private Bath' },
-      { id: 'room_17', roomNo: 'Room 17', type: 'Barkada / Group Dorm Room', rate: 4200, capacity: '6 Pax', inclusions: 'Aircon, Wi-Fi, 3 Double Beds, Private Bath' },
-      { id: 'room_18', roomNo: 'Room 18', type: 'EYNS Grand Family Suite', rate: 4800, capacity: '6–8 Pax', inclusions: 'Aircon, Living Area, Mini-Fridge, Breakfast' }
+    // Fallback Hotel Rooms (overridden automatically once Sheet #5 syncs)
+    const DEFAULT_ROOM_CATALOG = [
+      { id: 'room_1', roomNo: 'Room 1', type: 'Standard Double Room', rate: 1800, capacity: '2 Pax', inclusions: 'Aircon, Private Bath, Wi-Fi' },
+      { id: 'room_2', roomNo: 'Room 2', type: 'Standard Double Room', rate: 1800, capacity: '2 Pax', inclusions: 'Aircon, Private Bath, Wi-Fi' },
+      { id: 'room_3', roomNo: 'Room 3', type: 'Standard Twin Room', rate: 1800, capacity: '2 Pax', inclusions: 'Aircon, Private Bath, Wi-Fi' },
+      { id: 'room_4', roomNo: 'Room 4', type: 'Standard Twin Room', rate: 1800, capacity: '2 Pax', inclusions: 'Aircon, Private Bath, Wi-Fi' },
+      { id: 'room_5', roomNo: 'Room 5', type: 'Deluxe Queen Room', rate: 2200, capacity: '2–3 Pax', inclusions: 'Aircon, Hot & Cold Shower, TV' },
+      { id: 'room_6', roomNo: 'Room 6', type: 'Deluxe Queen Room', rate: 2200, capacity: '2–3 Pax', inclusions: 'Aircon, Hot & Cold Shower, TV' },
+      { id: 'room_7', roomNo: 'Room 7', type: 'Deluxe Twin Room', rate: 2200, capacity: '2–3 Pax', inclusions: 'Aircon, Hot & Cold Shower, TV' },
+      { id: 'room_8', roomNo: 'Room 8', type: 'Deluxe Twin Room', rate: 2200, capacity: '2–3 Pax', inclusions: 'Aircon, Hot & Cold Shower, TV' },
+      { id: 'room_9', roomNo: 'Room 9', type: 'Executive King Room', rate: 2600, capacity: '2–3 Pax', inclusions: 'King Bed, Aircon, Mini Fridge' },
+      { id: 'room_10', roomNo: 'Room 10', type: 'Executive King Room', rate: 2600, capacity: '2–3 Pax', inclusions: 'King Bed, Aircon, Mini Fridge' },
+      { id: 'room_11', roomNo: 'Room 11', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: '2 Queen Beds, Aircon, Private Bath' },
+      { id: 'room_12', roomNo: 'Room 12', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: '2 Queen Beds, Aircon, Private Bath' },
+      { id: 'room_13', roomNo: 'Room 13', type: 'Family Quad Room', rate: 3200, capacity: '4 Pax', inclusions: '2 Queen Beds, Aircon, Private Bath' },
+      { id: 'room_14', roomNo: 'Room 14', type: 'Junior Bridal / VIP Suite', rate: 3800, capacity: '2–4 Pax', inclusions: 'Vanity Mirror, Lounge Seating, Aircon' },
+      { id: 'room_15', roomNo: 'Room 15', type: 'Junior Bridal / VIP Suite', rate: 3800, capacity: '2–4 Pax', inclusions: 'Vanity Mirror, Lounge Seating, Aircon' },
+      { id: 'room_16', roomNo: 'Room 16', type: 'Barkada / Group Dorm Room', rate: 4200, capacity: '6 Pax', inclusions: 'Triple Bunk / Beds, Aircon, Bath' },
+      { id: 'room_17', roomNo: 'Room 17', type: 'Barkada / Group Dorm Room', rate: 4200, capacity: '6 Pax', inclusions: 'Triple Bunk / Beds, Aircon, Bath' },
+      { id: 'room_18', roomNo: 'Room 18', type: 'EYNS Grand Family Suite', rate: 4800, capacity: '6–8 Pax', inclusions: 'Living Area, Multiple Beds, Aircon' }
     ];
 
     // =========================================================================
-    // 4. GOOGLE SHEETS UNIVERSAL PARSER & SYNC ENGINE
+    // 3. NORMALIZATION & GOOGLE SHEETS CSV / JSONP FETCHERS
     // =========================================================================
     function normalizeServiceSubcategory(raw) {
       const val = String(raw || '').trim().toLowerCase();
@@ -655,6 +642,12 @@
       if (subcat === 'Rental') return { pill: 'bg-sky-100 text-sky-900 border-sky-200' };
       if (subcat === 'Suppliers') return { pill: 'bg-purple-100 text-purple-900 border-purple-200' };
       return { pill: 'bg-amber-100 text-amber-900 border-amber-200' };
+    }
+
+    function parseNumericAmount(val) {
+      if (typeof val === 'number') return isNaN(val) ? 0 : val;
+      const num = parseFloat(String(val || '').replace(/[^0-9.]/g, ''));
+      return isNaN(num) ? 0 : num;
     }
 
     function parseCsvToGrid(csvText) {
@@ -702,7 +695,7 @@
         'id', 'dishname', 'dish', 'menuitem', 'category', 'priceperpax', 'price', 'createdat',
         'serviceitemname', 'servicename', 'service', 'itemname', 'item',
         'eventservicescategory', 'subcategory', 'rate', 'billingtype', 'unit',
-        'roomno', 'roomnumber', 'room', 'roomtype', 'ratepernight', 'capacity', 'inclusions'
+        'roomno', 'roomnumber', 'room', 'roomtype', 'type', 'ratepernight', 'capacity', 'inclusions'
       ];
 
       let headerRowIdx = -1;
@@ -726,53 +719,9 @@
       return grid.map(cols => ({ _cols: cols, _hasHeaders: false }));
     }
 
-    function normalizeObjectRecord(rawRow) {
-      if (Array.isArray(rawRow)) {
-        return { _cols: rawRow.map(v => (v == null ? '' : String(v).trim())) };
-      }
-      const norm = { _cols: [] };
-      if (rawRow && typeof rawRow === 'object') {
-        Object.entries(rawRow).forEach(([k, v]) => {
-          const cleanKey = String(k).toLowerCase().replace(/[^a-z0-9]/g, '');
-          const strVal = v == null ? '' : String(v).trim();
-          if (cleanKey) norm[cleanKey] = strVal;
-          norm._cols.push(strVal);
-        });
-      }
-      return norm;
-    }
-
-    function extractNormalizedRowsFromResponse(rawText) {
-      const trimmed = String(rawText || '').trim();
-      if (!trimmed) return [];
-      if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
-        throw new Error('Google returned a sign-in page. Open the sheet → Share → Anyone with the link (Viewer).');
-      }
-      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-        const parsed = JSON.parse(trimmed);
-        let list = Array.isArray(parsed)
-          ? parsed
-          : parsed.items || parsed.data || parsed.services || parsed.menu || parsed.rooms || parsed.rows || Object.values(parsed).find(Array.isArray) || [];
-        if (list.length > 0 && Array.isArray(list[0])) return parseGridRows(list);
-        return list.map(normalizeObjectRecord);
-      }
-      return parseGridRows(parseCsvToGrid(trimmed));
-    }
-
     function resolveGoogleSheetUrl(rawUrl) {
       const trimmed = String(rawUrl || '').trim();
       if (!trimmed) return { url: '', sheetId: '', gid: '' };
-
-      if (trimmed.includes('/spreadsheets/d/e/')) {
-        const gidMatch = trimmed.match(/[#&?]gid=([0-9]+)/);
-        const gidParam = gidMatch ? '&gid=' + gidMatch[1] : '';
-        const csvUrl = trimmed.includes('/pubhtml')
-          ? trimmed.replace('/pubhtml', '/pub?output=csv' + gidParam)
-          : trimmed.includes('output=csv')
-          ? trimmed
-          : trimmed.replace(/\/pub(\?.*)?$/, '/pub?output=csv' + gidParam);
-        return { url: csvUrl, sheetId: '', gid: gidMatch ? gidMatch[1] : '' };
-      }
 
       const sheetMatch =
         trimmed.match(/docs\.google\.com\/spreadsheets\/(?:u\/\d+\/)?d\/(?!e\/)([a-zA-Z0-9-_]+)/) ||
@@ -796,16 +745,15 @@
       if (!resolved.url) return { rows: [] };
       let lastErr = '';
 
-      // 1. Direct CSV/JSON fetch
       try {
         const sep = resolved.url.includes('?') ? '&' : '?';
         const res = await fetch(`${resolved.url}${sep}_ts=${Date.now()}`);
         if (res.ok) {
           const text = await res.text();
           if (text && !text.trim().startsWith('<!DOCTYPE') && !text.trim().startsWith('<html')) {
-            return { rows: extractNormalizedRowsFromResponse(text) };
+            return { rows: parseGridRows(parseCsvToGrid(text)) };
           }
-          lastErr = 'Sheet is Restricted. Set Share → Anyone with the link (Viewer).';
+          lastErr = 'Google Sheet is Restricted. Set Share → Anyone with the link (Viewer).';
         } else {
           lastErr = `HTTP ${res.status}`;
         }
@@ -813,7 +761,6 @@
         lastErr = e?.message || 'Network/CORS block';
       }
 
-      // 2. JSONP gviz fallback for regular Google Sheets URLs
       if (resolved.sheetId) {
         return await new Promise((resolve, reject) => {
           const cbName = `__eyns_gviz_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
@@ -861,80 +808,58 @@
         });
       }
 
-      throw new Error(`Could not connect (${lastErr}).`);
-    }
-
-    // Default helper to build Packed Meal Batches for a given day count & meals per day
-    function createPackedMealBatch(dayNum, mealNum, dateIso) {
-      const defaultTimes = ['07:30 AM', '11:30 AM', '03:00 PM', '06:00 PM'];
-      return {
-        id: `pm_d${dayNum}_m${mealNum}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-        day: dayNum,
-        mealIndex: mealNum,
-        label: `Packed Meal ${mealNum}`,
-        date: dateIso,
-        time: defaultTimes[(mealNum - 1) % defaultTimes.length],
-        packCount: 30,
-        dishes: [],
-        customRateOverride: '',
-        extraInclusions: 'Disposable box, spoon & fork, tissue',
-        notes: ''
-      };
+      throw new Error(`Could not connect (${lastErr}). Paste a valid Google Sheet link.`);
     }
 
     // =========================================================================
-    // 5. MAIN APPLICATION COMPONENT
+    // 4. MAIN APPLICATION COMPONENT
     // =========================================================================
     function App() {
-      const initialDraft = useMemo(() => recoverSavedJson(STORAGE_KEYS.ACTIVE_DRAFT, null), []);
-      const defaultEventDate = useMemo(() => {
-        const d = new Date();
-        d.setDate(d.getDate() + 14);
-        return d.toISOString().split('T')[0];
-      }, []);
-
-      // Top Navigation & Modals
+      // Navigation & Modals
       const [activeTab, setActiveTab] = useState('builder');
       const [toastMsg, setToastMsg] = useState(null);
       const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
       const [isSavedQuotesOpen, setIsSavedQuotesOpen] = useState(false);
       const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+      const [logoLoadError, setLogoLoadError] = useState(false);
       const [previewMode, setPreviewMode] = useState('client');
 
       // Saved Quotes & Business Profile
-      const [savedQuotes, setSavedQuotes] = useState(() => recoverSavedJson(STORAGE_KEYS.SAVED_QUOTES, []));
+      const [savedQuotes, setSavedQuotes] = useState(() =>
+        recoverSavedJsonArray(STORAGE_KEYS.SAVED_QUOTES, [])
+      );
       const [savedQuotesSearch, setSavedQuotesSearch] = useState('');
       const [savedQuotesStatusFilter, setSavedQuotesStatusFilter] = useState('All');
-      const [businessProfile, setBusinessProfile] = useState(() => ({
-        ...DEFAULT_BUSINESS_PROFILE,
-        ...(recoverSavedJson(STORAGE_KEYS.BUSINESS_PROFILE, {}) || {})
-      }));
 
-      // Live Synced Catalogs (#3 Menu, #4 Services, #5 Hotel Rooms)
-      const [menuItems, setMenuItems] = useState(() => {
-        const saved = recoverSavedJson(STORAGE_KEYS.MENU_ITEMS, []);
-        return Array.isArray(saved) && saved.length > 0 ? saved : DEFAULT_MENU_ITEMS;
-      });
-      const [serviceItems, setServiceItems] = useState(() => {
-        const saved = recoverSavedJson(STORAGE_KEYS.SERVICE_ITEMS, []);
-        return Array.isArray(saved) ? saved : [];
-      });
-      const [roomItems, setRoomItems] = useState(() => {
-        const saved = recoverSavedJson(STORAGE_KEYS.ROOM_ITEMS, []);
-        return Array.isArray(saved) && saved.length > 0 ? saved : DEFAULT_ROOM_ITEMS;
+      const [businessProfile, setBusinessProfile] = useState(() => {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEYS.BUSINESS_PROFILE);
+          if (raw) return { ...DEFAULT_BUSINESS_PROFILE, ...JSON.parse(raw) };
+        } catch (e) {}
+        return DEFAULT_BUSINESS_PROFILE;
       });
 
-      // Sheet URLs (Permanent Hardcoded Defaults)
+      // Catalogs (#3 Menu, #4 Event Services, #5 Hotel Rooms)
+      const [menuItems, setMenuItems] = useState(() =>
+        recoverSavedJsonArray(STORAGE_KEYS.MENU_ITEMS, DEFAULT_MENU_ITEMS)
+      );
+      const [serviceItems, setServiceItems] = useState(() =>
+        recoverSavedJsonArray(STORAGE_KEYS.SERVICE_ITEMS, [])
+      );
+      const [roomItems, setRoomItems] = useState(() =>
+        recoverSavedJsonArray(STORAGE_KEYS.ROOM_ITEMS, DEFAULT_ROOM_CATALOG)
+      );
+
+      // Google Sheets Sync State (Hardcoded links permanently active on all devices)
       const [menuSheetUrl, setMenuSheetUrl] = useState(() =>
-        recoverSavedString(STORAGE_KEYS.MENU_SCRIPT_URL, HARDCODED_MENU_SHEET_URL, 'menu')
+        recoverSavedString(STORAGE_KEYS.MENU_SCRIPT_URL, HARDCODED_MENU_SHEET_URL)
       );
       const [servicesSheetUrl, setServicesSheetUrl] = useState(() =>
-        recoverSavedString(STORAGE_KEYS.SERVICES_SCRIPT_URL, HARDCODED_SERVICES_SHEET_URL, 'services')
+        recoverSavedString(STORAGE_KEYS.SERVICES_SCRIPT_URL, HARDCODED_SERVICES_SHEET_URL)
       );
       const [roomsSheetUrl, setRoomsSheetUrl] = useState(() =>
-        recoverSavedString(STORAGE_KEYS.ROOMS_SCRIPT_URL, HARDCODED_ROOMS_SHEET_URL, 'rooms')
+        recoverSavedString(STORAGE_KEYS.ROOMS_SCRIPT_URL, HARDCODED_ROOMS_SHEET_URL)
       );
-
       const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
       const [isSyncingSheets, setIsSyncingSheets] = useState(false);
       const [lastSyncTime, setLastSyncTime] = useState('');
@@ -951,79 +876,79 @@
       const isSyncingRef = useRef(false);
       const printRef = useRef(null);
 
-      // Step 1: Booking Category & Client Details
-      const [bookingCategory, setBookingCategory] = useState(initialDraft?.bookingCategory || 'celebration');
-      const [docType, setDocType] = useState(initialDraft?.docType || 'Quotation');
-      const [quoteStatus, setQuoteStatus] = useState(initialDraft?.quoteStatus || 'Draft');
-      const [quoteValidDays, setQuoteValidDays] = useState(initialDraft?.quoteValidDays ?? 15);
-      const [docNumber, setDocNumber] = useState(() => initialDraft?.docNumber || generateDocNumber());
-      const [clientName, setClientName] = useState(initialDraft?.clientName || '');
-      const [clientOrg, setClientOrg] = useState(initialDraft?.clientOrg || '');
-      const [clientContact, setClientContact] = useState(initialDraft?.clientContact || '');
-      const [occasion, setOccasion] = useState(initialDraft?.occasion || 'Wedding Reception');
-      const [eventMotif, setEventMotif] = useState(initialDraft?.eventMotif || '');
-      const [specialNotes, setSpecialNotes] = useState(initialDraft?.specialNotes || '');
-      const [showPaymentTermsOnPrint, setShowPaymentTermsOnPrint] = useState(initialDraft?.showPaymentTermsOnPrint !== false);
-      const [eventVenue, setEventVenue] = useState(initialDraft?.eventVenue || 'Eyns Air-Conditioned Venue (4 hrs)');
-      const [eventDate, setEventDate] = useState(initialDraft?.eventDate || defaultEventDate);
-      const [rentalReturnDate, setRentalReturnDate] = useState(
-        initialDraft?.rentalReturnDate || addDaysToIsoDate(defaultEventDate, 1)
-      );
-      const [eventTime, setEventTime] = useState(initialDraft?.eventTime || '10:00 AM - 2:00 PM');
-      const [paxCount, setPaxCount] = useState(initialDraft?.paxCount || 100);
-      const [eventDays, setEventDays] = useState(initialDraft?.eventDays || 1);
+      // Step 1: 4 Streamlined Booking Categories ('celebration' | 'seminar' | 'packed_meals' | 'rental')
+      const [bookingCategory, setBookingCategory] = useState('celebration');
+      const [docType, setDocType] = useState('Quotation');
+      const [quoteStatus, setQuoteStatus] = useState('Draft');
+      const [quoteValidDays, setQuoteValidDays] = useState(() => Number(businessProfile.defaultValidityDays) || 15);
+      const [docNumber, setDocNumber] = useState(() => generateDocNumber());
+      const [clientName, setClientName] = useState('');
+      const [clientOrg, setClientOrg] = useState('');
+      const [clientContact, setClientContact] = useState('');
+      const [occasion, setOccasion] = useState('Wedding Reception');
+      const [eventMotif, setEventMotif] = useState('');
+      const [specialNotes, setSpecialNotes] = useState('');
+      const [showPaymentTermsOnPrint, setShowPaymentTermsOnPrint] = useState(true);
+      const [eventVenue, setEventVenue] = useState('Eyns Air-Conditioned Venue (4 Hours)');
+      const [eventDate, setEventDate] = useState(() => addDaysToIsoDate(new Date().toISOString().split('T')[0], 14));
+      const [rentalReturnDate, setRentalReturnDate] = useState(() => addDaysToIsoDate(new Date().toISOString().split('T')[0], 15));
+      const [eventTime, setEventTime] = useState('10:00 AM - 2:00 PM');
+      const [paxCount, setPaxCount] = useState(100);
+      const [eventDays, setEventDays] = useState(1);
 
-      // Rental Terms & Security Deposit
-      const [securityDeposit, setSecurityDeposit] = useState(initialDraft?.securityDeposit ?? 2000);
+      // Rental Agreement Specific Fields
+      const [securityDeposit, setSecurityDeposit] = useState(2000);
       const [rentalTermsText, setRentalTermsText] = useState(
-        initialDraft?.rentalTermsText ||
-          '1. Lessee assumes full responsibility for all rented equipment upon pick-up until return.\n2. Any lost, damaged, or stained items shall be charged at replacement/repair value.\n3. Late returns beyond the agreed Return Date incur an additional daily rental fee.'
+        '1. Lessee assumes full responsibility for all rented equipment upon pick-up until return.\n2. Any lost, damaged, or stained items shall be charged at replacement/repair value.\n3. Late returns beyond the agreed Return Date incur an additional daily rental fee.'
       );
 
       // Step 2: Package & Built-In Buffet Menu Plan ('menu_a' | 'menu_b' | 'menu_c' | 'custom_menu')
-      const [selectedPackageId, setSelectedPackageId] = useState(initialDraft?.selectedPackageId || 'pkg_essential');
-      const [selectedTierPax, setSelectedTierPax] = useState(initialDraft?.selectedTierPax || 100);
-      const [excessRatePerPax, setExcessRatePerPax] = useState(initialDraft?.excessRatePerPax ?? STANDARD_EXCESS_RATE);
-      const [customBaseFee, setCustomBaseFee] = useState(initialDraft?.customBaseFee || 0);
-      const [selectedBuffetMenuId, setSelectedBuffetMenuId] = useState(initialDraft?.selectedBuffetMenuId || 'menu_a');
+      const [selectedPackageId, setSelectedPackageId] = useState('pkg_essential');
+      const [selectedTierPax, setSelectedTierPax] = useState(100);
+      const [excessRatePerPax, setExcessRatePerPax] = useState(STANDARD_EXCESS_RATE);
+      const [customBaseFee, setCustomBaseFee] = useState(0);
+      const [selectedBuffetMenuId, setSelectedBuffetMenuId] = useState('menu_a');
       const [showPackageInclusions, setShowPackageInclusions] = useState(false);
 
-      // Seminar Multi-Day Schedule
+      // Seminar Multi-Day & Meal Period State
       const [activeScheduleDay, setActiveScheduleDay] = useState(1);
-      const [dayAgendas, setDayAgendas] = useState(
-        initialDraft?.dayAgendas || { 1: 'Day 1: AM Snacks, Buffet Lunch & PM Snacks' }
-      );
-      const [dayPaxOverrides, setDayPaxOverrides] = useState(initialDraft?.dayPaxOverrides || {});
+      const [activeSeminarMealSlot, setActiveSeminarMealSlot] = useState('Lunch');
+      const [dayAgendas, setDayAgendas] = useState({ 1: 'Day 1: AM Snacks, Buffet Lunch & PM Snacks' });
+      const [dayPaxOverrides, setDayPaxOverrides] = useState({});
 
-      // Multi-Day Packed Meals State
-      const [packedTotalDays, setPackedTotalDays] = useState(initialDraft?.packedTotalDays || 1);
-      const [activePackedDay, setActivePackedDay] = useState(1);
-      const [packedMealBatches, setPackedMealBatches] = useState(() => {
-        if (Array.isArray(initialDraft?.packedMealBatches) && initialDraft.packedMealBatches.length > 0) {
-          return initialDraft.packedMealBatches;
-        }
-        return [createPackedMealBatch(1, 1, defaultEventDate)];
-      });
-      const [activePackedBatchId, setActivePackedBatchId] = useState(() => {
-        if (Array.isArray(initialDraft?.packedMealBatches) && initialDraft.packedMealBatches.length > 0) {
-          return initialDraft.packedMealBatches[0].id;
-        }
-        return '';
-      });
-
-      // Step 3: A La Carte Menu Lines (Independent per-dish VIP pax count!)
+      // Step 3A: Standard A La Carte & VIP Dishes (with per-dish pax override)
       const [menuCategoryFilter, setMenuCategoryFilter] = useState('All');
       const [menuSearchQuery, setMenuSearchQuery] = useState('');
-      const [selectedMenuLines, setSelectedMenuLines] = useState(initialDraft?.selectedMenuLines || []);
+      const [selectedMenuLines, setSelectedMenuLines] = useState([]);
       const [showQuickNewDishInStep3, setShowQuickNewDishInStep3] = useState(false);
       const [quickDishName, setQuickDishName] = useState('');
       const [quickDishCat, setQuickDishCat] = useState('Beef');
       const [quickDishPrice, setQuickDishPrice] = useState('');
 
+      // Step 3B: Multi-Day Packed Meals State (How Many Days -> Meals per Day -> Packed Meal 1, 2...)
+      const [packedTotalDays, setPackedTotalDays] = useState(1);
+      const [activePackedDay, setActivePackedDay] = useState(1);
+      const [packedMealBatches, setPackedMealBatches] = useState(() => [
+        {
+          id: 'pm_d1_1',
+          day: 1,
+          label: 'Packed Meal 1',
+          mealPeriod: 'Lunch',
+          date: addDaysToIsoDate(new Date().toISOString().split('T')[0], 7),
+          time: '12:00 PM',
+          packCount: 30,
+          customRateOverride: '',
+          dishes: [DEFAULT_MENU_ITEMS[8], DEFAULT_MENU_ITEMS[15]],
+          extraInclusions: 'Disposable Bento Box, Spoon & Fork, Bottled Water',
+          notes: ''
+        }
+      ]);
+      const [activePackedBatchId, setActivePackedBatchId] = useState('pm_d1_1');
+
       // Step 4: Event Services & Rentals
       const [serviceSubcategoryFilter, setServiceSubcategoryFilter] = useState('All');
       const [serviceSearchQuery, setServiceSearchQuery] = useState('');
-      const [selectedServiceLines, setSelectedServiceLines] = useState(initialDraft?.selectedServiceLines || []);
+      const [selectedServiceLines, setSelectedServiceLines] = useState([]);
       const [showCustomServiceForm, setShowCustomServiceForm] = useState(false);
       const [customServiceName, setCustomServiceName] = useState('');
       const [customServiceCategory, setCustomServiceCategory] = useState('Catering');
@@ -1031,14 +956,14 @@
       const [customServicePrice, setCustomServicePrice] = useState('');
 
       // Step 5: Hotel Rooms & Booked Check-In / Check-Out Dates
-      const [roomNightsMap, setRoomNightsMap] = useState(initialDraft?.roomNightsMap || {});
-      const [roomDatesMap, setRoomDatesMap] = useState(initialDraft?.roomDatesMap || {});
+      const [roomNightsMap, setRoomNightsMap] = useState({});
+      const [roomBookingsMap, setRoomBookingsMap] = useState({});
 
-      // Step 6: Discounts, Taxes & Payment Ledger
-      const [discountLabel, setDiscountLabel] = useState(initialDraft?.discountLabel || 'Promo / Management Discount');
-      const [discountAmount, setDiscountAmount] = useState(initialDraft?.discountAmount || 0);
-      const [taxRatePercent, setTaxRatePercent] = useState(initialDraft?.taxRatePercent || 0);
-      const [payments, setPayments] = useState(initialDraft?.payments || []);
+      // Step 6: Discounts, Taxes & Payments
+      const [discountLabel, setDiscountLabel] = useState('Promo / Management Discount');
+      const [discountAmount, setDiscountAmount] = useState(0);
+      const [taxRatePercent, setTaxRatePercent] = useState(0);
+      const [payments, setPayments] = useState([]);
       const [newPayDate, setNewPayDate] = useState(() => new Date().toISOString().split('T')[0]);
       const [newPayMethod, setNewPayMethod] = useState('GCash / Bank Transfer');
       const [newPayRef, setNewPayRef] = useState('');
@@ -1046,255 +971,12 @@
 
       // Step 7: PO / LGU Tracking
       const [isPoOpen, setIsPoOpen] = useState(false);
-      const [poNumber, setPoNumber] = useState(initialDraft?.poNumber || '');
-      const [poApprovedBudget, setPoApprovedBudget] = useState(initialDraft?.poApprovedBudget || '');
-      const [poNotes, setPoNotes] = useState(initialDraft?.poNotes || '');
-
-      // Ensure activePackedBatchId always points to an existing batch on activePackedDay
-      const activeDayPackedBatches = useMemo(() => {
-        return packedMealBatches
-          .filter(b => b.day === activePackedDay)
-          .sort((a, b) => a.mealIndex - b.mealIndex);
-      }, [packedMealBatches, activePackedDay]);
-
-      const activePackedBatch = useMemo(() => {
-        return (
-          activeDayPackedBatches.find(b => b.id === activePackedBatchId) ||
-          activeDayPackedBatches[0] ||
-          packedMealBatches[0] ||
-          null
-        );
-      }, [activeDayPackedBatches, activePackedBatchId, packedMealBatches]);
-
-      useEffect(() => {
-        if (activePackedBatch && activePackedBatch.id !== activePackedBatchId) {
-          setActivePackedBatchId(activePackedBatch.id);
-        }
-      }, [activePackedBatch, activePackedBatchId]);
-
-      const showToast = msg => {
-        setToastMsg(msg);
-        setTimeout(() => setToastMsg(prev => (prev === msg ? null : prev)), 3600);
-      };
+      const [poNumber, setPoNumber] = useState('');
+      const [poApprovedBudget, setPoApprovedBudget] = useState('');
+      const [poNotes, setPoNotes] = useState('');
 
       // =======================================================================
-      // 6. PERSISTENCE, DRAFT AUTO-SAVE & CONCURRENT 3-SHEET SYNC
-      // =======================================================================
-      useEffect(() => {
-        urlsRef.current = { menu: menuSheetUrl, services: servicesSheetUrl, rooms: roomsSheetUrl };
-        persistSavedString(STORAGE_KEYS.MENU_SCRIPT_URL, menuSheetUrl);
-        persistSavedString(STORAGE_KEYS.SERVICES_SCRIPT_URL, servicesSheetUrl);
-        persistSavedString(STORAGE_KEYS.ROOMS_SCRIPT_URL, roomsSheetUrl);
-      }, [menuSheetUrl, servicesSheetUrl, roomsSheetUrl]);
-
-      useEffect(() => {
-        try {
-          localStorage.setItem(STORAGE_KEYS.SAVED_QUOTES, JSON.stringify(savedQuotes));
-        } catch (e) {}
-      }, [savedQuotes]);
-
-      useEffect(() => {
-        try {
-          localStorage.setItem(STORAGE_KEYS.BUSINESS_PROFILE, JSON.stringify(businessProfile));
-        } catch (e) {}
-      }, [businessProfile]);
-
-      // Auto-save active quotation draft
-      useEffect(() => {
-        try {
-          const draft = {
-            bookingCategory, docType, quoteStatus, quoteValidDays, docNumber,
-            clientName, clientOrg, clientContact, occasion, eventMotif, specialNotes,
-            showPaymentTermsOnPrint, eventVenue, eventDate, rentalReturnDate, eventTime,
-            paxCount, eventDays, securityDeposit, rentalTermsText,
-            selectedPackageId, selectedTierPax, excessRatePerPax, customBaseFee, selectedBuffetMenuId,
-            dayAgendas, dayPaxOverrides, packedTotalDays, packedMealBatches,
-            selectedMenuLines, selectedServiceLines, roomNightsMap, roomDatesMap,
-            discountLabel, discountAmount, taxRatePercent, payments,
-            poNumber, poApprovedBudget, poNotes
-          };
-          localStorage.setItem(STORAGE_KEYS.ACTIVE_DRAFT, JSON.stringify(draft));
-        } catch (e) {}
-      }, [
-        bookingCategory, docType, quoteStatus, quoteValidDays, docNumber,
-        clientName, clientOrg, clientContact, occasion, eventMotif, specialNotes,
-        showPaymentTermsOnPrint, eventVenue, eventDate, rentalReturnDate, eventTime,
-        paxCount, eventDays, securityDeposit, rentalTermsText,
-        selectedPackageId, selectedTierPax, excessRatePerPax, customBaseFee, selectedBuffetMenuId,
-        dayAgendas, dayPaxOverrides, packedTotalDays, packedMealBatches,
-        selectedMenuLines, selectedServiceLines, roomNightsMap, roomDatesMap,
-        discountLabel, discountAmount, taxRatePercent, payments,
-        poNumber, poApprovedBudget, poNotes
-      ]);
-
-      async function syncAllSheets(overrideUrls = {}, silent = false) {
-        if (isSyncingRef.current && silent) return;
-        const mUrl = (overrideUrls.menu !== undefined ? overrideUrls.menu : urlsRef.current.menu).trim();
-        const sUrl = (overrideUrls.services !== undefined ? overrideUrls.services : urlsRef.current.services).trim();
-        const rUrl = (overrideUrls.rooms !== undefined ? overrideUrls.rooms : urlsRef.current.rooms).trim();
-
-        isSyncingRef.current = true;
-        setIsSyncingSheets(true);
-
-        const nextDiag = {
-          menu: '', menuOk: false,
-          services: '', servicesOk: false,
-          rooms: '', roomsOk: false
-        };
-
-        const tasks = [];
-
-        // Sheet #3: A La Carte Menu
-        if (mUrl) {
-          tasks.push(
-            fetchSheetRowsUniversal(mUrl)
-              .then(({ rows }) => {
-                const parsed = rows
-                  .map((row, idx) => {
-                    const cols = row._cols || [];
-                    const name = row.dishname || row.dish || row.menuitem || row.name || cols[1] || '';
-                    if (!name) return null;
-                    const lower = String(name).trim().toLowerCase();
-                    if (lower === 'dish name' || lower === 'dish' || lower === 'name' || lower === 'id') return null;
-                    return {
-                      id: String(row.id || cols[0] || `menu_sheet_${idx + 1}`).trim(),
-                      category: String(row.category || cols[2] || 'Main Course').trim(),
-                      name: String(name).trim(),
-                      price: parseNumericAmount(row.priceperpax ?? row.price ?? row.rate ?? cols[3] ?? 0),
-                      unit: 'per_pax',
-                      description: String(row.description || '').trim()
-                    };
-                  })
-                  .filter(Boolean);
-                if (parsed.length > 0) {
-                  setMenuItems(parsed);
-                  try { localStorage.setItem(STORAGE_KEYS.MENU_ITEMS, JSON.stringify(parsed)); } catch (e) {}
-                  nextDiag.menuOk = true;
-                  nextDiag.menu = `Synced ${parsed.length} dishes live.`;
-                } else {
-                  nextDiag.menu = 'Connected, but 0 dish rows matched Row 1 headers.';
-                }
-              })
-              .catch(err => {
-                nextDiag.menu = err.message;
-              })
-          );
-        }
-
-        // Sheet #4: Event Services & Rentals
-        if (sUrl) {
-          tasks.push(
-            fetchSheetRowsUniversal(sUrl)
-              .then(({ rows }) => {
-                const parsed = rows
-                  .map((row, idx) => {
-                    const cols = row._cols || [];
-                    const hasId = row.id !== undefined || cols.length >= 6 || /^(srv|svc|id)?[-_#]?\d+$/i.test(String(cols[0] || ''));
-                    const name = row.serviceitemname || row.servicename || row.service || row.itemname || row.item || row.name || (hasId ? cols[1] : cols[0]) || '';
-                    if (!name) return null;
-                    const lower = String(name).trim().toLowerCase();
-                    if (lower === 'service / item name' || lower === 'service item name' || lower === 'id') return null;
-                    return {
-                      id: String(row.id || (hasId ? cols[0] : '') || `srv_sheet_${idx + 1}`).trim(),
-                      name: String(name).trim(),
-                      subcategory: normalizeServiceSubcategory(row.eventservicescategory || row.category || row.subcategory || (hasId ? cols[2] : cols[1]) || 'Catering'),
-                      price: parseNumericAmount(row.rate ?? row.price ?? row.amount ?? (hasId ? cols[3] : cols[2]) ?? 0),
-                      billingType: normalizeBillingType(row.billingtype || row.unit || (hasId ? cols[4] : cols[3]) || 'per_piece'),
-                      description: String(row.description || '').trim()
-                    };
-                  })
-                  .filter(Boolean);
-                if (parsed.length > 0) {
-                  setServiceItems(parsed);
-                  try { localStorage.setItem(STORAGE_KEYS.SERVICE_ITEMS, JSON.stringify(parsed)); } catch (e) {}
-                  nextDiag.servicesOk = true;
-                  nextDiag.services = `Synced ${parsed.length} service/rental items live.`;
-                } else {
-                  nextDiag.services = 'Connected, but 0 service rows matched Row 1 headers.';
-                }
-              })
-              .catch(err => {
-                nextDiag.services = err.message;
-              })
-          );
-        }
-
-        // Sheet #5: Hotel Rooms
-        if (rUrl) {
-          tasks.push(
-            fetchSheetRowsUniversal(rUrl)
-              .then(({ rows }) => {
-                const parsed = rows
-                  .map((row, idx) => {
-                    const cols = row._cols || [];
-                    const roomNo = row.roomno || row.roomnumber || row.room || cols[1] || '';
-                    if (!roomNo) return null;
-                    const lower = String(roomNo).trim().toLowerCase();
-                    if (lower === 'room no' || lower === 'room' || lower === 'id') return null;
-                    return {
-                      id: String(row.id || cols[0] || `room_sheet_${idx + 1}`).trim(),
-                      roomNo: String(roomNo).trim(),
-                      type: String(row.roomtype || row.type || cols[2] || 'Standard Room').trim(),
-                      rate: parseNumericAmount(row.ratepernight ?? row.rate ?? row.price ?? cols[3] ?? 0),
-                      capacity: String(row.capacity || cols[4] || '2 Pax').trim(),
-                      inclusions: String(row.inclusions || row.description || cols[5] || 'Aircon, Wi-Fi, Private Bath').trim()
-                    };
-                  })
-                  .filter(Boolean);
-                if (parsed.length > 0) {
-                  setRoomItems(parsed);
-                  try { localStorage.setItem(STORAGE_KEYS.ROOM_ITEMS, JSON.stringify(parsed)); } catch (e) {}
-                  nextDiag.roomsOk = true;
-                  nextDiag.rooms = `Synced ${parsed.length} hotel rooms live.`;
-                } else {
-                  nextDiag.rooms = 'Sheet empty or headers not matched yet. Copy Rooms Template into cell A1.';
-                }
-              })
-              .catch(err => {
-                nextDiag.rooms = err.message;
-              })
-          );
-        }
-
-        await Promise.all(tasks);
-
-        setSyncDiagnostics(nextDiag);
-        setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-        isSyncingRef.current = false;
-        setIsSyncingSheets(false);
-
-        if (!silent) {
-          const okCount = [nextDiag.menuOk, nextDiag.servicesOk, nextDiag.roomsOk].filter(Boolean).length;
-          showToast(okCount > 0 ? `Synced ${okCount} Google Sheet(s) successfully!` : 'Check sheet sharing ("Anyone with the link - Viewer").');
-        }
-      }
-
-      // Initial startup sync
-      useEffect(() => {
-        syncAllSheets({}, true);
-      }, []);
-
-      // Background auto-sync every 30s + on tab focus
-      useEffect(() => {
-        if (!autoSyncEnabled) return;
-        const run = () => {
-          if (!isSyncingRef.current) syncAllSheets({}, true);
-        };
-        const timer = setInterval(run, 30000);
-        const onVis = () => {
-          if (document.visibilityState === 'visible') run();
-        };
-        window.addEventListener('focus', run);
-        document.addEventListener('visibilitychange', onVis);
-        return () => {
-          clearInterval(timer);
-          window.removeEventListener('focus', run);
-          document.removeEventListener('visibilitychange', onVis);
-        };
-      }, [autoSyncEnabled]);
-
-      // =======================================================================
-      // 7. DYNAMIC STEP VISIBILITY & PACKAGE/SCHEDULE COMPUTATIONS
+      // 5. VISIBILITY & DYNAMIC STEP NUMBERING
       // =======================================================================
       const showPackageStep = bookingCategory === 'celebration' || bookingCategory === 'seminar';
       const showMenuStep = bookingCategory !== 'rental';
@@ -1318,6 +1000,195 @@
         [eventDate, rentalReturnDate]
       );
 
+      const showToast = msg => {
+        setToastMsg(msg);
+        setTimeout(() => setToastMsg(prev => (prev === msg ? null : prev)), 3600);
+      };
+
+      // =======================================================================
+      // 6. PERSISTENCE & 3-SHEET AUTO-SYNC
+      // =======================================================================
+      useEffect(() => {
+        urlsRef.current = { menu: menuSheetUrl, services: servicesSheetUrl, rooms: roomsSheetUrl };
+        persistSavedString(STORAGE_KEYS.MENU_SCRIPT_URL, menuSheetUrl);
+        persistSavedString(STORAGE_KEYS.SERVICES_SCRIPT_URL, servicesSheetUrl);
+        persistSavedString(STORAGE_KEYS.ROOMS_SCRIPT_URL, roomsSheetUrl);
+      }, [menuSheetUrl, servicesSheetUrl, roomsSheetUrl]);
+
+      useEffect(() => {
+        try {
+          if (menuItems.length > 0) localStorage.setItem(STORAGE_KEYS.MENU_ITEMS, JSON.stringify(menuItems));
+        } catch (e) {}
+      }, [menuItems]);
+
+      useEffect(() => {
+        try {
+          if (serviceItems.length > 0) localStorage.setItem(STORAGE_KEYS.SERVICE_ITEMS, JSON.stringify(serviceItems));
+        } catch (e) {}
+      }, [serviceItems]);
+
+      useEffect(() => {
+        try {
+          if (roomItems.length > 0) localStorage.setItem(STORAGE_KEYS.ROOM_ITEMS, JSON.stringify(roomItems));
+        } catch (e) {}
+      }, [roomItems]);
+
+      useEffect(() => {
+        try {
+          localStorage.setItem(STORAGE_KEYS.SAVED_QUOTES, JSON.stringify(savedQuotes));
+        } catch (e) {}
+      }, [savedQuotes]);
+
+      useEffect(() => {
+        try {
+          localStorage.setItem(STORAGE_KEYS.BUSINESS_PROFILE, JSON.stringify(businessProfile));
+        } catch (e) {}
+      }, [businessProfile]);
+
+      async function syncAllSheets(overrides = {}, silent = false) {
+        if (isSyncingRef.current && silent) return;
+        const mUrl = (overrides.menu !== undefined ? overrides.menu : urlsRef.current.menu).trim();
+        const sUrl = (overrides.services !== undefined ? overrides.services : urlsRef.current.services).trim();
+        const rUrl = (overrides.rooms !== undefined ? overrides.rooms : urlsRef.current.rooms).trim();
+
+        isSyncingRef.current = true;
+        setIsSyncingSheets(true);
+        const nextDiag = { menu: '', menuOk: false, services: '', servicesOk: false, rooms: '', roomsOk: false };
+
+        await Promise.all([
+          // 1. Menu Sheet (#3)
+          (async () => {
+            if (!mUrl) return;
+            try {
+              const { rows } = await fetchSheetRowsUniversal(mUrl);
+              const parsed = rows
+                .map((row, idx) => {
+                  const cols = row._cols || [];
+                  const name = row.dishname || row.dish || row.menuitem || row.name || cols[1] || '';
+                  if (!name) return null;
+                  const lower = String(name).trim().toLowerCase();
+                  if (lower === 'dish name' || lower === 'dish' || lower === 'name' || lower === 'id') return null;
+                  return {
+                    id: String(row.id || cols[0] || `menu_sheet_${idx + 1}`).trim(),
+                    category: String(row.category || cols[2] || 'Main Course').trim(),
+                    name: String(name).trim(),
+                    price: parseNumericAmount(row.priceperpax ?? row.price ?? row.rate ?? cols[3] ?? 0),
+                    unit: 'per_pax'
+                  };
+                })
+                .filter(Boolean);
+              if (parsed.length > 0) {
+                setMenuItems(parsed);
+                nextDiag.menuOk = true;
+                nextDiag.menu = `Synced ${parsed.length} dishes from Menu Sheet (#3).`;
+              } else {
+                nextDiag.menu = 'Connected, but 0 dishes matched Row 1: ID | Dish Name | Category | Price Per Pax';
+              }
+            } catch (err) {
+              nextDiag.menu = err.message;
+            }
+          })(),
+          // 2. Services Sheet (#4)
+          (async () => {
+            if (!sUrl) return;
+            try {
+              const { rows } = await fetchSheetRowsUniversal(sUrl);
+              const parsed = rows
+                .map((row, idx) => {
+                  const cols = row._cols || [];
+                  const hasId = row.id !== undefined || cols.length >= 6 || /^(srv|svc|id)?[-_#]?\d+$/i.test(String(cols[0] || ''));
+                  const name = row.serviceitemname || row.servicename || row.service || row.itemname || row.item || row.name || (hasId ? cols[1] : cols[0]) || '';
+                  if (!name) return null;
+                  const lower = String(name).trim().toLowerCase();
+                  if (lower === 'service / item name' || lower === 'service item name' || lower === 'id') return null;
+                  return {
+                    id: String(row.id || (hasId ? cols[0] : '') || `srv_sheet_${idx + 1}`).trim(),
+                    name: String(name).trim(),
+                    subcategory: normalizeServiceSubcategory(row.eventservicescategory || row.category || row.subcategory || (hasId ? cols[2] : cols[1]) || 'Catering'),
+                    price: parseNumericAmount(row.rate ?? row.price ?? row.amount ?? (hasId ? cols[3] : cols[2]) ?? 0),
+                    billingType: normalizeBillingType(row.billingtype || row.unit || (hasId ? cols[4] : cols[3]) || 'per_piece')
+                  };
+                })
+                .filter(Boolean);
+              if (parsed.length > 0) {
+                setServiceItems(parsed);
+                nextDiag.servicesOk = true;
+                nextDiag.services = `Synced ${parsed.length} items from Services Sheet (#4).`;
+              } else {
+                nextDiag.services = 'Connected, but 0 rows matched Row 1: ID | Service / Item Name | Event Services Category | Rate | Billing Type';
+              }
+            } catch (err) {
+              nextDiag.services = err.message;
+            }
+          })(),
+          // 3. Hotel Rooms Sheet (#5)
+          (async () => {
+            if (!rUrl) return;
+            try {
+              const { rows } = await fetchSheetRowsUniversal(rUrl);
+              const parsed = rows
+                .map((row, idx) => {
+                  const cols = row._cols || [];
+                  const roomNo = row.roomno || row.roomnumber || row.room || cols[1] || '';
+                  const type = row.roomtype || row.type || cols[2] || '';
+                  if (!roomNo && !type) return null;
+                  const lower = String(roomNo).trim().toLowerCase();
+                  if (lower === 'room no' || lower === 'room number' || lower === 'id') return null;
+                  return {
+                    id: String(row.id || cols[0] || `room_sheet_${idx + 1}`).trim(),
+                    roomNo: String(roomNo || `Room ${idx + 1}`).trim(),
+                    type: String(type || 'Standard Room').trim(),
+                    rate: parseNumericAmount(row.ratepernight ?? row.rate ?? row.price ?? cols[3] ?? 1800),
+                    capacity: String(row.capacity || cols[4] || '2 Pax').trim(),
+                    inclusions: String(row.inclusions || cols[5] || '').trim()
+                  };
+                })
+                .filter(Boolean);
+              if (parsed.length > 0) {
+                setRoomItems(parsed);
+                nextDiag.roomsOk = true;
+                nextDiag.rooms = `Synced ${parsed.length} rooms from Hotel Sheet (#5).`;
+              } else {
+                nextDiag.rooms = 'Using built-in 18 rooms (or paste template into Sheet #5).';
+              }
+            } catch (err) {
+              nextDiag.rooms = err.message;
+            }
+          })()
+        ]);
+
+        setSyncDiagnostics(nextDiag);
+        setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        isSyncingRef.current = false;
+        setIsSyncingSheets(false);
+
+        if (!silent) {
+          showToast('Synced all 3 EYNS Google Sheets!');
+        }
+      }
+
+      useEffect(() => {
+        syncAllSheets({}, true);
+      }, []);
+
+      useEffect(() => {
+        if (!autoSyncEnabled) return;
+        const timer = setInterval(() => syncAllSheets({}, true), 30000);
+        const onVis = () => {
+          if (document.visibilityState === 'visible') syncAllSheets({}, true);
+        };
+        window.addEventListener('focus', onVis);
+        document.addEventListener('visibilitychange', onVis);
+        return () => {
+          clearInterval(timer);
+          window.removeEventListener('focus', onVis);
+          document.removeEventListener('visibilitychange', onVis);
+        };
+      }, [autoSyncEnabled]);
+
+      // =======================================================================
+      // 7. PACKAGE, MENU, PACKED MEALS & ROOM HANDLERS
+      // =======================================================================
       const availablePackages = useMemo(() => {
         if (bookingCategory === 'seminar') {
           return PACKAGES.filter(p => p.id === 'seminar_custom' || p.id === 'from_scratch' || isTieredAllInclusivePackage(p.id));
@@ -1330,47 +1201,54 @@
         [selectedPackageId, availablePackages]
       );
 
-      const selectedBuffetMenu = useMemo(
-        () => SAMPLE_BUFFET_MENUS.find(m => m.id === selectedBuffetMenuId) || null,
-        [selectedBuffetMenuId]
-      );
+      const packageBreakdown = useMemo(() => {
+        if (!showPackageStep) {
+          return {
+            tierPax: 0,
+            effectivePax: 0,
+            basePrice: 0,
+            excessPax: 0,
+            excessRate: 0,
+            excessCharge: 0,
+            grossPackageTotal: 0,
+            menuUpgradePerPax: 0,
+            menuUpgradeCharge: 0,
+            customMenuCredit: 0,
+            total: 0
+          };
+        }
+        if (isTieredAllInclusivePackage(selectedPackage.id)) {
+          return calculateTieredPackageBreakdown(
+            selectedPackage,
+            selectedTierPax,
+            paxCount,
+            excessRatePerPax,
+            selectedBuffetMenuId
+          );
+        }
+        const flat = Math.max(0, Number(customBaseFee) || 0);
+        return {
+          tierPax: 0,
+          effectivePax: Number(paxCount) || 0,
+          basePrice: flat,
+          excessPax: 0,
+          excessRate: 0,
+          excessCharge: 0,
+          grossPackageTotal: flat,
+          menuUpgradePerPax: 0,
+          menuUpgradeCharge: 0,
+          customMenuCredit: 0,
+          total: flat
+        };
+      }, [showPackageStep, selectedPackage, selectedTierPax, paxCount, excessRatePerPax, customBaseFee, selectedBuffetMenuId]);
 
       const isCustomReplacedMenu =
         showPackageStep && selectedPackage.foodIncluded && selectedBuffetMenuId === 'custom_menu';
 
-      const packageBreakdown = useMemo(() => {
-        if (!showPackageStep) {
-          return {
-            tierPax: 0, basePrice: 0, excessPax: 0, excessRate: 0, excessCharge: 0,
-            menuUpgradePerPax: 0, menuUpgradeCharge: 0, customMenuCredit: 0, grossPackageTotal: 0, total: 0
-          };
-        }
-        if (isTieredAllInclusivePackage(selectedPackage.id)) {
-          const base = calculateTieredPackageBreakdown(selectedPackage, selectedTierPax, paxCount, excessRatePerPax);
-          const effectivePax = Math.max(base.tierPax, Number(paxCount) || base.tierPax);
-          const upgradeRate =
-            selectedPackage.foodIncluded && selectedBuffetMenu ? selectedBuffetMenu.upgradePerPax : 0;
-          const menuUpgradeCharge = upgradeRate * effectivePax;
-          const customMenuCredit = isCustomReplacedMenu
-            ? (Number(selectedPackage.foodCreditPerPax) || BASE_FOOD_CREDIT_PER_PAX) * effectivePax
-            : 0;
-          const grossPackageTotal = base.total + menuUpgradeCharge;
-          return {
-            ...base,
-            effectivePax,
-            menuUpgradePerPax: upgradeRate,
-            menuUpgradeCharge,
-            customMenuCredit,
-            grossPackageTotal,
-            total: Math.max(0, grossPackageTotal - customMenuCredit)
-          };
-        }
-        const flat = Math.max(0, Number(customBaseFee) || 0);
-        return {
-          tierPax: 0, basePrice: flat, excessPax: 0, excessRate: 0, excessCharge: 0,
-          menuUpgradePerPax: 0, menuUpgradeCharge: 0, customMenuCredit: 0, grossPackageTotal: flat, total: flat
-        };
-      }, [showPackageStep, selectedPackage, selectedTierPax, paxCount, excessRatePerPax, customBaseFee, selectedBuffetMenu, isCustomReplacedMenu]);
+      const selectedBuffetMenu = useMemo(() => {
+        if (!showPackageStep || !selectedPackage.foodIncluded || isCustomReplacedMenu) return null;
+        return SAMPLE_BUFFET_MENUS.find(m => m.id === selectedBuffetMenuId) || SAMPLE_BUFFET_MENUS[0];
+      }, [showPackageStep, selectedPackage, selectedBuffetMenuId, isCustomReplacedMenu]);
 
       const effectiveDayForBuilder = bookingCategory === 'seminar' ? activeScheduleDay : 1;
       const getPaxForDay = dayNum =>
@@ -1378,9 +1256,6 @@
           ? Math.max(1, Number(dayPaxOverrides[dayNum]) || 1)
           : Math.max(1, Number(paxCount) || 1);
 
-      // =======================================================================
-      // 8. CATEGORY, PACKAGE, PACKED MEALS, MENU, SERVICES & ROOM HANDLERS
-      // =======================================================================
       const handleBookingCategoryChange = nextCat => {
         setBookingCategory(nextCat);
         if (nextCat === 'rental') {
@@ -1414,15 +1289,16 @@
           setPaxCount(safePax);
           setSelectedPackageId('pkg_essential');
           setSelectedTierPax(getAutoTierForPax(safePax));
+          setSelectedBuffetMenuId('menu_a');
           setOccasion('Wedding Reception');
           setServiceSubcategoryFilter('All');
           setCustomServiceCategory('Catering');
-          setEventVenue('Eyns Air-Conditioned Venue (4 hrs)');
+          setEventVenue('Eyns Air-Conditioned Venue (4 Hours)');
         }
       };
 
-      const handlePaxChange = val => {
-        const parsed = Math.max(1, Number(val) || 1);
+      const handlePaxChange = rawVal => {
+        const parsed = Math.max(1, parseInt(rawVal, 10) || 1);
         setPaxCount(parsed);
         if (showPackageStep && isTieredAllInclusivePackage(selectedPackage.id)) {
           setSelectedTierPax(getAutoTierForPax(parsed));
@@ -1443,71 +1319,39 @@
         setEventVenue(pkg.venue);
       };
 
-      // Multi-day Packed Meals Handlers
-      const handlePackedDaysCountChange = nextDays => {
-        const clamped = Math.max(1, Math.min(14, Number(nextDays) || 1));
-        setPackedTotalDays(clamped);
-        setPackedMealBatches(prev => {
-          const kept = prev.filter(b => b.day <= clamped);
-          const next = [...kept];
-          const baseDate = prev[0]?.date || eventDate;
-          for (let d = 1; d <= clamped; d++) {
-            if (!next.some(b => b.day === d)) {
-              next.push(createPackedMealBatch(d, 1, addDaysToIsoDate(baseDate, d - 1)));
-            }
-          }
-          return next;
-        });
-        if (activePackedDay > clamped) setActivePackedDay(clamped);
+      const handleNewQuotationReset = () => {
+        setDocNumber(generateDocNumber());
+        setQuoteStatus('Draft');
+        setClientName('');
+        setClientOrg('');
+        setClientContact('');
+        setEventMotif('');
+        setSpecialNotes('');
+        setSelectedMenuLines([]);
+        setSelectedServiceLines([]);
+        setRoomNightsMap({});
+        setRoomBookingsMap({});
+        setDiscountAmount(0);
+        setPayments([]);
+        setPoNumber('');
+        setPoApprovedBudget('');
+        setPoNotes('');
+        setPreviewMode('client');
+        showToast('Started a fresh quotation (all 3 Google Sheets remain synced).');
       };
 
-      const handleMealsCountForActiveDayChange = nextMealCount => {
-        const clamped = Math.max(1, Math.min(8, Number(nextMealCount) || 1));
-        setPackedMealBatches(prev => {
-          const otherDays = prev.filter(b => b.day !== activePackedDay);
-          const currentDay = prev
-            .filter(b => b.day === activePackedDay)
-            .sort((a, b) => a.mealIndex - b.mealIndex);
-          const dayBaseDate =
-            currentDay[0]?.date || addDaysToIsoDate(prev[0]?.date || eventDate, activePackedDay - 1);
-
-          const updatedDay = currentDay.slice(0, clamped).map((b, i) => ({
-            ...b,
-            mealIndex: i + 1,
-            label: `Packed Meal ${i + 1}`
-          }));
-
-          for (let m = updatedDay.length + 1; m <= clamped; m++) {
-            updatedDay.push(createPackedMealBatch(activePackedDay, m, dayBaseDate));
-          }
-          return [...otherDays, ...updatedDay];
-        });
-      };
-
-      const handleUpdatePackedBatch = (batchId, patch) => {
-        setPackedMealBatches(prev => prev.map(b => (b.id === batchId ? { ...b, ...patch } : b)));
-      };
-
-      const handleToggleDishInActivePackedBatch = dish => {
-        if (!activePackedBatch) return;
-        setPackedMealBatches(prev =>
-          prev.map(b => {
-            if (b.id !== activePackedBatch.id) return b;
-            const exists = (b.dishes || []).some(d => d.id === dish.id);
-            const nextDishes = exists
-              ? b.dishes.filter(d => d.id !== dish.id)
-              : [...(b.dishes || []), { id: dish.id, name: dish.name, category: dish.category, price: Number(dish.price) || 0 }];
-            return { ...b, dishes: nextDishes };
-          })
-        );
-      };
-
-      // Standard / Celebration / Seminar A La Carte Dish Handlers (Per-Dish Independent Pax!)
+      // A La Carte & VIP Dish Handlers (with Seminar Meal Slot & Per-Dish VIP Pax)
       const handleAddAlaCarteDish = dish => {
-        const dayPax = getPaxForDay(effectiveDayForBuilder);
-        const lineKey = `${effectiveDayForBuilder}__${dish.id}`;
+        const slot = bookingCategory === 'seminar' ? activeSeminarMealSlot : '';
+        const lineKey = bookingCategory === 'seminar'
+          ? `${effectiveDayForBuilder}__${slot}__${dish.id}`
+          : `${effectiveDayForBuilder}__${dish.id}`;
         if (selectedMenuLines.some(i => i.key === lineKey)) {
-          showToast(`"${dish.name}" is already in Chosen Menu — adjust its pax count below.`);
+          showToast(
+            bookingCategory === 'seminar'
+              ? `"${dish.name}" is already in Day ${effectiveDayForBuilder} (${slot}).`
+              : `"${dish.name}" is already added — adjust its pax count below.`
+          );
           return;
         }
         setSelectedMenuLines(prev => [
@@ -1515,27 +1359,27 @@
           {
             key: lineKey,
             day: effectiveDayForBuilder,
+            mealSlot: slot || 'Lunch',
             allDays: false,
             id: dish.id,
             name: dish.name,
             category: dish.category || 'Main Course',
             price: Number(dish.price) || 0,
-            unit: dish.unit || 'per_pax',
             customPax: null
           }
         ]);
-        showToast(`Added "${dish.name}" (${dayPax} pax).`);
+        showToast(
+          bookingCategory === 'seminar'
+            ? `Added "${dish.name}" to Day ${effectiveDayForBuilder} (${slot}).`
+            : `Added "${dish.name}".`
+        );
       };
 
       const handleUpdateMenuLinePax = (lineKey, nextPax) => {
-        const clean = Math.max(0, Number(nextPax) || 0);
-        if (clean <= 0) {
-          setSelectedMenuLines(prev => prev.filter(i => i.key !== lineKey));
-        } else {
-          setSelectedMenuLines(prev =>
-            prev.map(i => (i.key === lineKey ? { ...i, customPax: clean } : i))
-          );
-        }
+        const cleanPax = Math.max(1, Number(nextPax) || 1);
+        setSelectedMenuLines(prev =>
+          prev.map(i => (i.key === lineKey ? { ...i, customPax: cleanPax } : i))
+        );
       };
 
       const handleResetMenuLinePax = lineKey => {
@@ -1544,8 +1388,10 @@
         );
       };
 
-      const handleRemoveMenuLine = lineKey => {
-        setSelectedMenuLines(prev => prev.filter(i => i.key !== lineKey));
+      const handleUpdateMenuLineMealSlot = (lineKey, nextSlot) => {
+        setSelectedMenuLines(prev =>
+          prev.map(i => (i.key === lineKey ? { ...i, mealSlot: nextSlot } : i))
+        );
       };
 
       const handleToggleMenuLineAllDays = lineKey => {
@@ -1554,30 +1400,129 @@
         );
       };
 
+      const handleRemoveMenuLine = lineKey => {
+        setSelectedMenuLines(prev => prev.filter(i => i.key !== lineKey));
+      };
+
       const handleQuickAddCustomDish = e => {
         e.preventDefault();
-        const name = quickDishName.trim();
-        if (!name) return;
-        const dish = {
+        if (!quickDishName.trim()) return;
+        const newDish = {
           id: `custom_dish_${Date.now()}`,
-          name,
+          name: quickDishName.trim(),
           category: quickDishCat || 'Main Course',
           price: Math.max(0, parseNumericAmount(quickDishPrice)),
-          unit: 'per_pax',
-          description: 'Custom added dish'
+          unit: 'per_pax'
         };
-        if (bookingCategory === 'packed_meals') {
-          handleToggleDishInActivePackedBatch(dish);
+        setMenuItems(prev => [newDish, ...prev]);
+        if (bookingCategory === 'packed_meals' && activePackedBatch) {
+          handleToggleDishInActivePackedBatch(newDish);
         } else {
-          handleAddAlaCarteDish(dish);
+          handleAddAlaCarteDish(newDish);
         }
         setQuickDishName('');
         setQuickDishPrice('');
         setShowQuickNewDishInStep3(false);
-        showToast(`Added custom dish "${name}".`);
       };
 
-      // Event Services / Rentals Handlers
+      // Multi-Day Packed Meals Helpers
+      const activeDayPackedBatches = useMemo(
+        () => packedMealBatches.filter(b => b.day === activePackedDay),
+        [packedMealBatches, activePackedDay]
+      );
+
+      const activePackedBatch = useMemo(
+        () =>
+          activeDayPackedBatches.find(b => b.id === activePackedBatchId) ||
+          activeDayPackedBatches[0] ||
+          null,
+        [activeDayPackedBatches, activePackedBatchId]
+      );
+
+      useEffect(() => {
+        if (activeDayPackedBatches.length > 0 && !activeDayPackedBatches.some(b => b.id === activePackedBatchId)) {
+          setActivePackedBatchId(activeDayPackedBatches[0].id);
+        }
+      }, [activePackedDay, activeDayPackedBatches, activePackedBatchId]);
+
+      const handlePackedDaysCountChange = nextDays => {
+        const cleanDays = Math.max(1, Math.min(14, Number(nextDays) || 1));
+        setPackedTotalDays(cleanDays);
+        if (activePackedDay > cleanDays) setActivePackedDay(cleanDays);
+
+        setPackedMealBatches(prev => {
+          const kept = prev.filter(b => b.day <= cleanDays);
+          const baseDate = prev[0]?.date || eventDate;
+          for (let d = 1; d <= cleanDays; d++) {
+            if (!kept.some(b => b.day === d)) {
+              kept.push({
+                id: `pm_d${d}_1_${Date.now()}`,
+                day: d,
+                label: 'Packed Meal 1',
+                mealPeriod: 'Lunch',
+                date: addDaysToIsoDate(baseDate, d - 1),
+                time: '12:00 PM',
+                packCount: prev[0]?.packCount || 30,
+                customRateOverride: '',
+                dishes: prev[0]?.dishes ? [...prev[0].dishes] : [DEFAULT_MENU_ITEMS[8], DEFAULT_MENU_ITEMS[15]],
+                extraInclusions: prev[0]?.extraInclusions || 'Disposable Bento Box, Spoon & Fork, Bottled Water',
+                notes: ''
+              });
+            }
+          }
+          return kept;
+        });
+      };
+
+      const handleMealsCountForActiveDayChange = nextCount => {
+        const cleanCount = Math.max(1, Math.min(8, Number(nextCount) || 1));
+        setPackedMealBatches(prev => {
+          const otherDays = prev.filter(b => b.day !== activePackedDay);
+          const currentDay = prev.filter(b => b.day === activePackedDay);
+          const dayDate = currentDay[0]?.date || addDaysToIsoDate(eventDate, activePackedDay - 1);
+          const defaultPeriods = ['Lunch', 'Dinner', 'AM Snack', 'PM Snack', 'Breakfast'];
+
+          let nextDayList = currentDay.slice(0, cleanCount);
+          while (nextDayList.length < cleanCount) {
+            const idx = nextDayList.length + 1;
+            const periodName = defaultPeriods[(idx - 1) % defaultPeriods.length];
+            const periodObj = MEAL_PERIOD_OPTIONS.find(m => m.id === periodName) || MEAL_PERIOD_OPTIONS[2];
+            nextDayList.push({
+              id: `pm_d${activePackedDay}_${idx}_${Date.now()}`,
+              day: activePackedDay,
+              label: `Packed Meal ${idx}`,
+              mealPeriod: periodObj.id,
+              date: dayDate,
+              time: periodObj.defaultTime,
+              packCount: currentDay[0]?.packCount || 30,
+              customRateOverride: '',
+              dishes: [DEFAULT_MENU_ITEMS[8], DEFAULT_MENU_ITEMS[15]],
+              extraInclusions: 'Disposable Bento Box, Spoon & Fork, Bottled Water',
+              notes: ''
+            });
+          }
+          nextDayList = nextDayList.map((b, i) => ({ ...b, label: `Packed Meal ${i + 1}` }));
+          return [...otherDays, ...nextDayList].sort((a, b) => a.day - b.day);
+        });
+      };
+
+      const handleUpdatePackedBatch = (batchId, patch) => {
+        setPackedMealBatches(prev =>
+          prev.map(b => (b.id === batchId ? { ...b, ...patch } : b))
+        );
+      };
+
+      const handleToggleDishInActivePackedBatch = dish => {
+        if (!activePackedBatch) return;
+        const currentDishes = activePackedBatch.dishes || [];
+        const exists = currentDishes.some(d => d.id === dish.id);
+        const nextDishes = exists
+          ? currentDishes.filter(d => d.id !== dish.id)
+          : [...currentDishes, dish];
+        handleUpdatePackedBatch(activePackedBatch.id, { dishes: nextDishes });
+      };
+
+      // Event Services & Rentals Handlers
       const handleToggleServiceItem = srv => {
         const lineKey = `${effectiveDayForBuilder}__${srv.id}`;
         setSelectedServiceLines(prev => {
@@ -1593,7 +1538,6 @@
               subcategory: srv.subcategory || 'Catering',
               price: Number(srv.price) || 0,
               billingType: srv.billingType || 'per_piece',
-              description: srv.description || '',
               qty: 1
             }
           ];
@@ -1601,9 +1545,11 @@
       };
 
       const handleUpdateServiceLineQty = (lineKey, nextQty) => {
-        const clean = Number(nextQty) || 0;
+        const cleanQty = Number(nextQty) || 0;
         setSelectedServiceLines(prev =>
-          clean <= 0 ? prev.filter(i => i.key !== lineKey) : prev.map(i => (i.key === lineKey ? { ...i, qty: clean } : i))
+          cleanQty <= 0
+            ? prev.filter(i => i.key !== lineKey)
+            : prev.map(i => (i.key === lineKey ? { ...i, qty: cleanQty } : i))
         );
       };
 
@@ -1616,19 +1562,18 @@
       const handleAddCustomServiceLine = e => {
         e.preventDefault();
         if (!customServiceName.trim()) return;
-        const uid = `custom_srv_${Date.now()}`;
+        const uniqueId = `custom_srv_${Date.now()}`;
         setSelectedServiceLines(prev => [
           ...prev,
           {
-            key: `${effectiveDayForBuilder}__${uid}`,
+            key: `${effectiveDayForBuilder}__${uniqueId}`,
             day: effectiveDayForBuilder,
             allDays: false,
-            id: uid,
+            id: uniqueId,
             name: customServiceName.trim(),
             subcategory: bookingCategory === 'rental' ? 'Rental' : customServiceCategory,
-            price: Math.max(0, parseNumericAmount(customServicePrice)),
+            price: parseNumericAmount(customServicePrice),
             billingType: customServiceBilling,
-            description: '',
             qty: 1
           }
         ]);
@@ -1640,23 +1585,29 @@
 
       // Hotel Room Nights & Booked Check-In / Check-Out Date Handlers
       const handleSetRoomNights = (roomId, nextNights) => {
-        const clean = Math.max(0, Number(nextNights) || 0);
-        setRoomNightsMap(prev => ({ ...prev, [roomId]: clean }));
-        setRoomDatesMap(prev => {
-          if (clean === 0) return prev;
-          const existing = prev[roomId] || {};
-          const checkIn = existing.checkIn || eventDate;
-          const checkOut = addDaysToIsoDate(checkIn, clean);
-          return { ...prev, [roomId]: { checkIn, checkOut } };
-        });
+        const cleanNights = Math.max(0, Number(nextNights) || 0);
+        setRoomNightsMap(prev => ({ ...prev, [roomId]: cleanNights }));
+        if (cleanNights > 0) {
+          setRoomBookingsMap(prev => {
+            const existing = prev[roomId] || {};
+            const checkIn = existing.checkIn || eventDate;
+            return {
+              ...prev,
+              [roomId]: {
+                checkIn,
+                checkOut: addDaysToIsoDate(checkIn, cleanNights)
+              }
+            };
+          });
+        }
       };
 
-      const handleRoomDateChange = (roomId, field, nextDate) => {
-        if (!nextDate) return;
-        setRoomDatesMap(prev => {
-          const cur = prev[roomId] || { checkIn: eventDate, checkOut: addDaysToIsoDate(eventDate, 1) };
-          let checkIn = field === 'checkIn' ? nextDate : cur.checkIn || eventDate;
-          let checkOut = field === 'checkOut' ? nextDate : cur.checkOut || addDaysToIsoDate(checkIn, 1);
+      const handleRoomDateChange = (roomId, field, nextIso) => {
+        if (!nextIso) return;
+        setRoomBookingsMap(prev => {
+          const existing = prev[roomId] || { checkIn: eventDate, checkOut: addDaysToIsoDate(eventDate, 1) };
+          let checkIn = field === 'checkIn' ? nextIso : existing.checkIn;
+          let checkOut = field === 'checkOut' ? nextIso : existing.checkOut;
           if (checkOut <= checkIn) {
             checkOut = addDaysToIsoDate(checkIn, 1);
           }
@@ -1666,75 +1617,18 @@
         });
       };
 
-      const handleNewQuotationReset = () => {
-        setDocNumber(generateDocNumber());
-        setQuoteStatus('Draft');
-        setClientName('');
-        setClientOrg('');
-        setClientContact('');
-        setEventMotif('');
-        setSpecialNotes('');
-        setSelectedMenuLines([]);
-        setSelectedServiceLines([]);
-        setRoomNightsMap({});
-        setRoomDatesMap({});
-        setDiscountAmount(0);
-        setPayments([]);
-        setPoNumber('');
-        setPoApprovedBudget('');
-        setPoNotes('');
-        setPackedTotalDays(1);
-        setActivePackedDay(1);
-        const freshBatch = createPackedMealBatch(1, 1, eventDate);
-        setPackedMealBatches([freshBatch]);
-        setActivePackedBatchId(freshBatch.id);
-        setPreviewMode('client');
-        showToast('Started a fresh quotation.');
-      };
-
       // =======================================================================
-      // 9. FINANCIAL COMPUTATIONS
+      // 8. FINANCIAL CALCULATIONS
       // =======================================================================
-      const computedPackedMealsSummary = useMemo(() => {
-        if (bookingCategory !== 'packed_meals') {
-          return { batches: [], totalPacks: 0, totalAmount: 0 };
-        }
-        const sorted = [...packedMealBatches]
-          .filter(b => b.day <= packedTotalDays)
-          .sort((a, b) => (a.day !== b.day ? a.day - b.day : a.mealIndex - b.mealIndex));
-
-        const batches = sorted.map(b => {
-          const dishesSum = (b.dishes || []).reduce((s, d) => s + (Number(d.price) || 0), 0);
-          const hasOverride = b.customRateOverride !== '' && b.customRateOverride !== null && b.customRateOverride !== undefined;
-          const unitRate = hasOverride ? Math.max(0, parseNumericAmount(b.customRateOverride)) : dishesSum;
-          const packCount = Math.max(1, Number(b.packCount) || 1);
-          return {
-            ...b,
-            dishesSum,
-            unitRate,
-            packCount,
-            lineTotal: unitRate * packCount
-          };
-        });
-
-        return {
-          batches,
-          totalPacks: batches.reduce((s, b) => s + b.packCount, 0),
-          totalAmount: batches.reduce((s, b) => s + b.lineTotal, 0)
-        };
-      }, [bookingCategory, packedMealBatches, packedTotalDays]);
-
       const computedMenuSummary = useMemo(() => {
         if (!showMenuStep || bookingCategory === 'packed_meals') {
           return { lines: [], netMenuTotal: 0 };
         }
         const lines = selectedMenuLines.map(line => {
-          const activeDays = bookingCategory === 'seminar' && line.allDays ? Math.max(1, eventDays) : 1;
           const defaultDayPax = getPaxForDay(line.day);
-          const effectivePax = line.customPax !== null && line.customPax !== undefined
-            ? Math.max(1, Number(line.customPax) || 1)
-            : defaultDayPax;
-          const isCustomVipPax = line.customPax !== null && line.customPax !== undefined && effectivePax !== defaultDayPax;
+          const isCustomVipPax = line.customPax !== null && line.customPax !== undefined;
+          const effectivePax = isCustomVipPax ? Math.max(1, Number(line.customPax) || 1) : defaultDayPax;
+          const activeDays = bookingCategory === 'seminar' && line.allDays ? Math.max(1, eventDays) : 1;
           const lineTotal = line.price * effectivePax * activeDays;
           return {
             ...line,
@@ -1751,11 +1645,30 @@
         };
       }, [showMenuStep, bookingCategory, selectedMenuLines, eventDays, dayPaxOverrides, paxCount]);
 
+      const computedPackedMealsSummary = useMemo(() => {
+        if (bookingCategory !== 'packed_meals') {
+          return { batches: [], totalPacks: 0, totalAmount: 0 };
+        }
+        const batches = packedMealBatches
+          .filter(b => b.day <= packedTotalDays)
+          .map(b => {
+            const dishSum = (b.dishes || []).reduce((s, d) => s + (Number(d.price) || 0), 0);
+            const unitRate = b.customRateOverride !== '' ? parseNumericAmount(b.customRateOverride) : dishSum;
+            const packCount = Math.max(1, Number(b.packCount) || 1);
+            const lineTotal = unitRate * packCount;
+            return { ...b, unitRate, packCount, lineTotal };
+          });
+        return {
+          batches,
+          totalPacks: batches.reduce((s, b) => s + b.packCount, 0),
+          totalAmount: batches.reduce((s, b) => s + b.lineTotal, 0)
+        };
+      }, [bookingCategory, packedMealBatches, packedTotalDays]);
+
       const computedServiceLines = useMemo(() => {
-        const pool =
-          bookingCategory === 'rental'
-            ? selectedServiceLines.filter(l => l.subcategory === 'Rental')
-            : selectedServiceLines;
+        const pool = bookingCategory === 'rental'
+          ? selectedServiceLines.filter(l => l.subcategory === 'Rental')
+          : selectedServiceLines;
         return pool.map(line => {
           const activeDays = bookingCategory === 'seminar' && line.allDays ? Math.max(1, eventDays) : 1;
           const dayPax = getPaxForDay(line.day);
@@ -1763,23 +1676,25 @@
           if (line.billingType === 'per_pax') {
             lineTotal = line.price * dayPax * line.qty * activeDays;
           } else if (line.billingType === 'per_day') {
-            const multDays =
-              bookingCategory === 'rental'
-                ? rentalDurationDays * line.qty
-                : bookingCategory === 'seminar' && line.allDays
-                ? Math.max(1, eventDays) * line.qty
-                : line.qty;
+            const multDays = bookingCategory === 'rental'
+              ? rentalDurationDays * line.qty
+              : bookingCategory === 'seminar' && line.allDays
+              ? Math.max(1, eventDays) * line.qty
+              : line.qty;
             lineTotal = line.price * multDays;
           } else if (line.billingType === 'fixed') {
             lineTotal = line.price * line.qty;
           } else {
             lineTotal = line.price * line.qty * activeDays;
           }
-          return { ...line, dayPax, activeDays, lineTotal };
+          return { ...line, dayPax, lineTotal };
         });
       }, [selectedServiceLines, bookingCategory, eventDays, rentalDurationDays, dayPaxOverrides, paxCount]);
 
-      const servicesSubtotal = useMemo(() => computedServiceLines.reduce((s, l) => s + l.lineTotal, 0), [computedServiceLines]);
+      const servicesSubtotal = useMemo(
+        () => computedServiceLines.reduce((s, l) => s + l.lineTotal, 0),
+        [computedServiceLines]
+      );
 
       const selectedRoomsList = useMemo(() => {
         if (!showRoomsStep) return [];
@@ -1787,21 +1702,29 @@
           .filter(r => (Number(roomNightsMap[r.id]) || 0) > 0)
           .map(r => {
             const nights = Number(roomNightsMap[r.id]) || 0;
-            const dInfo = roomDatesMap[r.id] || {};
-            const checkIn = dInfo.checkIn || eventDate;
-            const checkOut = dInfo.checkOut || addDaysToIsoDate(checkIn, nights);
-            return { ...r, nights, checkIn, checkOut, total: r.rate * nights };
+            const booking = roomBookingsMap[r.id] || {};
+            const checkIn = booking.checkIn || eventDate;
+            const checkOut = booking.checkOut || addDaysToIsoDate(checkIn, nights);
+            return {
+              ...r,
+              nights,
+              checkIn,
+              checkOut,
+              total: r.rate * nights
+            };
           });
-      }, [showRoomsStep, roomItems, roomNightsMap, roomDatesMap, eventDate]);
+      }, [showRoomsStep, roomItems, roomNightsMap, roomBookingsMap, eventDate]);
 
-      const roomsSubtotal = useMemo(() => selectedRoomsList.reduce((s, r) => s + r.total, 0), [selectedRoomsList]);
+      const roomsSubtotal = useMemo(
+        () => selectedRoomsList.reduce((s, r) => s + r.total, 0),
+        [selectedRoomsList]
+      );
 
       const totals = useMemo(() => {
-        const menuOrPackedTotal =
-          bookingCategory === 'packed_meals'
-            ? computedPackedMealsSummary.totalAmount
-            : computedMenuSummary.netMenuTotal;
-        const subtotal = packageBreakdown.total + menuOrPackedTotal + servicesSubtotal + roomsSubtotal;
+        const foodTotal = bookingCategory === 'packed_meals'
+          ? computedPackedMealsSummary.totalAmount
+          : computedMenuSummary.netMenuTotal;
+        const subtotal = packageBreakdown.total + foodTotal + servicesSubtotal + roomsSubtotal;
         const discount = Math.max(0, Number(discountAmount) || 0);
         const taxable = Math.max(0, subtotal - discount);
         const taxAmount = taxable * ((Number(taxRatePercent) || 0) / 100);
@@ -1817,7 +1740,7 @@
           totalPaid,
           balanceDue: Math.max(0, grandTotal - totalPaid)
         };
-      }, [bookingCategory, packageBreakdown, computedPackedMealsSummary, computedMenuSummary, servicesSubtotal, roomsSubtotal, discountAmount, taxRatePercent, securityDeposit, payments]);
+      }, [bookingCategory, packageBreakdown, computedMenuSummary, computedPackedMealsSummary, servicesSubtotal, roomsSubtotal, discountAmount, taxRatePercent, securityDeposit, payments]);
 
       const todayIsoDate = useMemo(() => new Date().toISOString().split('T')[0], []);
       const quoteValidUntilDate = useMemo(
@@ -1826,30 +1749,59 @@
       );
       const effectivePerHeadCost = useMemo(() => {
         if (bookingCategory === 'rental') return 0;
-        if (bookingCategory === 'packed_meals') {
-          return totals.grandTotal / Math.max(1, computedPackedMealsSummary.totalPacks || 1);
-        }
-        return totals.grandTotal / Math.max(1, Number(paxCount) || 1);
-      }, [bookingCategory, paxCount, computedPackedMealsSummary.totalPacks, totals.grandTotal]);
+        const divisor = bookingCategory === 'packed_meals'
+          ? Math.max(1, computedPackedMealsSummary.totalPacks)
+          : Math.max(1, Number(paxCount) || 1);
+        return totals.grandTotal / divisor;
+      }, [bookingCategory, computedPackedMealsSummary, paxCount, totals.grandTotal]);
 
       // =======================================================================
-      // 10. SAVED QUOTES, CHAT SUMMARY, PAYMENTS, TEAM LINK & JPEG EXPORT
+      // 9. SAVED QUOTES, CHAT SUMMARY, PAYMENTS & JPEG EXPORT
       // =======================================================================
       const handleSaveCurrentQuoteToLog = () => {
         const record = {
           id: docNumber,
           savedAt: new Date().toLocaleString(),
-          bookingCategory, docType, quoteStatus, quoteValidDays, docNumber,
+          bookingCategory,
+          docType,
+          quoteStatus,
+          quoteValidDays,
+          docNumber,
           clientName: clientName || 'Walk-In Client',
-          clientOrg, clientContact, occasion, eventMotif, specialNotes,
-          showPaymentTermsOnPrint, eventVenue, eventDate, rentalReturnDate, eventTime,
-          paxCount, eventDays, securityDeposit, rentalTermsText,
-          selectedPackageId, selectedTierPax, excessRatePerPax, customBaseFee, selectedBuffetMenuId,
-          dayAgendas, dayPaxOverrides, packedTotalDays, packedMealBatches,
-          selectedMenuLines, selectedServiceLines, roomNightsMap, roomDatesMap,
-          discountLabel, discountAmount, taxRatePercent, payments,
-          poNumber, poApprovedBudget, poNotes,
-          grandTotal: totals.grandTotal, balanceDue: totals.balanceDue
+          clientOrg,
+          clientContact,
+          occasion,
+          eventMotif,
+          specialNotes,
+          showPaymentTermsOnPrint,
+          eventVenue,
+          eventDate,
+          rentalReturnDate,
+          eventTime,
+          paxCount,
+          eventDays,
+          securityDeposit,
+          rentalTermsText,
+          selectedPackageId,
+          selectedTierPax,
+          excessRatePerPax,
+          customBaseFee,
+          selectedBuffetMenuId,
+          selectedMenuLines,
+          packedTotalDays,
+          packedMealBatches,
+          selectedServiceLines,
+          roomNightsMap,
+          roomBookingsMap,
+          discountLabel,
+          discountAmount,
+          taxRatePercent,
+          payments,
+          poNumber,
+          poApprovedBudget,
+          poNotes,
+          grandTotal: totals.grandTotal,
+          balanceDue: totals.balanceDue
         };
         setSavedQuotes(prev => [record, ...prev.filter(q => q.docNumber !== docNumber)].slice(0, 60));
         showToast(`Saved ${docNumber} (${record.clientName}) to Quotes Log!`);
@@ -1881,17 +1833,12 @@
         setExcessRatePerPax(q.excessRatePerPax ?? STANDARD_EXCESS_RATE);
         setCustomBaseFee(q.customBaseFee || 0);
         setSelectedBuffetMenuId(q.selectedBuffetMenuId || 'menu_a');
-        if (q.dayAgendas) setDayAgendas(q.dayAgendas);
-        if (q.dayPaxOverrides) setDayPaxOverrides(q.dayPaxOverrides);
-        setPackedTotalDays(q.packedTotalDays || 1);
-        if (Array.isArray(q.packedMealBatches) && q.packedMealBatches.length > 0) {
-          setPackedMealBatches(q.packedMealBatches);
-          setActivePackedBatchId(q.packedMealBatches[0].id);
-        }
         setSelectedMenuLines(q.selectedMenuLines || []);
+        if (q.packedTotalDays) setPackedTotalDays(q.packedTotalDays);
+        if (q.packedMealBatches) setPackedMealBatches(q.packedMealBatches);
         setSelectedServiceLines(q.selectedServiceLines || []);
         setRoomNightsMap(q.roomNightsMap || {});
-        setRoomDatesMap(q.roomDatesMap || {});
+        setRoomBookingsMap(q.roomBookingsMap || {});
         setDiscountLabel(q.discountLabel || 'Promo / Management Discount');
         setDiscountAmount(q.discountAmount || 0);
         setTaxRatePercent(q.taxRatePercent || 0);
@@ -1915,55 +1862,32 @@
           lines.push(`📅 Dates: ${formatPrettyDate(eventDate)} → ${formatPrettyDate(rentalReturnDate)} (${rentalDurationDays}d)`);
         } else if (bookingCategory === 'packed_meals') {
           lines.push(`🍱 Order: ${occasion} — ${packedTotalDays} Day(s), ${computedPackedMealsSummary.totalPacks} Total Packs`);
+          computedPackedMealsSummary.batches.forEach(b => {
+            lines.push(`  • Day ${b.day} ${b.label}${b.mealPeriod ? ` (${b.mealPeriod})` : ''}: ${formatPrettyDate(b.date)} @ ${b.time} — ${b.packCount} packs (${formatCurrency(b.lineTotal)})`);
+          });
         } else {
           lines.push(`🎉 Event: ${occasion} — ${paxCount} Pax${bookingCategory === 'seminar' && eventDays > 1 ? ` (${eventDays} Days)` : ''}`);
           lines.push(`📅 Date & Time: ${formatPrettyDate(eventDate)} | ${eventTime || 'TBD'}`);
         }
         lines.push(`📍 Location: ${eventVenue}`, '', '📋 SUMMARY OF CHARGES:');
-
         if (showPackageStep && (packageBreakdown.total > 0 || isTieredAllInclusivePackage(selectedPackage.id))) {
           lines.push(`• ${selectedPackage.name}: ${formatCurrency(packageBreakdown.total)}`);
-          if (selectedPackage.foodIncluded && selectedBuffetMenu) {
-            lines.push(`  Menu: ${selectedBuffetMenu.name} (${selectedBuffetMenu.dishes.join(', ')})`);
-          } else if (isCustomReplacedMenu) {
-            lines.push(`  (Includes -₱${BASE_FOOD_CREDIT_PER_PAX}/pax Customized Menu credit)`);
-          }
         }
-
-        if (bookingCategory === 'packed_meals') {
-          computedPackedMealsSummary.batches.forEach(b => {
-            const dishTxt = (b.dishes || []).map(d => d.name).join(', ') || 'Custom Meal';
-            lines.push(
-              `• Day ${b.day} — ${b.label} (${formatPrettyDate(b.date)} ${b.time}): ${b.packCount} packs @ ${formatWholeCurrency(b.unitRate)} = ${formatCurrency(b.lineTotal)} [${dishTxt}]`
-            );
-          });
-        } else if (computedMenuSummary.lines.length > 0) {
-          computedMenuSummary.lines.forEach(l => {
-            lines.push(`• ${l.name} (${l.effectivePax} pax @ ₱${l.price}): ${formatCurrency(l.lineTotal)}`);
-          });
+        if (bookingCategory !== 'packed_meals' && computedMenuSummary.lines.length > 0) {
+          lines.push(`• Menu Add-Ons: ${formatCurrency(computedMenuSummary.netMenuTotal)}`);
         }
-
         if (computedServiceLines.length > 0) {
-          computedServiceLines.forEach(l => {
-            lines.push(`• ${l.name} (x${l.qty}): ${formatCurrency(l.lineTotal)}`);
-          });
+          lines.push(`• ${bookingCategory === 'rental' ? 'Rentals' : 'Services'}: ${formatCurrency(servicesSubtotal)}`);
         }
-
         if (selectedRoomsList.length > 0) {
-          selectedRoomsList.forEach(r => {
-            lines.push(`• ${r.roomNo} (${r.type}, ${formatPrettyDate(r.checkIn)}–${formatPrettyDate(r.checkOut)}, ${r.nights}nt): ${formatCurrency(r.total)}`);
-          });
+          lines.push(`• Rooms (${selectedRoomsList.map(r => `${r.roomNo} ${formatPrettyDate(r.checkIn)}–${formatPrettyDate(r.checkOut)}`).join(', ')}): ${formatCurrency(roomsSubtotal)}`);
         }
-
-        if (totals.discount > 0) lines.push(`• Less ${discountLabel}: -${formatCurrency(totals.discount)}`);
-        if (totals.deposit > 0) lines.push(`• Refundable Security Deposit: ${formatCurrency(totals.deposit)}`);
         lines.push('', `💰 GRAND TOTAL: ${formatCurrency(totals.grandTotal)}`);
         if (totals.totalPaid > 0) {
           lines.push(`✅ Paid: ${formatCurrency(totals.totalPaid)} | 📌 Balance: ${formatCurrency(totals.balanceDue)}`);
         } else {
           lines.push(`📌 50% Reservation Downpayment: ${formatCurrency(totals.grandTotal * 0.5)}`);
         }
-        lines.push(`⏳ Valid until ${formatPrettyDate(quoteValidUntilDate)}. Thank you!`);
         copyTextFallback(lines.join('\n'));
         showToast('Messenger / Viber quote summary copied!');
       };
@@ -1974,11 +1898,17 @@
         if (amt <= 0) return;
         setPayments(prev => [
           ...prev,
-          { id: `pay_${Date.now()}`, date: newPayDate || todayIsoDate, method: newPayMethod, reference: newPayRef.trim() || 'Official Receipt', amount: amt }
+          {
+            id: `pay_${Date.now()}`,
+            date: newPayDate || todayIsoDate,
+            method: newPayMethod,
+            reference: newPayRef.trim() || 'Official Receipt',
+            amount: amt
+          }
         ]);
         setNewPayAmount('');
         setNewPayRef('');
-        showToast('Payment recorded.');
+        showToast('Payment entry recorded.');
       };
 
       const handleDownloadJpeg = async () => {
@@ -2001,7 +1931,7 @@
       };
 
       // =======================================================================
-      // 11. FILTERED CATALOGS & METRICS
+      // 10. FILTERED CATALOGS & METRICS
       // =======================================================================
       const menuCategoryStats = useMemo(() => {
         const counts = {};
@@ -2014,9 +1944,10 @@
 
       const filteredMenuItems = useMemo(() => {
         const q = menuSearchQuery.trim().toLowerCase();
-        return menuItems.filter(item =>
-          (menuCategoryFilter === 'All' || item.category === menuCategoryFilter) &&
-          (!q || item.name.toLowerCase().includes(q) || (item.category || '').toLowerCase().includes(q))
+        return menuItems.filter(
+          item =>
+            (menuCategoryFilter === 'All' || item.category === menuCategoryFilter) &&
+            (!q || item.name.toLowerCase().includes(q) || (item.category || '').toLowerCase().includes(q))
         );
       }, [menuItems, menuCategoryFilter, menuSearchQuery]);
 
@@ -2030,9 +1961,10 @@
       const filteredServiceItems = useMemo(() => {
         const pool = bookingCategory === 'rental' ? serviceItems.filter(s => s.subcategory === 'Rental') : serviceItems;
         const q = serviceSearchQuery.trim().toLowerCase();
-        return pool.filter(item =>
-          (bookingCategory === 'rental' || serviceSubcategoryFilter === 'All' || item.subcategory === serviceSubcategoryFilter) &&
-          (!q || item.name.toLowerCase().includes(q) || (item.subcategory || '').toLowerCase().includes(q))
+        return pool.filter(
+          item =>
+            (bookingCategory === 'rental' || serviceSubcategoryFilter === 'All' || item.subcategory === serviceSubcategoryFilter) &&
+            (!q || item.name.toLowerCase().includes(q) || (item.subcategory || '').toLowerCase().includes(q))
         );
       }, [bookingCategory, serviceItems, serviceSubcategoryFilter, serviceSearchQuery]);
 
@@ -2044,20 +1976,24 @@
 
       const filteredSavedQuotes = useMemo(() => {
         const q = savedQuotesSearch.trim().toLowerCase();
-        return savedQuotes.filter(item =>
-          (savedQuotesStatusFilter === 'All' || (item.quoteStatus || 'Draft') === savedQuotesStatusFilter) &&
-          (!q || (item.clientName || '').toLowerCase().includes(q) || (item.docNumber || '').toLowerCase().includes(q) || (item.occasion || '').toLowerCase().includes(q))
+        return savedQuotes.filter(
+          item =>
+            (savedQuotesStatusFilter === 'All' || (item.quoteStatus || 'Draft') === savedQuotesStatusFilter) &&
+            (!q ||
+              (item.clientName || '').toLowerCase().includes(q) ||
+              (item.docNumber || '').toLowerCase().includes(q) ||
+              (item.occasion || '').toLowerCase().includes(q))
         );
       }, [savedQuotes, savedQuotesSearch, savedQuotesStatusFilter]);
 
       const allSheetsSynced = syncDiagnostics.menuOk && syncDiagnostics.servicesOk;
 
       // =======================================================================
-      // 12. RENDER UI
+      // 11. RENDER
       // =======================================================================
       return (
         <div className="min-h-screen flex flex-col">
-          {/* Toast Notification */}
+          {/* Toast */}
           {toastMsg && (
             <div className="no-print fixed bottom-5 right-5 z-50 bg-espresso-950 text-cream-50 border border-gold-500/50 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-sm font-semibold max-w-md">
               <i className="fa-solid fa-circle-check text-gold-400 shrink-0"></i>
@@ -2065,13 +2001,22 @@
             </div>
           )}
 
-          {/* Clean Streamlined Top Navigation */}
+          {/* Clean Top Navigation Header */}
           <header className="no-print bg-espresso-950 text-cream-50 border-b border-gold-500/30 sticky top-0 z-40">
             <div className="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 text-espresso-950 flex items-center justify-center font-serif font-extrabold text-lg shadow">
-                  E
-                </div>
+                {!logoLoadError && businessProfile.logoUrl ? (
+                  <img
+                    src={businessProfile.logoUrl}
+                    alt={businessProfile.businessName}
+                    onError={() => setLogoLoadError(true)}
+                    className="h-10 w-auto max-w-[110px] object-contain rounded-xl bg-white/95 px-2 py-1 shadow"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 text-espresso-950 flex items-center justify-center font-serif font-extrabold text-lg shadow">
+                    E
+                  </div>
+                )}
                 <div>
                   <h1 className="font-serif text-lg sm:text-xl font-bold tracking-wide text-gold-300 leading-tight">
                     {businessProfile.businessName}
@@ -2281,7 +2226,6 @@
                       <input type="text" value={eventVenue} onChange={e => setEventVenue(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-cream-200 text-sm" />
                     </div>
 
-                    {/* Hide redundant top-level delivery date/time in Packed Meals mode (per-meal below!) */}
                     {bookingCategory !== 'packed_meals' && (
                       <>
                         <div>
@@ -2420,7 +2364,7 @@
                       {availablePackages.map(pkg => {
                         const isSel = selectedPackage.id === pkg.id;
                         const previewPrice = isTieredAllInclusivePackage(pkg.id)
-                          ? calculateTieredPackageBreakdown(pkg, getAutoTierForPax(paxCount), paxCount, excessRatePerPax).total
+                          ? calculateTieredPackageBreakdown(pkg, getAutoTierForPax(paxCount), paxCount, excessRatePerPax, selectedBuffetMenuId).total
                           : pkg.flatPrice || 0;
                         return (
                           <button
@@ -2443,7 +2387,6 @@
                       })}
                     </div>
 
-                    {/* Tier & Excess Pax Controls */}
                     {isTieredAllInclusivePackage(selectedPackage.id) ? (
                       <div className="bg-cream-50 p-3.5 rounded-xl border border-cream-200 space-y-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -2483,7 +2426,6 @@
                           </div>
                         </div>
 
-                        {/* Built-in Buffet Menu A / B / C or Customized Menu (-₱300/pax credit) */}
                         {selectedPackage.foodIncluded && (
                           <div className="pt-2 border-t border-cream-200 space-y-2.5">
                             <div className="flex flex-wrap items-center justify-between gap-1">
@@ -2528,7 +2470,6 @@
                                 );
                               })}
 
-                              {/* 4th Card: Customized Menu (Deduct ₱300/pax credit) */}
                               <button
                                 type="button"
                                 onClick={() => setSelectedBuffetMenuId('custom_menu')}
@@ -2580,29 +2521,33 @@
                       </div>
                     )}
 
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <button type="button" onClick={() => setShowPackageInclusions(v => !v)} className="text-xs font-bold text-gold-600 hover:underline">
-                        {showPackageInclusions ? 'Hide Inclusions ▲' : 'View Package Inclusions ▼'}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setShowPackageInclusions(v => !v)}
+                        className="text-xs font-bold text-gold-600 hover:underline flex items-center gap-1"
+                      >
+                        <i className={`fa-solid ${showPackageInclusions ? 'fa-chevron-up' : 'fa-chevron-down'}`}></i>
+                        <span>{showPackageInclusions ? 'Hide Package Inclusions' : 'View Package Inclusions'}</span>
                       </button>
-                      <span className="text-[11px] text-emerald-700 font-bold">
-                        <i className="fa-solid fa-check-circle mr-1"></i>All inclusions &amp; chosen menu print in full on A4
-                      </span>
+                      {showPackageInclusions && (
+                        <ul className="mt-2 bg-cream-50 p-3 rounded-xl border border-cream-200 space-y-1 text-xs text-espresso-900 list-disc pl-6">
+                          {selectedPackage.inclusions.map((inc, idx) => (
+                            <li key={idx}>{inc}</li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
-                    {showPackageInclusions && (
-                      <ul className="bg-cream-50 p-3 rounded-xl border border-cream-200 space-y-1 text-xs list-disc pl-6">
-                        {selectedPackage.inclusions.map((inc, idx) => (
-                          <li key={idx}>{inc}</li>
-                        ))}
-                      </ul>
-                    )}
                   </section>
                 )}
 
-                {/* SEMINAR PER-DAY TABS */}
+                {/* SEMINAR PER-DAY & MEAL PERIOD TABS */}
                 {bookingCategory === 'seminar' && (
                   <section className="bg-espresso-950 text-cream-50 rounded-2xl p-4 border border-gold-500/30 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs font-extrabold uppercase tracking-wider text-gold-400">Multi-Day Seminar Schedule</span>
+                      <span className="text-xs font-extrabold uppercase tracking-wider text-gold-400">
+                        Multi-Day Seminar Schedule &amp; Meal Slot
+                      </span>
                       <div className="flex flex-wrap gap-1.5">
                         {Array.from({ length: eventDays }, (_, i) => i + 1).map(d => (
                           <button
@@ -2618,6 +2563,33 @@
                         ))}
                       </div>
                     </div>
+
+                    <div className="space-y-1.5">
+                      <span className="block text-[11px] font-bold text-cream-200/85">
+                        Active Meal Period for Day {activeScheduleDay} Dishes:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {MEAL_PERIOD_OPTIONS.map(mp => {
+                          const active = activeSeminarMealSlot === mp.id;
+                          return (
+                            <button
+                              key={mp.id}
+                              type="button"
+                              onClick={() => setActiveSeminarMealSlot(mp.id)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition ${
+                                active
+                                  ? 'bg-gold-500 text-espresso-950 shadow'
+                                  : 'bg-espresso-900 text-cream-100 border border-espresso-800 hover:bg-espresso-800'
+                              }`}
+                            >
+                              <i className={`fa-solid ${mp.icon} text-[11px]`}></i>
+                              <span>{mp.id}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <input
                         type="text"
@@ -2636,7 +2608,7 @@
                   </section>
                 )}
 
-                {/* STEP 3: MULTI-DAY PACKED MEALS BUILDER OR A LA CARTE MENU SELECTION */}
+                {/* STEP 3A: MULTI-DAY PACKED MEALS BUILDER */}
                 {showMenuStep && bookingCategory === 'packed_meals' && (
                   <section className="bg-white rounded-2xl p-5 border border-cream-200 shadow-sm space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cream-200 pb-3">
@@ -2648,7 +2620,7 @@
                           <span>Multi-Day Packed Meals Builder</span>
                         </h2>
                         <p className="text-[11px] text-espresso-800/75 mt-0.5">
-                          Select how many days, choose how many meals per day, and customize each meal's date, time, packs &amp; dishes.
+                          Select how many days, choose how many meals per day, and customize each meal's period, date, time, packs &amp; dishes.
                         </p>
                       </div>
                       <span className="font-mono text-sm font-extrabold text-espresso-950 bg-cream-100 px-2.5 py-1 rounded-xl">
@@ -2656,7 +2628,6 @@
                       </span>
                     </div>
 
-                    {/* How Many Days + Meals on Active Day */}
                     <div className="bg-cream-50 p-3.5 rounded-xl border border-cream-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-bold text-espresso-950 mb-1.5">How Many Days?</label>
@@ -2711,7 +2682,6 @@
                       </div>
                     </div>
 
-                    {/* Day Tabs */}
                     {packedTotalDays > 1 && (
                       <div className="flex flex-wrap gap-1.5">
                         {Array.from({ length: packedTotalDays }, (_, i) => i + 1).map(dayNum => (
@@ -2731,7 +2701,6 @@
                       </div>
                     )}
 
-                    {/* Packed Meal 1, 2, 3... Tabs on Active Day */}
                     <div className="flex flex-wrap gap-1.5">
                       {activeDayPackedBatches.map(b => {
                         const isSel = activePackedBatch?.id === b.id;
@@ -2746,18 +2715,18 @@
                                 : 'bg-cream-50 text-espresso-900 border-cream-200 hover:bg-cream-100'
                             }`}
                           >
-                            {b.label} ({b.packCount} packs)
+                            {b.label} {b.mealPeriod ? `• ${b.mealPeriod}` : ''} ({b.packCount} packs)
                           </button>
                         );
                       })}
                     </div>
 
-                    {/* Active Packed Meal Details Editor */}
                     {activePackedBatch && (
                       <div className="bg-cream-50 p-4 rounded-2xl border border-gold-400/60 space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-extrabold uppercase tracking-wider text-espresso-950">
-                            Day {activePackedBatch.day} — {activePackedBatch.label} Details
+                            Day {activePackedBatch.day} — {activePackedBatch.label}
+                            {activePackedBatch.mealPeriod ? ` (${activePackedBatch.mealPeriod})` : ''}
                           </span>
                           <span className="font-mono text-xs font-extrabold text-gold-600">
                             {activePackedBatch.packCount} packs ×{' '}
@@ -2767,6 +2736,37 @@
                                 : (activePackedBatch.dishes || []).reduce((s, d) => s + (Number(d.price) || 0), 0)
                             )}
                           </span>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-espresso-900 mb-1.5">
+                            Meal Type / Period
+                          </label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {MEAL_PERIOD_OPTIONS.map(mp => {
+                              const active = (activePackedBatch.mealPeriod || 'Lunch') === mp.id;
+                              return (
+                                <button
+                                  key={mp.id}
+                                  type="button"
+                                  onClick={() =>
+                                    handleUpdatePackedBatch(activePackedBatch.id, {
+                                      mealPeriod: mp.id,
+                                      time: mp.defaultTime
+                                    })
+                                  }
+                                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition ${
+                                    active
+                                      ? 'bg-espresso-950 text-gold-300 border-gold-500 shadow-sm'
+                                      : 'bg-white text-espresso-900 border-cream-200 hover:bg-cream-100'
+                                  }`}
+                                >
+                                  <i className={`fa-solid ${mp.icon} text-[11px] ${active ? 'text-gold-400' : 'text-gold-600'}`}></i>
+                                  <span>{mp.id}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs">
@@ -2785,7 +2785,7 @@
                               type="text"
                               value={activePackedBatch.time}
                               onChange={e => handleUpdatePackedBatch(activePackedBatch.id, { time: e.target.value })}
-                              placeholder="11:30 AM"
+                              placeholder="12:00 PM"
                               className="w-full px-2.5 py-1.5 rounded-xl border border-cream-200 bg-white"
                             />
                           </div>
@@ -2833,7 +2833,6 @@
                           </div>
                         </div>
 
-                        {/* Dish Picker for Active Packed Meal */}
                         <div className="pt-2 border-t border-cream-200 space-y-2">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <span className="text-[11px] font-extrabold uppercase text-espresso-950">
@@ -2893,7 +2892,7 @@
                   </section>
                 )}
 
-                {/* STEP 3: STANDARD A LA CARTE MENU SELECTION (PER-DISH VIP PAX) */}
+                {/* STEP 3B: STANDARD A LA CARTE MENU SELECTION (PER-DISH VIP PAX) */}
                 {showMenuStep && bookingCategory !== 'packed_meals' && (
                   <section className="bg-white rounded-2xl p-5 border border-cream-200 shadow-sm space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cream-200 pb-3">
@@ -2964,7 +2963,10 @@
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto custom-scroll pr-1">
                       {filteredMenuItems.map(dish => {
-                        const existingLine = selectedMenuLines.find(l => l.key === `${effectiveDayForBuilder}__${dish.id}`);
+                        const activeKey = bookingCategory === 'seminar'
+                          ? `${effectiveDayForBuilder}__${activeSeminarMealSlot}__${dish.id}`
+                          : `${effectiveDayForBuilder}__${dish.id}`;
+                        const existingLine = selectedMenuLines.find(l => l.key === activeKey);
                         return (
                           <button
                             key={dish.id}
@@ -2982,11 +2984,11 @@
                               <div className="font-mono font-extrabold text-xs">₱{dish.price}/pax</div>
                               {existingLine ? (
                                 <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-gold-500 text-espresso-950 text-[10px] font-extrabold">
-                                  Added
+                                  {bookingCategory === 'seminar' ? `In ${activeSeminarMealSlot}` : 'Added'}
                                 </span>
                               ) : (
                                 <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-white border border-cream-200 text-espresso-800 text-[10px] font-bold">
-                                  + Add
+                                  + {bookingCategory === 'seminar' ? activeSeminarMealSlot : 'Add'}
                                 </span>
                               )}
                             </div>
@@ -2995,7 +2997,6 @@
                       })}
                     </div>
 
-                    {/* Chosen A La Carte Dishes with Per-Dish VIP Pax Control */}
                     {computedMenuSummary.lines.length > 0 && (
                       <div className="bg-cream-50 p-3.5 rounded-2xl border border-gold-400/60 space-y-2">
                         <div className="flex items-center justify-between border-b border-cream-200 pb-2">
@@ -3009,9 +3010,22 @@
                         {computedMenuSummary.lines.map(line => (
                           <div key={line.key} className="bg-white p-2.5 rounded-xl border border-cream-200 flex flex-wrap items-center justify-between gap-2">
                             <div className="min-w-0">
-                              <div className="text-xs font-bold text-espresso-950 flex items-center gap-1.5">
+                              <div className="text-xs font-bold text-espresso-950 flex flex-wrap items-center gap-1.5">
                                 {bookingCategory === 'seminar' && (
-                                  <span className="px-1.5 py-0.5 rounded bg-espresso-950 text-gold-300 text-[10px] font-mono">D{line.day}</span>
+                                  <>
+                                    <span className="px-1.5 py-0.5 rounded bg-espresso-950 text-gold-300 text-[10px] font-mono">
+                                      D{line.day}
+                                    </span>
+                                    <select
+                                      value={line.mealSlot || 'Lunch'}
+                                      onChange={e => handleUpdateMenuLineMealSlot(line.key, e.target.value)}
+                                      className="px-1.5 py-0.5 rounded bg-gold-500/20 border border-gold-500/40 text-espresso-950 text-[10px] font-extrabold focus:outline-none"
+                                    >
+                                      {MEAL_PERIOD_OPTIONS.map(mp => (
+                                        <option key={mp.id} value={mp.id}>{mp.id}</option>
+                                      ))}
+                                    </select>
+                                  </>
                                 )}
                                 <span>{line.name}</span>
                                 {line.isCustomVipPax && (
@@ -3310,7 +3324,6 @@
                       })}
                     </div>
 
-                    {/* Booked Check-In / Check-Out Date Pickers for Selected Rooms */}
                     {selectedRoomsList.length > 0 && (
                       <div className="bg-cream-50 p-3.5 rounded-2xl border border-gold-400/60 space-y-2">
                         <div className="text-xs font-extrabold uppercase text-espresso-950">
@@ -3468,14 +3481,28 @@
                 {previewMode === 'client' ? (
                   <div ref={printRef} className="a4-sheet p-8 flex flex-col justify-between">
                     <div>
-                      {/* Letterhead */}
+                      {/* Letterhead with Logo */}
                       <div className="flex items-start justify-between border-b-2 border-espresso-950 pb-4 gap-4">
-                        <div>
-                          <h2 className="font-serif text-2xl font-extrabold text-espresso-950">{businessProfile.businessName}</h2>
-                          <p className="text-xs text-espresso-800 mt-0.5">{businessProfile.tagline}</p>
-                          <div className="text-[10px] text-espresso-800/80 mt-1">
-                            {businessProfile.address && <div>{businessProfile.address}</div>}
-                            {businessProfile.contactLine && <div>{businessProfile.contactLine}</div>}
+                        <div className="flex items-center gap-3.5">
+                          {!logoLoadError && businessProfile.logoUrl ? (
+                            <img
+                              src={businessProfile.logoUrl}
+                              alt={businessProfile.businessName}
+                              onError={() => setLogoLoadError(true)}
+                              className="h-16 w-auto max-w-[130px] object-contain shrink-0"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 rounded-xl bg-espresso-950 text-gold-300 flex items-center justify-center font-serif font-extrabold text-2xl shrink-0">
+                              E
+                            </div>
+                          )}
+                          <div>
+                            <h2 className="font-serif text-2xl font-extrabold text-espresso-950">{businessProfile.businessName}</h2>
+                            <p className="text-xs text-espresso-800 mt-0.5">{businessProfile.tagline}</p>
+                            <div className="text-[10px] text-espresso-800/80 mt-1">
+                              {businessProfile.address && <div>{businessProfile.address}</div>}
+                              {businessProfile.contactLine && <div>{businessProfile.contactLine}</div>}
+                            </div>
                           </div>
                         </div>
                         <div className="text-right shrink-0">
@@ -3531,7 +3558,6 @@
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-cream-200">
-                          {/* Package Row with Full Itemized Inclusions & Buffet Menu */}
                           {showPackageStep && (packageBreakdown.total > 0 || isTieredAllInclusivePackage(selectedPackage.id)) && (
                             <tr>
                               <td className="py-2.5 px-3">
@@ -3548,7 +3574,6 @@
                                   </div>
                                 )}
 
-                                {/* Detailed Package Inclusions */}
                                 {selectedPackage.id !== 'from_scratch' && (
                                   <ul className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-espresso-800 list-disc pl-4">
                                     {selectedPackage.inclusions.map((inc, i) => (
@@ -3557,7 +3582,6 @@
                                   </ul>
                                 )}
 
-                                {/* Detailed Built-In Sample Buffet Menu Dishes */}
                                 {selectedPackage.foodIncluded && selectedBuffetMenu && (
                                   <div className="mt-2 p-2 rounded-lg bg-cream-50 border border-cream-200 text-[10px]">
                                     <div className="font-extrabold text-espresso-950">
@@ -3581,13 +3605,13 @@
                             </tr>
                           )}
 
-                          {/* Multi-Day Packed Meal Batches */}
                           {bookingCategory === 'packed_meals' &&
                             computedPackedMealsSummary.batches.map(b => (
                               <tr key={b.id}>
                                 <td className="py-2.5 px-3">
                                   <div className="font-bold text-espresso-950">
-                                    Day {b.day} — {b.label} ({formatPrettyDate(b.date)} • {b.time})
+                                    Day {b.day} — {b.label}
+                                    {b.mealPeriod ? ` • ${b.mealPeriod}` : ''} ({formatPrettyDate(b.date)} • {b.time})
                                   </div>
                                   {(b.dishes || []).length > 0 && (
                                     <ul className="mt-1 text-[10px] text-espresso-800 list-disc pl-4">
@@ -3615,13 +3639,14 @@
                               </tr>
                             ))}
 
-                          {/* A La Carte & VIP Dishes */}
                           {bookingCategory !== 'packed_meals' &&
                             computedMenuSummary.lines.map(line => (
                               <tr key={line.key}>
                                 <td className="py-2 px-3">
                                   <div className="font-bold text-espresso-950">
-                                    {bookingCategory === 'seminar' ? `[Day ${line.day}] ` : ''}
+                                    {bookingCategory === 'seminar'
+                                      ? `[Day ${line.day}${line.mealSlot ? ` • ${line.mealSlot}` : ''}] `
+                                      : ''}
                                     {line.name}
                                   </div>
                                   <div className="text-[10px] text-espresso-800/75">
@@ -3635,7 +3660,6 @@
                               </tr>
                             ))}
 
-                          {/* Event Services & Rentals */}
                           {computedServiceLines.map(line => (
                             <tr key={line.key}>
                               <td className="py-2 px-3">
@@ -3658,7 +3682,6 @@
                             </tr>
                           ))}
 
-                          {/* Hotel Rooms with Booked Dates */}
                           {selectedRoomsList.map(room => (
                             <tr key={room.id}>
                               <td className="py-2 px-3">
@@ -3684,7 +3707,6 @@
                         </div>
                       )}
 
-                      {/* Bottom Terms & Totals Grid */}
                       <div className="mt-4 grid grid-cols-12 gap-4 items-start avoid-break">
                         <div className="col-span-7 space-y-2">
                           {payments.length > 0 && (
@@ -3766,7 +3788,6 @@
                       </div>
                     </div>
 
-                    {/* Signatures */}
                     <div className="mt-6 pt-5 border-t border-cream-200 grid grid-cols-2 gap-8 text-xs avoid-break">
                       <div>
                         <div className="text-espresso-800/75 mb-6">Prepared By:</div>
@@ -3782,16 +3803,26 @@
                   /* INTERNAL BEO / KITCHEN & OPS SHEET (ZERO PRICES) */
                   <div ref={printRef} className="a4-sheet p-8 flex flex-col justify-between">
                     <div className="space-y-4">
-                      <div className="flex items-start justify-between border-b-2 border-espresso-950 pb-4">
-                        <div>
-                          <div className="text-[10px] font-extrabold uppercase text-gold-600">INTERNAL OPERATIONS COPY • NO PRICES</div>
-                          <h2 className="font-serif text-2xl font-extrabold text-espresso-950">
-                            {bookingCategory === 'rental'
-                              ? 'EQUIPMENT DISPATCH & RETURN SHEET'
-                              : bookingCategory === 'packed_meals'
-                              ? 'KITCHEN PACKING & DELIVERY SHEET'
-                              : 'BANQUET EVENT ORDER (BEO)'}
-                          </h2>
+                      <div className="flex items-start justify-between border-b-2 border-espresso-950 pb-4 gap-4">
+                        <div className="flex items-center gap-3">
+                          {!logoLoadError && businessProfile.logoUrl && (
+                            <img
+                              src={businessProfile.logoUrl}
+                              alt={businessProfile.businessName}
+                              onError={() => setLogoLoadError(true)}
+                              className="h-14 w-auto max-w-[115px] object-contain shrink-0"
+                            />
+                          )}
+                          <div>
+                            <div className="text-[10px] font-extrabold uppercase text-gold-600">INTERNAL OPERATIONS COPY • NO PRICES</div>
+                            <h2 className="font-serif text-2xl font-extrabold text-espresso-950">
+                              {bookingCategory === 'rental'
+                                ? 'EQUIPMENT DISPATCH & RETURN SHEET'
+                                : bookingCategory === 'packed_meals'
+                                ? 'KITCHEN PACKING & DELIVERY SHEET'
+                                : 'BANQUET EVENT ORDER (BEO)'}
+                            </h2>
+                          </div>
                         </div>
                         <div className="text-right">
                           <span className="px-3 py-1 rounded bg-espresso-950 text-gold-300 font-mono text-xs font-extrabold">{docNumber}</span>
@@ -3848,7 +3879,10 @@
                           {computedPackedMealsSummary.batches.map(b => (
                             <div key={b.id} className="px-3 py-2 border-t border-cream-200 text-xs space-y-1">
                               <div className="flex justify-between font-bold">
-                                <span>☐ Day {b.day} — {b.label} ({formatPrettyDate(b.date)} @ {b.time})</span>
+                                <span>
+                                  ☐ Day {b.day} — {b.label}
+                                  {b.mealPeriod ? ` [${b.mealPeriod}]` : ''} ({formatPrettyDate(b.date)} @ {b.time})
+                                </span>
                                 <span className="font-mono">{b.packCount} packs</span>
                               </div>
                               <div className="text-[11px] text-espresso-800 pl-4">
@@ -3862,11 +3896,19 @@
                       {bookingCategory !== 'packed_meals' && computedMenuSummary.lines.length > 0 && (
                         <div className="border border-cream-200 rounded-xl overflow-hidden">
                           <div className="bg-espresso-950 text-gold-300 px-3 py-1.5 text-xs font-extrabold uppercase">
-                            A La Carte / VIP Kitchen Production List
+                            {bookingCategory === 'seminar' ? 'Seminar Meal Schedule & Kitchen List' : 'A La Carte / VIP Kitchen Production List'}
                           </div>
                           {computedMenuSummary.lines.map(l => (
                             <div key={l.key} className="flex items-center justify-between px-3 py-2 border-t border-cream-200 text-xs">
-                              <span>☐ <strong>[{l.category}]</strong> {l.name}</span>
+                              <span>
+                                ☐{' '}
+                                {bookingCategory === 'seminar' && (
+                                  <strong className="text-gold-600 mr-1">
+                                    [Day {l.day} • {l.mealSlot || 'Lunch'}]
+                                  </strong>
+                                )}
+                                <strong>[{l.category}]</strong> {l.name}
+                              </span>
                               <span className="font-mono font-bold">{l.effectivePax} pax</span>
                             </div>
                           ))}
@@ -3980,7 +4022,6 @@
                 ))}
               </div>
 
-              {/* Sample Buffet Menus A / B / C Reference */}
               <div className="bg-white rounded-2xl p-5 border border-cream-200 shadow-sm space-y-3">
                 <h3 className="font-serif text-lg font-bold text-espresso-950">3. Buffet Menu Selections</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -4084,9 +4125,24 @@
                   <h3 className="font-serif text-xl font-bold text-espresso-950">EYNS Business Profile &amp; Payment Channels</h3>
                   <button type="button" onClick={() => setIsProfileModalOpen(false)} className="w-8 h-8 rounded-lg bg-cream-100 font-bold">×</button>
                 </div>
-                <div>
-                  <label className="block font-bold mb-1">Business Name</label>
-                  <input type="text" value={businessProfile.businessName} onChange={e => setBusinessProfile(p => ({ ...p, businessName: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-cream-200" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold mb-1">Business Name</label>
+                    <input type="text" value={businessProfile.businessName} onChange={e => setBusinessProfile(p => ({ ...p, businessName: e.target.value }))} className="w-full px-3 py-2 rounded-xl border border-cream-200" />
+                  </div>
+                  <div>
+                    <label className="block font-bold mb-1">Logo File Path or URL</label>
+                    <input
+                      type="text"
+                      value={businessProfile.logoUrl || ''}
+                      onChange={e => {
+                        setLogoLoadError(false);
+                        setBusinessProfile(p => ({ ...p, logoUrl: e.target.value }));
+                      }}
+                      placeholder="assets/logo.png"
+                      className="w-full px-3 py-2 rounded-xl border border-cream-200 font-mono text-xs"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block font-bold mb-1">Address</label>
