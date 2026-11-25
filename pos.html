@@ -150,8 +150,8 @@
         </button>
       </nav>
 
-      <!-- Right Status Controls: Clock, Cashier, Sheets Sync, Reset -->
-      <div class="flex items-center gap-2 sm:gap-3 order-2 lg:order-3">
+      <!-- Right Status Controls: Clock, Cashier, Sheets Sync, Refresh, Reset -->
+      <div class="flex items-center gap-2 sm:gap-2.5 order-2 lg:order-3">
         <!-- Live Clock -->
         <div class="hidden xl:flex flex-col items-end text-right pr-2 border-r border-emerald-800">
           <span id="live-clock" class="font-mono text-xs font-bold text-amber-300">--:--:-- --</span>
@@ -169,14 +169,20 @@
           </select>
         </div>
 
-        <!-- Google Sheets Sync Button -->
-        <button onclick="openSheetsModal()" id="sheets-sync-btn" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 border border-emerald-700 text-xs font-semibold text-emerald-100 transition" title="Google Sheets Apps Script Sync">
-          <i class="fa-solid fa-cloud-arrow-up text-amber-400"></i>
-          <span class="hidden md:inline" id="sheets-status-label">Sheets: Local</span>
+        <!-- Manual Pull / Refresh from Google Sheets -->
+        <button onclick="syncFromGoogleSheets(true)" id="sheets-refresh-btn" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 border border-emerald-700 text-xs font-semibold text-emerald-100 transition" title="Pull latest Menu, Rooms & Ledgers from Google Sheets">
+          <i id="sheets-refresh-icon" class="fa-solid fa-arrows-rotate text-emerald-300"></i>
+          <span class="hidden md:inline">Sync</span>
         </button>
 
-        <!-- Reset Demo Data -->
-        <button onclick="confirmResetDemoData()" class="p-2 rounded-xl bg-emerald-900 hover:bg-rose-900/80 border border-emerald-700 hover:border-rose-700 text-emerald-200 hover:text-white text-xs transition" title="Reset Demo Data">
+        <!-- Google Sheets Sync Config Button -->
+        <button onclick="openSheetsModal()" id="sheets-sync-btn" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 border border-emerald-700 text-xs font-semibold text-emerald-100 transition" title="Google Sheets Apps Script Settings">
+          <i class="fa-solid fa-cloud-arrow-up text-amber-400"></i>
+          <span class="hidden md:inline" id="sheets-status-label">Sheets: Live</span>
+        </button>
+
+        <!-- Reset Local Cache -->
+        <button onclick="confirmResetDemoData()" class="p-2 rounded-xl bg-emerald-900 hover:bg-rose-900/80 border border-emerald-700 hover:border-rose-700 text-emerald-200 hover:text-white text-xs transition" title="Reset Local Cache & Re-sync">
           <i class="fa-solid fa-rotate-right"></i>
         </button>
       </div>
@@ -196,15 +202,20 @@
         <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-stone-200/90 flex flex-col gap-3">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                <i class="fa-solid fa-bowl-rice text-amber-600"></i>
-                Restaurant & Bar Menu
-              </h2>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <i class="fa-solid fa-bowl-rice text-amber-600"></i>
+                  Restaurant & Bar Menu
+                </h2>
+                <span id="menu-source-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                  Loading sheet...
+                </span>
+              </div>
               <p class="text-xs text-slate-500">Tap an item to add to the active order slip</p>
             </div>
             <div class="relative w-full sm:w-64">
               <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-              <input type="text" id="menu-search" oninput="renderMenuGrid()" placeholder="Search dish or drink..." class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-stone-100 border border-stone-200 focus:bg-white focus:border-emerald-700 focus:outline-none transition" />
+              <input type="text" id="menu-search" oninput="renderMenuGrid()" placeholder="Search dish, code, or drink..." class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-stone-100 border border-stone-200 focus:bg-white focus:border-emerald-700 focus:outline-none transition" />
             </div>
           </div>
 
@@ -227,7 +238,7 @@
           <div>
             <div class="flex items-center gap-2">
               <span class="text-xs uppercase tracking-wider text-emerald-300 font-semibold">Order Slip</span>
-              <span id="active-os-number" class="font-mono text-sm font-bold text-amber-400">#OS-1005</span>
+              <span id="active-os-number" class="font-mono text-sm font-bold text-amber-400">#OS-1001</span>
             </div>
             <p class="text-[11px] text-emerald-200/80" id="order-timestamp-preview">Ready for order</p>
           </div>
@@ -365,8 +376,8 @@
         <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
           <span class="text-xs font-semibold text-slate-500">Total Rooms</span>
           <div class="flex items-end justify-between mt-1">
-            <span id="kpi-total-rooms" class="text-2xl font-extrabold text-slate-900 font-mono">10</span>
-            <span class="text-xs text-slate-400">2 Floors</span>
+            <span id="kpi-total-rooms" class="text-2xl font-extrabold text-slate-900 font-mono">0</span>
+            <span class="text-xs text-slate-400">Rooms_Master</span>
           </div>
         </div>
         <div class="bg-white p-4 rounded-2xl border border-emerald-200 shadow-xs">
@@ -402,7 +413,7 @@
       <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-base font-bold text-slate-900">Front-Desk Room Rack</h2>
-          <p class="text-xs text-slate-500">Tap an Available/Reserved room to Check-In, an Occupied room to view Folio & Check-Out, or a Dirty room to mark clean.</p>
+          <p class="text-xs text-slate-500">Synced with <code class="font-mono text-emerald-800">Rooms_Master</code>. Tap an Available/Reserved room to Check-In, an Occupied room to view Folio & Check-Out, or a Dirty room to mark clean.</p>
         </div>
         <div class="flex flex-wrap items-center gap-3 text-xs font-semibold">
           <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Available</span>
@@ -430,7 +441,7 @@
           </div>
           <div>
             <h2 class="text-base font-bold text-slate-900">Log Cash-Out / Expense</h2>
-            <p class="text-xs text-slate-500">Record spot purchases, supplier payouts & drawer disbursements</p>
+            <p class="text-xs text-slate-500">Appends directly to <code class="font-mono text-emerald-800">Cash_Out_Log</code></p>
           </div>
         </div>
 
@@ -544,6 +555,10 @@
             <label for="summary-date-filter" class="text-xs font-bold text-slate-600">Business Date:</label>
             <input type="date" id="summary-date-filter" onchange="renderSalesSummary()" class="bg-transparent text-xs font-mono font-bold text-slate-900 focus:outline-none" />
           </div>
+          <button onclick="saveDailySummaryToSheet()" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-emerald-950 text-xs font-bold shadow-sm transition flex items-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>Post Z-Read to Sheet</span>
+          </button>
           <button onclick="printDailySummary()" class="px-4 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm transition flex items-center gap-2">
             <i class="fa-solid fa-print"></i>
             <span>Print Daily Summary (A4)</span>
@@ -763,10 +778,10 @@
         <input type="hidden" id="ci-room-number" />
         <div class="bg-stone-50 p-3 rounded-xl border border-stone-200 flex justify-between items-center">
           <div>
-            <span id="ci-room-type" class="font-bold text-slate-900 text-sm">Standard Twin/Queen</span>
+            <span id="ci-room-type" class="font-bold text-slate-900 text-sm">Room 1</span>
             <p class="text-slate-500">Base Rate per Night</p>
           </div>
-          <span id="ci-room-rate" class="font-mono text-base font-extrabold text-emerald-800">₱1,800.00</span>
+          <span id="ci-room-rate" class="font-mono text-base font-extrabold text-emerald-800">₱1,400.00</span>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -812,7 +827,7 @@
 
         <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex justify-between items-center">
           <span class="font-semibold text-amber-950">Estimated Room Total:</span>
-          <span id="ci-est-total" class="font-mono text-base font-extrabold text-amber-900">₱1,800.00</span>
+          <span id="ci-est-total" class="font-mono text-base font-extrabold text-amber-900">₱1,400.00</span>
         </div>
 
         <div class="flex justify-end gap-2 pt-2">
@@ -970,7 +985,7 @@
           <i class="fa-solid fa-table text-amber-400 text-lg"></i>
           <div>
             <h3 class="text-base font-extrabold">Google Sheets & Apps Script Bridge</h3>
-            <p class="text-[11px] text-emerald-300">Auto-sync POS sales & cash-outs to your Master Workbook</p>
+            <p class="text-[11px] text-emerald-300">Two-way sync with Daily Cash Sales Catalog</p>
           </div>
         </div>
         <button onclick="closeModal('sheets-modal')" class="w-8 h-8 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white flex items-center justify-center">
@@ -980,9 +995,9 @@
 
       <div class="p-5 space-y-4 text-xs">
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Google Apps Script Web App URL (`doPost` endpoint)</label>
+          <label class="block font-bold text-slate-700 mb-1">Google Apps Script Web App URL (`doGet` & `doPost` endpoint)</label>
           <input type="url" id="sheets-webhook-url" placeholder="https://script.google.com/macros/s/AKfycbx.../exec" class="w-full px-3 py-2.5 rounded-xl border border-stone-300 font-mono text-xs focus:border-emerald-700 focus:outline-none" />
-          <p class="text-[11px] text-slate-500 mt-1">Leave blank to operate in offline-first LocalStorage mode, or paste your deployed Apps Script URL to push live JSON payloads on every transaction.</p>
+          <p class="text-[11px] text-slate-500 mt-1">Pulls <code class="font-mono">Menu_Master</code>, <code class="font-mono">Rooms_Master</code>, <code class="font-mono">POS_Transactions</code>, <code class="font-mono">Cash_Out_Log</code>, <code class="font-mono">AR_Ledger</code>, and <code class="font-mono">Daily_Sales_Summary</code> on load, and pushes new records automatically.</p>
         </div>
 
         <div>
@@ -992,11 +1007,11 @@
 
         <div class="flex justify-between items-center pt-2">
           <button type="button" onclick="testSheetsSync()" class="px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold transition">
-            <i class="fa-solid fa-paper-plane mr-1"></i> Test Webhook Push
+            <i class="fa-solid fa-paper-plane mr-1"></i> Test Webhook Ping
           </button>
           <div class="flex gap-2">
             <button type="button" onclick="closeModal('sheets-modal')" class="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-slate-700 font-bold">Cancel</button>
-            <button type="button" onclick="saveSheetsConfig()" class="px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold">Save Connection</button>
+            <button type="button" onclick="saveSheetsConfig()" class="px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold">Save & Sync</button>
           </div>
         </div>
       </div>
@@ -1011,55 +1026,30 @@
   <!-- ======================================================================= -->
   <script>
     // =========================================================================
-    // 1. MASTER MENU & ROOM CATALOG DATA
+    // 1. DEFAULT APPS SCRIPT BRIDGE & OFFLINE FALLBACK CATALOG
     // =========================================================================
-    const MENU_ITEMS = [
-      // Filipino Heritage
-      { id: 'M01', name: 'Crispy Pata (Family)', category: 'Filipino Heritage', price: 680, desc: 'Deep-fried pork knuckle w/ soy-vinegar dip' },
-      { id: 'M02', name: 'Beef Kare-Kare', category: 'Filipino Heritage', price: 460, desc: 'Oxtail & tripe in rich peanut sauce + bagoong' },
-      { id: 'M03', name: 'Sinigang na Baboy', category: 'Filipino Heritage', price: 380, desc: 'Tamarind pork ribs soup w/ native vegetables' },
-      { id: 'M04', name: 'Bulalo Especial', category: 'Filipino Heritage', price: 520, desc: 'Slow-simmered Quezon beef shank & marrow' },
-      { id: 'M05', name: 'Laing sa Gata (Quezon)', category: 'Filipino Heritage', price: 240, desc: 'Dried taro leaves simmered in thick coconut cream' },
-      { id: 'M06', name: 'Adobong Pusit', category: 'Filipino Heritage', price: 320, desc: 'Fresh Lamon Bay squid in garlic-ink adobo' },
+    const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzGQf9Snzp6HW4TRXn6qvPSXcZu2pQg0Wv80unqUwNsFCrdvN1VddPFmVcXNF72tkVK/exec';
 
-      // Sizzlers & Grill
-      { id: 'M07', name: 'Sizzling Pork Sisig', category: 'Sizzlers & Grill', price: 260, desc: 'Chopped maskara, calamansi, chili & egg' },
-      { id: 'M08', name: 'Grilled Tuna Belly', category: 'Sizzlers & Grill', price: 340, desc: 'Char-grilled yellowfin tuna w/ toyomansi' },
-      { id: 'M09', name: 'Inihaw na Liempo', category: 'Sizzlers & Grill', price: 280, desc: 'Marinated pork belly strips w/ ensalada' },
-      { id: 'M10', name: 'Sizzling Gambas', category: 'Sizzlers & Grill', price: 330, desc: 'Sautéed shrimp in garlic-chili olive oil' },
-
-      // Noodles & Rice
-      { id: 'M11', name: 'Pancit Canton Guisado', category: 'Noodles & Rice', price: 230, desc: 'Stir-fried egg noodles w/ pork, shrimp & veggies' },
-      { id: 'M12', name: 'Pancit Habhab Platter', category: 'Noodles & Rice', price: 210, desc: 'Quezon specialty miki noodles w/ sukang tuba' },
-      { id: 'M13', name: 'Garlic Rice Platter', category: 'Noodles & Rice', price: 160, desc: 'Good for 4-5 pax topped w/ toasted garlic' },
-      { id: 'M14', name: 'Steamed White Rice', category: 'Noodles & Rice', price: 35, desc: 'Single cup steamed Catanauan rice' },
-
-      // Beverages & Bar
-      { id: 'M15', name: 'Fresh Calamansi Juice', category: 'Beverages & Bar', price: 75, desc: 'Chilled freshly squeezed local calamansi' },
-      { id: 'M16', name: 'San Miguel Pale Pilsen', category: 'Beverages & Bar', price: 85, desc: 'Ice-cold 330ml bottle' },
-      { id: 'M17', name: 'San Mig Light', category: 'Beverages & Bar', price: 90, desc: 'Ice-cold 330ml bottle' },
-      { id: 'M18', name: 'Barako Brewed Coffee', category: 'Beverages & Bar', price: 80, desc: 'Hot Batangas/Quezon tablea-roast coffee' },
-      { id: 'M19', name: 'Buko Shake', category: 'Beverages & Bar', price: 110, desc: 'Fresh young coconut blended w/ milk' },
-
-      // Desserts & Grazing
-      { id: 'M20', name: 'Eyns Special Halo-Halo', category: 'Desserts & Grazing', price: 145, desc: 'Topped w/ homemade leche flan & ube halaya' },
-      { id: 'M21', name: 'Leche Flan Whole', category: 'Desserts & Grazing', price: 180, desc: 'Creamy caramel custard mold' },
-      { id: 'M22', name: 'Cheesy Nachos & Salsa', category: 'Desserts & Grazing', price: 220, desc: 'Crispy tortilla chips w/ beef & cheese sauce' }
+    let MENU_ITEMS = [
+      { id: 'M-001', name: 'Crispy Pata (Whole)', category: 'Main Dish', price: 680, desc: 'Best seller' },
+      { id: 'M-002', name: 'Bulalo Special', category: 'Main Dish', price: 480, desc: 'Good for 3-4 pax' },
+      { id: 'M-003', name: 'Sinigang na Baboy', category: 'Main Dish', price: 360, desc: '' },
+      { id: 'M-004', name: 'Kare-Kare Bagnet', category: 'Main Dish', price: 450, desc: 'With bagoong' },
+      { id: 'M-005', name: 'Sizzling Pork Sisig', category: 'Sizzlers', price: 260, desc: '' },
+      { id: 'M-007', name: 'Pancit Canton Guisado', category: 'Noodles & Rice', price: 220, desc: '' },
+      { id: 'M-008', name: 'Garlic Fried Rice (Platter)', category: 'Noodles & Rice', price: 150, desc: '' },
+      { id: 'M-009', name: 'Steamed Plain Rice (Cup)', category: 'Noodles & Rice', price: 30, desc: '' },
+      { id: 'M-010', name: 'Fresh Buko Juice', category: 'Beverages', price: 85, desc: '' },
+      { id: 'M-012', name: 'San Miguel Pale Pilsen', category: 'Bar & Liquor', price: 75, desc: '' }
     ];
 
-    const CATEGORIES = [
-      'All',
-      'Filipino Heritage',
-      'Sizzlers & Grill',
-      'Noodles & Rice',
-      'Beverages & Bar',
-      'Desserts & Grazing'
-    ];
+    let CATEGORIES = ['All', ...new Set(MENU_ITEMS.map(item => item.category).filter(Boolean))];
+    let isSheetConnected = false;
 
     // =========================================================================
     // 2. APPLICATION STATE & LOCALSTORAGE PERSISTENCE
     // =========================================================================
-    const STORAGE_KEY = 'eyns_pos_state_v1';
+    const STORAGE_KEY = 'eyns_pos_state_v2';
 
     function getTodayDateStr() {
       const now = new Date();
@@ -1073,188 +1063,26 @@
     }
 
     function buildInitialSeedState() {
-      const today = getTodayDateStr();
       return {
         cashier: 'Maria Clara (AM)',
-        sheetsWebhookUrl: '',
+        sheetsWebhookUrl: DEFAULT_WEBHOOK_URL,
         openingFloat: 5000,
-        nextOsNumber: 1005,
-        nextFolioReceiptNumber: 503,
+        nextOsNumber: 1001,
+        nextFolioReceiptNumber: 501,
         rooms: [
-          { number: '101', type: 'Standard Twin/Queen', floor: '1st Floor', rate: 1800, status: 'Available', guest: null },
-          {
-            number: '102',
-            type: 'Standard Twin/Queen',
-            floor: '1st Floor',
-            rate: 1800,
-            status: 'Occupied',
-            guest: {
-              name: 'Engr. Marco Reyes',
-              contact: '0917-554-8821',
-              pax: 2,
-              nights: 2,
-              extraBeds: 0,
-              checkInDate: today,
-              deposit: 2000,
-              depositMethod: 'GCash',
-              roomCharges: [
-                {
-                  osNumber: 'OS-1002',
-                  time: '12:40 PM',
-                  itemsSummary: '1x Bulalo Especial, 2x Steamed White Rice, 2x Fresh Calamansi Juice',
-                  amount: 740
-                }
-              ]
-            }
-          },
-          { number: '103', type: 'Standard Twin/Queen', floor: '1st Floor', rate: 1800, status: 'Dirty', guest: null },
-          { number: '104', type: 'Standard Twin/Queen', floor: '1st Floor', rate: 1800, status: 'Reserved', guest: { name: 'Atty. Lorna Mendoza (ETA 4PM)', contact: '0918-221-9043' } },
-          {
-            number: '105',
-            type: 'Deluxe Family Room',
-            floor: '1st Floor',
-            rate: 2800,
-            status: 'Occupied',
-            guest: {
-              name: 'Dr. Carmela Santos & Family',
-              contact: '0920-887-1120',
-              pax: 4,
-              nights: 1,
-              extraBeds: 1,
-              checkInDate: today,
-              deposit: 1500,
-              depositMethod: 'Cash',
-              roomCharges: []
-            }
-          },
-          { number: '106', type: 'Deluxe Family Room', floor: '1st Floor', rate: 2800, status: 'Available', guest: null },
-          { number: '107', type: 'Deluxe Family Room', floor: '1st Floor', rate: 2800, status: 'Available', guest: null },
-          { number: '201', type: 'Executive Suite', floor: '2nd Floor', rate: 3800, status: 'Available', guest: null },
-          { number: '202', type: 'Executive Suite', floor: '2nd Floor', rate: 3800, status: 'Occupied', guest: {
-              name: 'Mayor Office Delegation (Lucena)',
-              contact: '0917-900-3411',
-              pax: 2,
-              nights: 2,
-              extraBeds: 0,
-              checkInDate: today,
-              deposit: 3800,
-              depositMethod: 'Cash',
-              roomCharges: []
-            }
-          },
-          { number: '203', type: 'Executive Suite', floor: '2nd Floor', rate: 3800, status: 'Available', guest: null }
+          { number: '101', sheetRowIndex: 2, type: 'Room 1', floor: 'Ground floor', rate: 1400, status: 'Available', guest: null },
+          { number: '102', sheetRowIndex: 3, type: 'Room 2', floor: 'Ground floor', rate: 1400, status: 'Available', guest: null },
+          { number: '103', sheetRowIndex: 4, type: 'Room 3', floor: 'Main Building', rate: 1400, status: 'Available', guest: null },
+          { number: '104', sheetRowIndex: 5, type: 'Room 4', floor: 'Main Building', rate: 1400, status: 'Available', guest: null },
+          { number: '201', sheetRowIndex: 6, type: 'Room 5', floor: 'Good for 4 pax', rate: 1700, status: 'Available', guest: null },
+          { number: '202', sheetRowIndex: 7, type: 'Room 6', floor: 'Good for 4 pax', rate: 1400, status: 'Available', guest: null },
+          { number: '203', sheetRowIndex: 8, type: 'Room 7', floor: 'Main Building', rate: 1100, status: 'Available', guest: null },
+          { number: '204', sheetRowIndex: 9, type: 'Room 8', floor: 'Main Building', rate: 1100, status: 'Available', guest: null },
+          { number: '301', sheetRowIndex: 10, type: 'Room 9', floor: 'VIP Suite', rate: 1400, status: 'Available', guest: null },
+          { number: '302', sheetRowIndex: 11, type: 'Room 10', floor: 'VIP Suite', rate: 1400, status: 'Available', guest: null }
         ],
-        transactions: [
-          {
-            id: 'OS-1001',
-            date: today,
-            time: '11:35 AM',
-            source: 'Restaurant',
-            subType: 'Dine-In',
-            detail: 'Table #4',
-            items: [
-              { name: 'Crispy Pata (Family)', qty: 1, price: 680 },
-              { name: 'Garlic Rice Platter', qty: 1, price: 160 },
-              { name: 'Fresh Calamansi Juice', qty: 4, price: 75 }
-            ],
-            grossAmount: 1140,
-            discountAmount: 0,
-            netAmount: 1140,
-            paymentMethod: 'Cash',
-            refNumber: '',
-            arAccount: '',
-            arStatus: 'Paid',
-            cashier: 'Maria Clara (AM)'
-          },
-          {
-            id: 'OS-1003',
-            date: today,
-            time: '01:15 PM',
-            source: 'Restaurant',
-            subType: 'Take-Out',
-            detail: 'Walk-in Take-Out',
-            items: [
-              { name: 'Pancit Canton Guisado', qty: 2, price: 230 },
-              { name: 'Inihaw na Liempo', qty: 1, price: 280 }
-            ],
-            grossAmount: 740,
-            discountAmount: 0,
-            netAmount: 740,
-            paymentMethod: 'GCash',
-            refNumber: 'GC-9084122',
-            arAccount: '',
-            arStatus: 'Paid',
-            cashier: 'Maria Clara (AM)'
-          },
-          {
-            id: 'OS-1004',
-            date: today,
-            time: '02:10 PM',
-            source: 'Restaurant',
-            subType: 'Dine-In',
-            detail: 'Table #7 (DepEd Catanauan)',
-            items: [
-              { name: 'Beef Kare-Kare', qty: 2, price: 460 },
-              { name: 'Sinigang na Baboy', qty: 2, price: 380 },
-              { name: 'Garlic Rice Platter', qty: 2, price: 160 }
-            ],
-            grossAmount: 2000,
-            discountAmount: 0,
-            netAmount: 2000,
-            paymentMethod: 'Charge / A/R',
-            refNumber: '',
-            arAccount: 'DepEd District Office - Catanauan',
-            arStatus: 'Unpaid',
-            cashier: 'Maria Clara (AM)'
-          },
-          {
-            id: 'SI-0501',
-            date: today,
-            time: '10:20 AM',
-            source: 'Hotel',
-            subType: 'Room Check-Out',
-            detail: 'Room 103 — Carlos Villanueva (1 Night)',
-            items: [
-              { name: 'Standard Twin/Queen (1 Night)', qty: 1, price: 1800 }
-            ],
-            roomRevenue: 1800,
-            roomFoodRevenue: 0,
-            grossAmount: 1800,
-            discountAmount: 0,
-            netAmount: 1800,
-            paymentMethod: 'Cash',
-            refNumber: '',
-            arAccount: '',
-            arStatus: 'Paid',
-            cashier: 'Maria Clara (AM)'
-          }
-        ],
-        cashOuts: [
-          {
-            id: 'CO-001',
-            date: today,
-            time: '08:30 AM',
-            category: 'Market / Spot Purchases',
-            payee: 'Catanauan Public Market',
-            ref: 'CV-101',
-            amount: 1450,
-            source: 'Cash Drawer',
-            notes: 'Fresh calamansi, vegetables, banana leaves & 6 bags tube ice',
-            cashier: 'Maria Clara (AM)'
-          },
-          {
-            id: 'CO-002',
-            date: today,
-            time: '01:45 PM',
-            category: 'LPG & Kitchen Fuel',
-            payee: 'Petron Gasul Catanauan',
-            ref: 'OR-4412',
-            amount: 1120,
-            source: 'Cash Drawer',
-            notes: '1x 11kg kitchen LPG cylinder refill',
-            cashier: 'Maria Clara (AM)'
-          }
-        ]
+        transactions: [],
+        cashOuts: []
       };
     }
 
@@ -1264,7 +1092,11 @@
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
-          return JSON.parse(raw);
+          const parsed = JSON.parse(raw);
+          if (!parsed.sheetsWebhookUrl) {
+            parsed.sheetsWebhookUrl = DEFAULT_WEBHOOK_URL;
+          }
+          return parsed;
         }
       } catch (err) {
         console.error('Failed to parse saved POS state:', err);
@@ -1296,7 +1128,215 @@
     };
 
     // =========================================================================
-    // 3. UTILITY FORMATTERS, TOASTS & CONFIRMATION DIALOGS
+    // 3. TWO-WAY GOOGLE SHEETS SYNC (BOOTSTRAP PULL & BACKGROUND PUSH)
+    // =========================================================================
+    function formatAnyDate(val) {
+      if (!val) return getTodayDateStr();
+      const s = String(val).trim();
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        const offset = d.getTimezoneOffset();
+        const local = new Date(d.getTime() - offset * 60 * 1000);
+        return local.toISOString().split('T')[0];
+      }
+      return getTodayDateStr();
+    }
+
+    function extractTimeFromTimestamp(ts, fallback = '') {
+      if (!ts) return fallback || getCurrentTimeStr();
+      const d = new Date(ts);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+      }
+      return String(ts);
+    }
+
+    function deriveNextDocNumber(list, prefix, fallbackStart) {
+      let maxNum = fallbackStart - 1;
+      (list || []).forEach(item => {
+        const idStr = String(item.id || item.txn_id || '');
+        const match = idStr.match(new RegExp(`^${prefix}-(\\d+)$`, 'i'));
+        if (match) {
+          const n = parseInt(match[1], 10);
+          if (!isNaN(n) && n > maxNum) maxNum = n;
+        }
+      });
+      return maxNum + 1;
+    }
+
+    async function syncFromGoogleSheets(showToastOnComplete = false) {
+      const url = (appState.sheetsWebhookUrl || '').trim();
+      if (!url) {
+        updateSheetsBadge(false);
+        return;
+      }
+
+      const refreshIcon = document.getElementById('sheets-refresh-icon');
+      const menuBadge = document.getElementById('menu-source-badge');
+      if (refreshIcon) refreshIcon.classList.add('fa-spin');
+      if (menuBadge) {
+        menuBadge.textContent = 'Syncing Sheet...';
+        menuBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
+      }
+
+      try {
+        const sep = url.includes('?') ? '&' : '?';
+        const response = await fetch(`${url}${sep}action=bootstrap&_t=${Date.now()}`, {
+          method: 'GET',
+          redirect: 'follow'
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const payload = await response.json();
+        if (!payload || !payload.ok) {
+          throw new Error(payload?.error || 'Invalid JSON response from Apps Script');
+        }
+
+        // 1. Hydrate Menu_Master
+        if (Array.isArray(payload.menu) && payload.menu.length > 0) {
+          MENU_ITEMS = payload.menu;
+          CATEGORIES = ['All', ...new Set(MENU_ITEMS.map(i => i.category).filter(Boolean))];
+          if (!CATEGORIES.includes(activeCategory)) activeCategory = 'All';
+        }
+
+        // 2. Hydrate Rooms_Master
+        if (Array.isArray(payload.rooms) && payload.rooms.length > 0) {
+          appState.rooms = payload.rooms;
+        }
+
+        // 3. Hydrate POS_Transactions + AR_Ledger statuses
+        const arStatusMap = {};
+        (payload.arLedger || []).forEach(ar => {
+          if (ar.txn_id) {
+            arStatusMap[String(ar.txn_id)] = {
+              status: String(ar.status || 'Unpaid'),
+              account_name: String(ar.account_name || ''),
+              collection_date: ar.collection_date ? formatAnyDate(ar.collection_date) : '',
+              cr_number: String(ar.cr_number || '')
+            };
+          }
+        });
+
+        if (Array.isArray(payload.transactions)) {
+          appState.transactions = payload.transactions.map(t => {
+            const txnId = String(t.txn_id || '');
+            let parsedItems = [];
+            try {
+              if (t.items_json) parsedItems = JSON.parse(t.items_json);
+            } catch (e) {}
+
+            const arInfo = arStatusMap[txnId];
+            const isCharge = String(t.payment_method || '') === 'Charge / A/R';
+
+            return {
+              id: txnId,
+              date: formatAnyDate(t.business_date || t.timestamp),
+              time: extractTimeFromTimestamp(t.timestamp),
+              source: String(t.source || 'Restaurant'),
+              subType: String(t.order_type || 'Dine-In'),
+              detail: String(t.customer_name || ''),
+              items: Array.isArray(parsedItems) ? parsedItems : [],
+              grossAmount: Number(t.gross_amount) || 0,
+              vatLess: Number(t.vat_exempt_deduction) || 0,
+              scDiscount: Number(t.sc_pwd_discount) || 0,
+              discountAmount: (Number(t.vat_exempt_deduction) || 0) + (Number(t.sc_pwd_discount) || 0),
+              netAmount: Number(t.net_amount) || 0,
+              paymentMethod: String(t.payment_method || 'Cash'),
+              cashTendered: Number(t.cash_tendered) || 0,
+              cashChange: Number(t.change_given) || 0,
+              refNumber: String(t.reference_no || ''),
+              arAccount: isCharge ? (arInfo?.account_name || String(t.customer_name || '')) : '',
+              arStatus: isCharge ? (arInfo?.status || String(t.status || 'Unpaid')) : String(t.status || 'Paid'),
+              collectedDate: arInfo?.collection_date || '',
+              collectedMethod: arInfo?.status === 'Paid' ? 'Cash' : '',
+              cashier: String(t.cashier || appState.cashier)
+            };
+          });
+
+          appState.nextOsNumber = deriveNextDocNumber(appState.transactions, 'OS', 1001);
+          appState.nextFolioReceiptNumber = deriveNextDocNumber(appState.transactions, 'SI', 501);
+        }
+
+        // 4. Hydrate Cash_Out_Log
+        if (Array.isArray(payload.cashOuts)) {
+          appState.cashOuts = payload.cashOuts.map((c, idx) => ({
+            id: String(c.cashout_id || `CO-${String(idx + 1).padStart(3, '0')}`),
+            date: formatAnyDate(c.business_date || c.timestamp),
+            time: extractTimeFromTimestamp(c.timestamp),
+            category: String(c.category || 'Market / Spot Purchases'),
+            payee: String(c.payee_supplier || ''),
+            ref: String(c.receipt_ref || ''),
+            amount: Number(c.amount) || 0,
+            source: String(c.source_drawer || 'Cash Drawer'),
+            notes: String(c.description || ''),
+            cashier: String(c.cashier || appState.cashier)
+          }));
+        }
+
+        // 5. Hydrate Opening Fund from Daily_Sales_Summary for today if available
+        if (Array.isArray(payload.dailySummaries) && payload.dailySummaries.length > 0) {
+          const today = getTodayDateStr();
+          const todayRow = payload.dailySummaries.find(s => formatAnyDate(s.business_date) === today);
+          if (todayRow && todayRow.opening_fund !== '' && todayRow.opening_fund !== undefined) {
+            const cleanFund = parseFloat(String(todayRow.opening_fund).replace(/[^0-9.-]/g, ''));
+            if (!isNaN(cleanFund) && cleanFund > 0) {
+              appState.openingFloat = cleanFund;
+            }
+          }
+        }
+
+        isSheetConnected = true;
+        saveAppState();
+        updateSheetsBadge(true);
+        refreshAllViews();
+
+        if (menuBadge) {
+          menuBadge.textContent = `Sheet Synced (${MENU_ITEMS.length} items)`;
+          menuBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+        }
+        if (showToastOnComplete) {
+          showToast(`Synced ${MENU_ITEMS.length} menu items & ${appState.rooms.length} rooms from Google Sheets!`);
+        }
+      } catch (err) {
+        console.warn('Google Sheets sync fallback to local cache:', err);
+        isSheetConnected = false;
+        updateSheetsBadge(false);
+        if (menuBadge) {
+          menuBadge.textContent = `Offline Cache (${MENU_ITEMS.length} items)`;
+          menuBadge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
+        }
+        if (showToastOnComplete) {
+          showToast(`Could not reach Google Sheet (${err.message}). Using local cache.`, 'warning');
+        }
+      } finally {
+        if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+      }
+    }
+
+    async function pushToGoogleSheets(sheetName, payloadObj) {
+      if (!appState.sheetsWebhookUrl) return;
+      try {
+        await fetch(appState.sheetsWebhookUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            sheet: sheetName,
+            timestamp: new Date().toISOString(),
+            data: payloadObj
+          })
+        });
+      } catch (err) {
+        console.warn('Webhook background sync queued locally:', err);
+      }
+    }
+
+    // =========================================================================
+    // 4. UTILITY FORMATTERS, TOASTS & CONFIRMATION DIALOGS
     // =========================================================================
     function formatPHP(num) {
       const val = Number(num) || 0;
@@ -1366,22 +1406,24 @@
 
     function confirmResetDemoData() {
       showConfirmDialog(
-        'Reset Demo Data?',
-        'This will restore the initial sample rooms, restaurant orders, and cash-outs for Eyns\' Hotel & Restaurant. Any custom entries will be cleared.',
+        'Reset Local Cache & Re-Sync?',
+        'This will clear local browser cache and reload fresh data directly from your Google Sheet.',
         () => {
+          const currentUrl = appState.sheetsWebhookUrl || DEFAULT_WEBHOOK_URL;
           appState = buildInitialSeedState();
+          appState.sheetsWebhookUrl = currentUrl;
           saveAppState();
           currentOrder.items = [];
           currentOrder.isScPwd = false;
           document.getElementById('sc-pwd-toggle').checked = false;
           refreshAllViews();
-          showToast('Demo data restored to initial state.', 'warning');
+          syncFromGoogleSheets(true);
         }
       );
     }
 
     // =========================================================================
-    // 4. NAVIGATION, LIVE CLOCK & GOOGLE SHEETS SYNC
+    // 5. NAVIGATION, LIVE CLOCK & SHEETS SETTINGS MODAL
     // =========================================================================
     function switchTab(tabName) {
       document.querySelectorAll('.module-view').forEach(view => {
@@ -1459,37 +1501,26 @@
       const url = document.getElementById('sheets-webhook-url').value.trim();
       appState.sheetsWebhookUrl = url;
       saveAppState();
-      updateSheetsBadge();
       closeModal('sheets-modal');
-      showToast(url ? 'Google Sheets Webhook URL saved!' : 'Switched to LocalStorage-only mode.');
-    }
-
-    function updateSheetsBadge() {
-      const label = document.getElementById('sheets-status-label');
-      if (appState.sheetsWebhookUrl) {
-        label.textContent = 'Sheets: Connected';
-        label.classList.add('text-amber-300');
+      if (url) {
+        syncFromGoogleSheets(true);
       } else {
-        label.textContent = 'Sheets: Local';
-        label.classList.remove('text-amber-300');
+        updateSheetsBadge(false);
+        showToast('Switched to LocalStorage-only mode.');
       }
     }
 
-    async function pushToGoogleSheets(sheetName, payloadObj) {
-      if (!appState.sheetsWebhookUrl) return;
-      try {
-        await fetch(appState.sheetsWebhookUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sheet: sheetName,
-            timestamp: new Date().toISOString(),
-            data: payloadObj
-          })
-        });
-      } catch (err) {
-        console.warn('Webhook background sync queued locally:', err);
+    function updateSheetsBadge(connected = isSheetConnected) {
+      const label = document.getElementById('sheets-status-label');
+      if (appState.sheetsWebhookUrl && connected) {
+        label.textContent = 'Sheets: Live';
+        label.classList.add('text-amber-300');
+      } else if (appState.sheetsWebhookUrl) {
+        label.textContent = 'Sheets: Cached';
+        label.classList.remove('text-amber-300');
+      } else {
+        label.textContent = 'Sheets: Local';
+        label.classList.remove('text-amber-300');
       }
     }
 
@@ -1501,20 +1532,20 @@
       }
       appState.sheetsWebhookUrl = url;
       saveAppState();
-      updateSheetsBadge();
       pushToGoogleSheets('Test_Ping', { status: 'OK', cashier: appState.cashier });
-      showToast('Test payload dispatched to Google Apps Script!');
+      showToast('Test ping dispatched to Google Apps Script!');
     }
 
     // =========================================================================
-    // 5. MODULE 1: RESTAURANT POS LOGIC
+    // 6. MODULE 1: RESTAURANT POS LOGIC
     // =========================================================================
     function renderCategoryPills() {
       const container = document.getElementById('category-pills');
       container.innerHTML = CATEGORIES.map(cat => {
         const isActive = activeCategory === cat;
+        const safeCat = cat.replace(/'/g, "\\'");
         return `
-          <button onclick="selectCategory('${cat}')" class="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+          <button onclick="selectCategory('${safeCat}')" class="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
             isActive
               ? 'bg-emerald-900 text-white shadow-xs'
               : 'bg-stone-100 text-slate-600 hover:bg-stone-200'
@@ -1535,7 +1566,11 @@
       const query = (document.getElementById('menu-search').value || '').toLowerCase().trim();
       const filtered = MENU_ITEMS.filter(item => {
         const matchCat = activeCategory === 'All' || item.category === activeCategory;
-        const matchSearch = !query || item.name.toLowerCase().includes(query) || item.desc.toLowerCase().includes(query);
+        const matchSearch =
+          !query ||
+          item.name.toLowerCase().includes(query) ||
+          (item.desc || '').toLowerCase().includes(query) ||
+          (item.id || '').toLowerCase().includes(query);
         return matchCat && matchSearch;
       });
 
@@ -1564,13 +1599,11 @@
             <h3 class="font-bold text-slate-900 text-xs sm:text-sm leading-snug mt-1.5 group-hover:text-emerald-950">
               ${item.name}
             </h3>
-            <p class="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-              ${item.desc}
-            </p>
+            ${item.desc ? `<p class="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">${item.desc}</p>` : ''}
           </div>
           <div class="pt-3 mt-2 border-t border-stone-100 flex items-center justify-between">
             <span class="font-mono font-extrabold text-sm text-emerald-900">${formatPHP(item.price)}</span>
-            <span class="text-[10px] font-semibold text-slate-400 group-hover:text-emerald-700">+ Add</span>
+            <span class="text-[10px] font-mono text-slate-400 group-hover:text-emerald-700">${item.id}</span>
           </div>
         </button>
       `).join('');
@@ -1607,7 +1640,7 @@
       const container = document.getElementById('order-type-detail-container');
       if (currentOrder.orderType === 'Dine-In') {
         let options = '';
-        for (let i = 1; i <= 12; i++) {
+        for (let i = 1; i <= 15; i++) {
           const val = `Table #${i}`;
           options += `<option value="${val}" ${currentOrder.tableNumber === val ? 'selected' : ''}>${val}</option>`;
         }
@@ -1639,7 +1672,7 @@
             currentOrder.roomNumber = occupiedRooms[0].number;
           }
           const opts = occupiedRooms
-            .map(r => `<option value="${r.number}" ${currentOrder.roomNumber === r.number ? 'selected' : ''}>Room ${r.number} — ${r.guest.name}</option>`)
+            .map(r => `<option value="${r.number}" ${currentOrder.roomNumber === r.number ? 'selected' : ''}>Room ${r.number} (${r.type}) — ${r.guest.name}</option>`)
             .join('');
           container.innerHTML = `
             <div class="bg-white px-3 py-2 rounded-xl border border-amber-300">
@@ -1729,7 +1762,7 @@
                 ${formatPHP(item.price * item.qty)}
               </div>
             </div>
-            <input type="text" value="${item.note || ''}" oninput="updateCartItemNote('${item.id}', this.value)" placeholder="Add kitchen note (e.g., no chili, extra sauce)..." class="text-[11px] px-2 py-1 rounded bg-stone-50 border border-stone-200/80 text-slate-600 focus:bg-white focus:border-emerald-600 focus:outline-none" />
+            <input type="text" value="${item.note || ''}" oninput="updateCartItemNote('${item.id}', this.value)" placeholder="Add kitchen note (e.g., weight in grams, no chili)..." class="text-[11px] px-2 py-1 rounded bg-stone-50 border border-stone-200/80 text-slate-600 focus:bg-white focus:border-emerald-600 focus:outline-none" />
           </div>
         `).join('');
       }
@@ -1747,7 +1780,6 @@
       let totalDue = gross;
 
       if (isScPwd && gross > 0) {
-        // Philippine BIR SC/PWD Formula: Remove 12% VAT (Gross / 1.12), then apply 20% discount
         const vatExemptSales = gross / 1.12;
         vatLess = gross - vatExemptSales;
         scDiscount = vatExemptSales * 0.20;
@@ -1839,7 +1871,7 @@
       const today = getTodayDateStr();
       const timeNow = getCurrentTimeStr();
 
-      // Case A: Room Charge -> Attaches to Occupied Room Folio
+      // Case A: Room Charge -> Attaches to Occupied Room Folio & syncs Rooms_Master
       if (currentOrder.orderType === 'Room Charge') {
         if (!currentOrder.roomNumber) {
           showToast('Please select an Occupied Room to charge.', 'error');
@@ -1861,6 +1893,7 @@
 
         appState.nextOsNumber += 1;
         saveAppState();
+        pushToGoogleSheets('Rooms_Master', { rooms: appState.rooms });
 
         const slipRecord = {
           id: osId,
@@ -1922,6 +1955,8 @@
         detail: detailLabel,
         items: [...currentOrder.items],
         grossAmount: totals.gross,
+        vatLess: totals.vatLess,
+        scDiscount: totals.scDiscount,
         discountAmount: totals.totalDiscount,
         netAmount: totals.totalDue,
         paymentMethod: currentOrder.paymentMethod,
@@ -1937,6 +1972,9 @@
       appState.nextOsNumber += 1;
       saveAppState();
       pushToGoogleSheets('POS_Transactions', txRecord);
+      if (txRecord.paymentMethod === 'Charge / A/R') {
+        pushToGoogleSheets('AR_Ledger', txRecord);
+      }
 
       clearCurrentOrder();
       openOrderSlipReceipt(txRecord);
@@ -1944,7 +1982,7 @@
     }
 
     // =========================================================================
-    // 6. MODULE 2: HOTEL ROOM RACK & FOLIO LOGIC
+    // 7. MODULE 2: HOTEL ROOM RACK & FOLIO LOGIC
     // =========================================================================
     function renderRoomRack() {
       const rooms = appState.rooms;
@@ -2007,7 +2045,7 @@
           bodyHtml = `
             <div class="space-y-1.5">
               <p class="font-bold text-slate-900 text-xs truncate">${room.guest.name}</p>
-              <p class="text-[11px] text-slate-500">${room.guest.nights} Night(s) • ${room.guest.pax} Pax</p>
+              <p class="text-[11px] text-slate-500">${room.type} • ${room.guest.nights} Night(s)</p>
               <div class="pt-1.5 border-t border-stone-100 flex justify-between text-[11px]">
                 <span class="text-slate-500">Folio Bal:</span>
                 <span class="font-mono font-extrabold text-amber-800">${formatPHP(balance)}</span>
@@ -2024,7 +2062,7 @@
         } else {
           bodyHtml = `
             <div class="space-y-1">
-              <p class="font-semibold text-slate-700 text-xs">${room.type}</p>
+              <p class="font-semibold text-slate-700 text-xs">${room.type} <span class="text-slate-400 font-normal">(${room.floor})</span></p>
               <p class="font-mono text-xs font-bold text-emerald-800">${formatPHP(room.rate)} / night</p>
             </div>
           `;
@@ -2033,7 +2071,7 @@
         return `
           <div onclick="handleRoomCardClick('${room.number}')" class="cursor-pointer bg-white rounded-2xl border-2 ${cfg.border} shadow-xs hover:shadow-md transition overflow-hidden flex flex-col justify-between active:scale-[0.98]">
             <div class="${cfg.headerBg} px-3.5 py-2.5 flex items-center justify-between">
-              <span class="font-mono font-extrabold text-base">RM ${room.number}</span>
+              <span class="font-mono font-extrabold text-sm">RM ${room.number}</span>
               <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${cfg.badgeBg}">
                 <i class="fa-solid ${cfg.icon} mr-1"></i>${room.status}
               </span>
@@ -2066,6 +2104,7 @@
             room.status = 'Available';
             room.guest = null;
             saveAppState();
+            pushToGoogleSheets('Rooms_Master', { rooms: appState.rooms });
             renderRoomRack();
             showToast(`Room ${room.number} is now Clean & Available!`);
           }
@@ -2129,6 +2168,7 @@
       };
 
       saveAppState();
+      pushToGoogleSheets('Rooms_Master', { rooms: appState.rooms });
       closeModal('checkin-modal');
       renderRoomRack();
       showToast(`Checked in ${guestName} to Room ${room.number}!`);
@@ -2139,7 +2179,7 @@
       const g = room.guest;
 
       document.getElementById('folio-room-number').value = room.number;
-      document.getElementById('folio-modal-title').textContent = `Room ${room.number} — ${g.name}`;
+      document.getElementById('folio-modal-title').textContent = `Room ${room.number} (${room.type}) — ${g.name}`;
       document.getElementById('folio-checkin-date').textContent = g.checkInDate;
       document.getElementById('folio-nights-pax').textContent = `${g.nights} Night(s), ${g.pax} Pax`;
       document.getElementById('folio-contact').textContent = g.contact || 'N/A';
@@ -2266,6 +2306,8 @@
         roomFoodRevenue,
         depositPaid: g.deposit || 0,
         grossAmount: grandTotal,
+        vatLess: 0,
+        scDiscount: 0,
         discountAmount: 0,
         netAmount: grandTotal,
         paymentMethod: pm,
@@ -2278,12 +2320,15 @@
       appState.transactions.push(txRecord);
       appState.nextFolioReceiptNumber += 1;
 
-      // Mark room as Dirty for Housekeeping
       room.status = 'Dirty';
       room.guest = null;
 
       saveAppState();
       pushToGoogleSheets('POS_Transactions', txRecord);
+      pushToGoogleSheets('Rooms_Master', { rooms: appState.rooms });
+      if (txRecord.paymentMethod === 'Charge / A/R') {
+        pushToGoogleSheets('AR_Ledger', txRecord);
+      }
 
       closeModal('folio-modal');
       renderRoomRack();
@@ -2292,7 +2337,7 @@
     }
 
     // =========================================================================
-    // 7. MODULE 3: CASHIER CASH-OUT & EXPENSES LOGIC
+    // 8. MODULE 3: CASHIER CASH-OUT & EXPENSES LOGIC
     // =========================================================================
     function submitCashOut(event) {
       event.preventDefault();
@@ -2332,13 +2377,13 @@
 
     function deleteCashOut(id) {
       showConfirmDialog(
-        'Void Cash-Out Entry?',
-        'Remove this expense record from the cashier log? This will adjust expected cash in drawer.',
+        'Remove Cash-Out Entry Locally?',
+        'Remove this expense record from the local cashier log? (Note: already-synced rows in Google Sheets should also be voided in Cash_Out_Log if needed.)',
         () => {
           appState.cashOuts = appState.cashOuts.filter(c => c.id !== id);
           saveAppState();
           renderCashOutTable();
-          showToast('Cash-Out entry removed.', 'warning');
+          showToast('Cash-Out entry removed locally.', 'warning');
         }
       );
     }
@@ -2394,7 +2439,7 @@
               ${formatPHP(c.amount)}
             </td>
             <td class="py-3 px-4 align-top text-center">
-              <button onclick="deleteCashOut('${c.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition" title="Void Entry">
+              <button onclick="deleteCashOut('${c.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition" title="Remove Local Entry">
                 <i class="fa-solid fa-trash-can"></i>
               </button>
             </td>
@@ -2403,7 +2448,7 @@
     }
 
     // =========================================================================
-    // 8. MODULE 4: END-OF-DAY SALES SUMMARY (6-SECTION RECONCILIATION)
+    // 9. MODULE 4: END-OF-DAY SALES SUMMARY (6-SECTION RECONCILIATION)
     // =========================================================================
     function updateOpeningFloat(val) {
       appState.openingFloat = Math.max(0, parseFloat(val) || 0);
@@ -2522,7 +2567,7 @@
           .join('');
       }
 
-      // Section 5: Accounts Receivable (A/R) & Charge Log (Across all dates so unpaid balances stay visible)
+      // Section 5: Accounts Receivable (A/R) & Charge Log
       const arTxs = appState.transactions.filter(t => t.paymentMethod === 'Charge / A/R');
       const openArTotal = arTxs
         .filter(t => t.arStatus === 'Unpaid')
@@ -2627,19 +2672,22 @@
         `Collect A/R Account (${tx.id})`,
         `Mark ${formatPHP(tx.netAmount)} for "${tx.arAccount || tx.detail}" as Collected in Cash today?`,
         () => {
+          const today = getTodayDateStr();
           tx.arStatus = 'Paid';
           tx.collectedMethod = 'Cash';
-          tx.collectedDate = getTodayDateStr();
+          tx.collectedDate = today;
 
           const colRecord = {
             id: `CR-${tx.id}`,
-            date: getTodayDateStr(),
+            date: today,
             time: getCurrentTimeStr(),
             source: 'A/R Collection',
             subType: 'Cash Collection',
             detail: `Collection for ${tx.id} (${tx.arAccount || tx.detail})`,
             items: [{ name: `A/R Settlement (${tx.id})`, qty: 1, price: tx.netAmount }],
             grossAmount: tx.netAmount,
+            vatLess: 0,
+            scDiscount: 0,
             discountAmount: 0,
             netAmount: tx.netAmount,
             paymentMethod: 'Cash',
@@ -2649,14 +2697,77 @@
           appState.transactions.push(colRecord);
           saveAppState();
           pushToGoogleSheets('POS_Transactions', colRecord);
+          pushToGoogleSheets('AR_Ledger_Update', {
+            txn_id: tx.id,
+            amount_paid: tx.netAmount,
+            collection_date: today,
+            cr_number: colRecord.id
+          });
           renderSalesSummary();
           showToast(`Collected ${formatPHP(tx.netAmount)} into Cash Drawer!`);
         }
       );
     }
 
+    function saveDailySummaryToSheet() {
+      const targetDate = document.getElementById('summary-date-filter').value || getTodayDateStr();
+      const dayTx = appState.transactions.filter(t => t.date === targetDate);
+      const dayCashOuts = appState.cashOuts.filter(c => c.date === targetDate);
+
+      let dineIn = 0, takeOut = 0, hotelSales = 0, arCol = 0;
+      let gcash = 0, card = 0, newAr = 0, cashSales = 0;
+
+      dayTx.forEach(t => {
+        if (t.source === 'A/R Collection') {
+          arCol += t.netAmount;
+        } else {
+          if (t.source === 'Restaurant' && t.subType === 'Dine-In') dineIn += t.netAmount;
+          else if (t.source === 'Restaurant' && t.subType === 'Take-Out') takeOut += t.netAmount;
+          else if (t.source === 'Hotel') hotelSales += t.netAmount;
+
+          if (t.paymentMethod === 'Cash') cashSales += t.netAmount;
+          else if (t.paymentMethod === 'GCash') gcash += t.netAmount;
+          else if (t.paymentMethod === 'Card') card += t.netAmount;
+          else if (t.paymentMethod === 'Charge / A/R') newAr += t.netAmount;
+        }
+      });
+
+      let spot = 0, supplier = 0, overhead = 0, drawerOuts = 0;
+      dayCashOuts.forEach(c => {
+        if (c.source === 'Cash Drawer') drawerOuts += c.amount;
+        if (/spot|market/i.test(c.category)) spot += c.amount;
+        else if (/supplier|grocer|meat|beverage/i.test(c.category)) supplier += c.amount;
+        else overhead += c.amount;
+      });
+
+      const expected = appState.openingFloat + cashSales + arCol - drawerOuts;
+      const actual = parseFloat(document.getElementById('actual-cash-input').value) || 0;
+
+      pushToGoogleSheets('Daily_Sales_Summary', {
+        business_date: targetDate,
+        opening_fund: appState.openingFloat,
+        dine_in_sales: dineIn,
+        takeout_sales: takeOut,
+        hotel_sales: hotelSales,
+        ar_collections: arCol,
+        total_cash_in: cashSales + arCol,
+        spot_purchases: spot,
+        supplier_payouts: supplier,
+        overhead_cashout: overhead,
+        total_cash_out: drawerOuts,
+        expected_drawer_cash: expected,
+        actual_cash_count: actual,
+        variance: actual - expected,
+        gcash_total: gcash,
+        card_bank_total: card,
+        new_ar_charges: newAr
+      });
+
+      showToast(`Z-Reading for ${targetDate} posted to Daily_Sales_Summary!`);
+    }
+
     // =========================================================================
-    // 9. RECEIPT, FOLIO INVOICE & A4 DAILY SUMMARY PRINT ENGINE
+    // 10. RECEIPT, FOLIO INVOICE & A4 DAILY SUMMARY PRINT ENGINE
     // =========================================================================
     function openOrderSlipReceipt(tx) {
       const itemsHtml = (tx.items || [])
@@ -2896,7 +3007,7 @@
     }
 
     // =========================================================================
-    // 10. INITIALIZATION ON WINDOW LOAD
+    // 11. INITIALIZATION ON WINDOW LOAD
     // =========================================================================
     function refreshAllViews() {
       document.getElementById('cashier-select').value = appState.cashier || 'Maria Clara (AM)';
@@ -2904,8 +3015,8 @@
       updateSheetsBadge();
       renderCategoryPills();
       renderMenuGrid();
-      setOrderType('Dine-In');
-      setPaymentMethod('Cash');
+      setOrderType(currentOrder.orderType || 'Dine-In');
+      setPaymentMethod(currentOrder.paymentMethod || 'Cash');
       renderCart();
       renderRoomRack();
       renderCashOutTable();
@@ -2915,6 +3026,7 @@
     window.onload = function () {
       startLiveClock();
       refreshAllViews();
+      syncFromGoogleSheets(false);
     };
   </script>
 </body>
