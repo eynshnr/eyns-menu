@@ -3,14 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Eyns' Hotel & Restaurant — POS & Front-Desk System</title>
-  <!-- Tailwind CSS via CDN -->
+  <title>Eyns' Hotel & Restaurant — Complete POS & Accounting Bridge</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts: Inter & JetBrains Mono for receipts/numbers -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
   <script>
@@ -20,16 +17,6 @@
           fontFamily: {
             sans: ['Inter', 'sans-serif'],
             mono: ['JetBrains Mono', 'monospace'],
-          },
-          colors: {
-            brand: {
-              emerald: '#064e3b',
-              emeraldDark: '#04382a',
-              emeraldLight: '#065f46',
-              gold: '#d97706',
-              goldLight: '#fef3c7',
-              cream: '#fafaf9',
-            }
           }
         }
       }
@@ -37,31 +24,14 @@
   </script>
 
   <style>
-    /* Custom scrollbar for tablet friendliness */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-    /* Thermal & A4 Print Rules */
     @media print {
-      body * {
-        visibility: hidden;
-      }
-      #print-area,
-      #print-area * {
-        visibility: visible;
-      }
+      body * { visibility: hidden; }
+      #print-area, #print-area * { visibility: visible; }
       #print-area {
         position: absolute;
         left: 0;
@@ -73,21 +43,17 @@
         margin: 0 !important;
         box-shadow: none !important;
       }
-      .no-print {
-        display: none !important;
-      }
-      @page {
-        margin: 10mm;
-      }
+      .no-print { display: none !important; }
+      @page { margin: 10mm; }
     }
   </style>
 </head>
 <body class="bg-stone-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col selection:bg-amber-200 selection:text-emerald-950">
 
-  <!-- Toast Notification Banner (Replaces alert()) -->
+  <!-- Toast Notification Banner -->
   <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
 
-  <!-- Confirmation Modal (Replaces confirm()) -->
+  <!-- Confirmation Modal -->
   <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[95] hidden items-center justify-center p-4 no-print">
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200">
       <div class="flex items-center gap-3 mb-3">
@@ -111,7 +77,6 @@
   <!-- Persistent Top Navigation Bar -->
   <header class="bg-emerald-950 text-white shadow-lg sticky top-0 z-40 border-b border-emerald-800/80 no-print">
     <div class="max-w-[1600px] mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
-      <!-- Brand Identity -->
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-emerald-950 flex items-center justify-center font-extrabold text-xl shadow-inner shrink-0">
           E
@@ -125,7 +90,7 @@
               Est. 1988
             </span>
           </div>
-          <p class="text-[11px] text-emerald-300/90 mt-0.5">Catanauan, Quezon • Front-Desk & Cashier POS</p>
+          <p class="text-[11px] text-emerald-300/90 mt-0.5">Catanauan, Quezon • POS, Front-Desk & Cash Accounting</p>
         </div>
       </div>
 
@@ -133,32 +98,30 @@
       <nav class="flex items-center gap-1.5 bg-emerald-900/70 p-1 rounded-xl border border-emerald-800 overflow-x-auto max-w-full order-3 lg:order-2 w-full lg:w-auto justify-between lg:justify-start">
         <button onclick="switchTab('pos')" id="tab-btn-pos" class="tab-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap bg-amber-500 text-emerald-950 shadow-sm">
           <i class="fa-solid fa-utensils"></i>
-          <span>Restaurant POS</span>
+          <span>POS & Sales</span>
         </button>
         <button onclick="switchTab('hotel')" id="tab-btn-hotel" class="tab-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap text-emerald-100 hover:bg-emerald-800/70">
           <i class="fa-solid fa-bed"></i>
-          <span>Hotel Rack</span>
+          <span>Hotel & Collections</span>
           <span id="badge-occupied-rooms" class="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-700 text-amber-300 font-mono">0</span>
         </button>
         <button onclick="switchTab('cashout')" id="tab-btn-cashout" class="tab-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap text-emerald-100 hover:bg-emerald-800/70">
-          <i class="fa-solid fa-money-bill-transfer"></i>
-          <span>Cash-Out</span>
+          <i class="fa-solid fa-vault"></i>
+          <span>Cash Box, Purchases & Staff</span>
         </button>
         <button onclick="switchTab('summary')" id="tab-btn-summary" class="tab-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap text-emerald-100 hover:bg-emerald-800/70">
           <i class="fa-solid fa-file-invoice-dollar"></i>
-          <span>Sales Summary</span>
+          <span>Daily Reconciliation</span>
         </button>
       </nav>
 
-      <!-- Right Status Controls: Clock, Cashier, Sheets Sync, Refresh, Reset -->
-      <div class="flex items-center gap-2 sm:gap-2.5 order-2 lg:order-3">
-        <!-- Live Clock -->
+      <!-- Right Status Controls -->
+      <div class="flex items-center gap-2 order-2 lg:order-3">
         <div class="hidden xl:flex flex-col items-end text-right pr-2 border-r border-emerald-800">
           <span id="live-clock" class="font-mono text-xs font-bold text-amber-300">--:--:-- --</span>
           <span id="live-date" class="text-[11px] text-emerald-300">Loading date...</span>
         </div>
 
-        <!-- Cashier Badge -->
         <div class="hidden sm:flex items-center gap-1.5 bg-emerald-900/90 border border-emerald-700/80 px-2.5 py-1.5 rounded-xl text-xs">
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span class="text-emerald-200">Shift:</span>
@@ -169,20 +132,22 @@
           </select>
         </div>
 
-        <!-- Manual Pull / Refresh from Google Sheets -->
-        <button onclick="syncFromGoogleSheets(true)" id="sheets-refresh-btn" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 border border-emerald-700 text-xs font-semibold text-emerald-100 transition" title="Pull latest Menu, Rooms & Ledgers from Google Sheets">
+        <button onclick="openClientAccountsModal()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-emerald-950 text-xs font-bold transition shadow-xs" title="Client Accounts & Consolidated A/R">
+          <i class="fa-solid fa-building-user"></i>
+          <span class="hidden md:inline">Client A/R</span>
+        </button>
+
+        <button onclick="syncFromGoogleSheets(true)" id="sheets-refresh-btn" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 border border-emerald-700 text-xs font-semibold text-emerald-100 transition" title="Pull latest data from Google Sheets">
           <i id="sheets-refresh-icon" class="fa-solid fa-arrows-rotate text-emerald-300"></i>
           <span class="hidden md:inline">Sync</span>
         </button>
 
-        <!-- Google Sheets Sync Config Button -->
-        <button onclick="openSheetsModal()" id="sheets-sync-btn" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 border border-emerald-700 text-xs font-semibold text-emerald-100 transition" title="Google Sheets Apps Script Settings">
+        <button onclick="openSheetsModal()" id="sheets-sync-btn" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 border border-emerald-700 text-xs font-semibold text-emerald-100 transition" title="Google Sheets Web App Bridge">
           <i class="fa-solid fa-cloud-arrow-up text-amber-400"></i>
           <span class="hidden md:inline" id="sheets-status-label">Sheets: Live</span>
         </button>
 
-        <!-- Reset Local Cache -->
-        <button onclick="confirmResetDemoData()" class="p-2 rounded-xl bg-emerald-900 hover:bg-rose-900/80 border border-emerald-700 hover:border-rose-700 text-emerald-200 hover:text-white text-xs transition" title="Reset Local Cache & Re-sync">
+        <button onclick="confirmResetDemoData()" class="p-2 rounded-xl bg-emerald-900 hover:bg-rose-900/80 border border-emerald-700 hover:border-rose-700 text-emerald-200 hover:text-white text-xs transition" title="Reset Local Cache & Re-Sync">
           <i class="fa-solid fa-rotate-right"></i>
         </button>
       </div>
@@ -193,12 +158,11 @@
   <main class="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-5 no-print">
 
     <!-- ===================================================================== -->
-    <!-- MODULE 1: RESTAURANT POS (ORDER & BILLING)                            -->
+    <!-- MODULE 1: RESTAURANT POS (TAKEOUTS VS SALES + CLIENT A/R & STAFF CHG) -->
     <!-- ===================================================================== -->
     <section id="view-pos" class="module-view grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
       <!-- Left Pane: Menu Categories & Item Grid -->
       <div class="lg:col-span-7 xl:col-span-8 flex flex-col gap-4">
-        <!-- Search & Category Filter Pills -->
         <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-stone-200/90 flex flex-col gap-3">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
@@ -219,21 +183,14 @@
             </div>
           </div>
 
-          <!-- Category Pills -->
-          <div id="category-pills" class="flex items-center gap-2 overflow-x-auto pb-1">
-            <!-- Populated by JS -->
-          </div>
+          <div id="category-pills" class="flex items-center gap-2 overflow-x-auto pb-1"></div>
         </div>
 
-        <!-- Menu Grid -->
-        <div id="menu-grid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-          <!-- Populated by JS -->
-        </div>
+        <div id="menu-grid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3"></div>
       </div>
 
       <!-- Right Pane: Active Order Slip & Checkout -->
       <div class="lg:col-span-5 xl:col-span-4 bg-white rounded-2xl shadow-md border border-stone-200 flex flex-col sticky top-20 overflow-hidden">
-        <!-- Order Header -->
         <div class="bg-emerald-950 text-white px-4 py-3 flex items-center justify-between">
           <div>
             <div class="flex items-center gap-2">
@@ -247,7 +204,7 @@
           </button>
         </div>
 
-        <!-- Order Type Selector (Dine-In, Take-Out, Room Charge) -->
+        <!-- Order Channel & 2-Tier Sales Classification -->
         <div class="p-3.5 bg-stone-50 border-b border-stone-200 flex flex-col gap-2.5">
           <div class="grid grid-cols-3 gap-1.5 bg-stone-200/70 p-1 rounded-xl">
             <button type="button" onclick="setOrderType('Dine-In')" id="otype-Dine-In" class="otype-btn py-2 px-2 rounded-lg text-xs font-bold transition bg-white text-emerald-950 shadow-xs">
@@ -261,20 +218,31 @@
             </button>
           </div>
 
-          <!-- Conditional Sub-selector based on Order Type -->
-          <div id="order-type-detail-container">
-            <!-- Populated dynamically by JS -->
+          <!-- 2-Tier Sales Classification -->
+          <div id="sales-classification-box" class="bg-white p-2 rounded-xl border border-stone-200">
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Document & Revenue Classification</label>
+            <div class="grid grid-cols-2 gap-1.5">
+              <button type="button" onclick="setSalesClassification('Takeouts (OS Only)')" id="sclass-Takeouts (OS Only)" class="sclass-btn py-1.5 px-2 rounded-lg border text-[11px] font-bold transition bg-white text-slate-700 border-stone-300">
+                1. Takeouts (OS Only)
+              </button>
+              <button type="button" onclick="setSalesClassification('Sales (OS + Service Invoice)')" id="sclass-Sales (OS + Service Invoice)" class="sclass-btn py-1.5 px-2 rounded-lg border text-[11px] font-bold transition bg-emerald-900 text-white border-emerald-900">
+                2. Sales (OS + SI)
+              </button>
+            </div>
+            <div id="si-number-preview-row" class="mt-1.5 flex items-center justify-between text-[11px] text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg">
+              <span class="font-semibold">Service Invoice #:</span>
+              <span id="active-si-preview" class="font-mono font-extrabold">SI-0501</span>
+            </div>
           </div>
+
+          <div id="order-type-detail-container"></div>
         </div>
 
         <!-- Itemized Cart List -->
-        <div id="cart-items-container" class="p-3.5 flex-1 max-h-[310px] overflow-y-auto divide-y divide-stone-100">
-          <!-- Populated by JS -->
-        </div>
+        <div id="cart-items-container" class="p-3.5 flex-1 max-h-[260px] overflow-y-auto divide-y divide-stone-100"></div>
 
-        <!-- Totals & Discount Section -->
+        <!-- Totals, Discounts & Settlement -->
         <div class="p-3.5 bg-stone-50 border-t border-stone-200 flex flex-col gap-2.5">
-          <!-- Senior Citizen / PWD 20% VAT-Exempt Toggle -->
           <div class="flex items-center justify-between bg-amber-50/80 border border-amber-200/80 px-3 py-2 rounded-xl">
             <div class="flex items-center gap-2">
               <input type="checkbox" id="sc-pwd-toggle" onchange="recalculateCart()" class="w-4 h-4 accent-emerald-800 rounded cursor-pointer" />
@@ -285,13 +253,11 @@
             <span class="text-[10px] font-mono font-semibold text-amber-800 bg-amber-200/60 px-1.5 py-0.5 rounded">BIR Rule</span>
           </div>
 
-          <!-- SC/PWD ID Input (shown when checked) -->
           <div id="sc-pwd-id-box" class="hidden grid-cols-2 gap-2">
             <input type="text" id="sc-pwd-name" placeholder="SC/PWD Cardholder Name" class="px-2.5 py-1.5 text-xs rounded-lg border border-stone-300 bg-white focus:outline-none focus:border-emerald-700" />
             <input type="text" id="sc-pwd-id" placeholder="OSCA / PWD ID #" class="px-2.5 py-1.5 text-xs rounded-lg border border-stone-300 bg-white focus:outline-none focus:border-emerald-700 font-mono" />
           </div>
 
-          <!-- Financial Math Lines -->
           <div class="space-y-1 text-xs pt-1">
             <div class="flex justify-between text-slate-600">
               <span>Gross Subtotal</span>
@@ -311,25 +277,27 @@
             </div>
           </div>
 
-          <!-- Payment Method (Hidden if Room Charge, since Room Charge posts directly to Folio) -->
+          <!-- Settlement / Charge Method -->
           <div id="payment-section" class="flex flex-col gap-2 pt-1">
-            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Payment Method</label>
-            <div class="grid grid-cols-4 gap-1.5">
-              <button type="button" onclick="setPaymentMethod('Cash')" id="pm-Cash" class="pm-btn py-2 px-1 rounded-xl border text-xs font-bold transition bg-emerald-900 text-white border-emerald-900">
+            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Settlement / Charge Method</label>
+            <div class="grid grid-cols-5 gap-1">
+              <button type="button" onclick="setPaymentMethod('Cash')" id="pm-Cash" class="pm-btn py-2 px-1 rounded-xl border text-[11px] font-bold transition bg-emerald-900 text-white border-emerald-900">
                 Cash
               </button>
-              <button type="button" onclick="setPaymentMethod('GCash')" id="pm-GCash" class="pm-btn py-2 px-1 rounded-xl border text-xs font-bold transition bg-white text-slate-700 border-stone-300 hover:bg-stone-100">
+              <button type="button" onclick="setPaymentMethod('GCash')" id="pm-GCash" class="pm-btn py-2 px-1 rounded-xl border text-[11px] font-bold transition bg-white text-slate-700 border-stone-300 hover:bg-stone-100">
                 GCash
               </button>
-              <button type="button" onclick="setPaymentMethod('Card')" id="pm-Card" class="pm-btn py-2 px-1 rounded-xl border text-xs font-bold transition bg-white text-slate-700 border-stone-300 hover:bg-stone-100">
-                Card/Bank
+              <button type="button" onclick="setPaymentMethod('Card')" id="pm-Card" class="pm-btn py-2 px-1 rounded-xl border text-[11px] font-bold transition bg-white text-slate-700 border-stone-300 hover:bg-stone-100">
+                Card
               </button>
-              <button type="button" onclick="setPaymentMethod('Charge / A/R')" id="pm-Charge / A/R" class="pm-btn py-2 px-1 rounded-xl border text-xs font-bold transition bg-white text-slate-700 border-stone-300 hover:bg-stone-100">
-                Charge A/R
+              <button type="button" onclick="setPaymentMethod('Charge / A/R')" id="pm-Charge / A/R" class="pm-btn py-2 px-1 rounded-xl border text-[11px] font-bold transition bg-white text-slate-700 border-stone-300 hover:bg-stone-100">
+                Client A/R
+              </button>
+              <button type="button" onclick="setPaymentMethod('Employee Charge')" id="pm-Employee Charge" class="pm-btn py-2 px-1 rounded-xl border text-[11px] font-bold transition bg-white text-slate-700 border-stone-300 hover:bg-stone-100">
+                Staff Chg
               </button>
             </div>
 
-            <!-- Cash Tendered & Change Box -->
             <div id="cash-tender-box" class="grid grid-cols-2 gap-2 items-center bg-white p-2.5 rounded-xl border border-stone-200">
               <div>
                 <label class="block text-[10px] font-bold uppercase text-slate-500 mb-0.5">Cash Tendered (₱)</label>
@@ -341,24 +309,30 @@
               </div>
             </div>
 
-            <!-- Reference # for GCash / Card -->
             <div id="ref-number-box" class="hidden">
               <input type="text" id="payment-ref-input" placeholder="GCash / Bank Transfer Reference # (Optional)" class="w-full text-xs px-3 py-2 rounded-xl border border-stone-300 bg-white font-mono focus:outline-none focus:border-emerald-700" />
             </div>
 
-            <!-- Charge / A/R Account Name Input -->
-            <div id="ar-account-box" class="hidden">
-              <input type="text" id="ar-account-input" placeholder="Charge Account / Company / VIP Name (Required)" class="w-full text-xs px-3 py-2 rounded-xl border border-amber-400 bg-amber-50/50 focus:outline-none focus:border-emerald-700" />
+            <!-- Client Account Dropdown for A/R -->
+            <div id="ar-account-box" class="hidden space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="text-[10px] font-bold uppercase text-amber-800">Client A/R Account *</label>
+                <button type="button" onclick="openClientAccountsModal()" class="text-[10px] font-bold text-emerald-800 hover:underline">+ Manage / Add Client</button>
+              </div>
+              <select id="ar-account-select" class="w-full text-xs px-3 py-2 rounded-xl border border-amber-400 bg-amber-50/60 font-bold text-slate-900 focus:outline-none focus:border-emerald-700"></select>
+            </div>
+
+            <!-- Employee Charge Input -->
+            <div id="emp-charge-box" class="hidden">
+              <input type="text" id="emp-charge-name" placeholder="Employee Full Name (Deductible from Salary) *" class="w-full text-xs px-3 py-2 rounded-xl border border-rose-400 bg-rose-50/60 focus:outline-none focus:border-emerald-700" />
             </div>
           </div>
 
-          <!-- Room Charge Notice Banner -->
           <div id="room-charge-notice" class="hidden bg-amber-50 border border-amber-300 rounded-xl p-2.5 text-xs text-amber-900">
             <i class="fa-solid fa-circle-info mr-1 text-amber-600"></i>
-            This order will be posted directly to the selected guest's <strong>Room Folio</strong> and settled upon Hotel Check-Out.
+            This order will be posted directly to the selected guest's <strong>Room Folio</strong> and recognized as Sales upon Hotel Check-Out.
           </div>
 
-          <!-- Submit Button -->
           <button onclick="finalizeOrderSlip()" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-900 to-emerald-800 hover:from-emerald-800 hover:to-emerald-700 text-white font-bold text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 mt-1">
             <i class="fa-solid fa-print"></i>
             <span id="finalize-btn-text">Finalize & Print Order Slip</span>
@@ -368,7 +342,7 @@
     </section>
 
     <!-- ===================================================================== -->
-    <!-- MODULE 2: HOTEL ROOM RACK & GUEST FOLIO                               -->
+    <!-- MODULE 2: HOTEL ROOM RACK & COLLECTIONS (DOWNPAYMENTS & RESERVATIONS) -->
     <!-- ===================================================================== -->
     <section id="view-hotel" class="module-view hidden flex-col gap-5">
       <!-- KPI Strip -->
@@ -394,26 +368,26 @@
             <span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">In-House</span>
           </div>
         </div>
-        <div class="bg-white p-4 rounded-2xl border border-rose-200 shadow-xs">
-          <span class="text-xs font-semibold text-rose-700">Dirty / Housekeeping</span>
+        <div class="bg-white p-4 rounded-2xl border border-sky-200 shadow-xs">
+          <span class="text-xs font-semibold text-sky-700">Active Collections (Deposits)</span>
           <div class="flex items-end justify-between mt-1">
-            <span id="kpi-dirty-rooms" class="text-2xl font-extrabold text-rose-600 font-mono">0</span>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-semibold">Needs Clean</span>
+            <span id="kpi-active-collections" class="text-xl font-extrabold text-sky-700 font-mono">₱0.00</span>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-semibold">Held</span>
           </div>
         </div>
         <div class="col-span-2 sm:col-span-1 bg-emerald-950 text-white p-4 rounded-2xl shadow-sm">
-          <span class="text-xs font-semibold text-emerald-300">Today's Room Revenue</span>
+          <span class="text-xs font-semibold text-emerald-300">Today's Room Sales (SI)</span>
           <div class="flex items-end justify-between mt-1">
             <span id="kpi-room-rev" class="text-xl sm:text-2xl font-extrabold text-amber-400 font-mono">₱0.00</span>
           </div>
         </div>
       </div>
 
-      <!-- Legend & Filter Header -->
+      <!-- Room Rack Header -->
       <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-base font-bold text-slate-900">Front-Desk Room Rack</h2>
-          <p class="text-xs text-slate-500">Synced with <code class="font-mono text-emerald-800">Rooms_Master</code>. Tap an Available/Reserved room to Check-In, an Occupied room to view Folio & Check-Out, or a Dirty room to mark clean.</p>
+          <p class="text-xs text-slate-500">Synced with <code class="font-mono text-emerald-800">Rooms_Master</code>. Tap a room to Check-In, view Folio & Check-Out, or mark clean.</p>
         </div>
         <div class="flex flex-wrap items-center gap-3 text-xs font-semibold">
           <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Available</span>
@@ -424,129 +398,343 @@
       </div>
 
       <!-- Room Cards Grid -->
-      <div id="room-rack-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        <!-- Populated by JS -->
+      <div id="room-rack-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"></div>
+
+      <!-- COLLECTIONS MODULE (Downpayments & Reservations before full payment/SI) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start pt-2">
+        <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-sky-200 shadow-sm">
+          <div class="flex items-center gap-2.5 mb-4 pb-3 border-b border-stone-100">
+            <div class="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
+              <i class="fa-solid fa-hand-holding-dollar"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Record Collection (Downpayment / Reservation)</h3>
+              <p class="text-xs text-slate-500">Held in Cash Box; Sales recognize only upon full payment & SI</p>
+            </div>
+          </div>
+
+          <form id="collection-form" onsubmit="submitCollectionEntry(event)" class="flex flex-col gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Client / Guest Name *</label>
+                <input type="text" id="col-client-name" required placeholder="e.g., Weddings by Ana / Mr. Cruz" class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:border-sky-600 focus:outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Reservation Type *</label>
+                <select id="col-type" class="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-stone-300 bg-stone-50 focus:outline-none">
+                  <option value="Event / Catering Downpayment">Event / Catering Downpayment</option>
+                  <option value="Hotel Room Reservation">Hotel Room Reservation</option>
+                  <option value="Group Dining Advance">Group Dining Advance</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Amount Collected (₱) *</label>
+                <input type="number" step="0.01" min="1" id="col-amount" required placeholder="0.00" class="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-stone-300 focus:border-sky-600 focus:outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Total Contract Price (₱)</label>
+                <input type="number" step="0.01" min="0" id="col-contract-total" placeholder="Optional" class="w-full px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 focus:border-sky-600 focus:outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Payment Mode *</label>
+                <select id="col-method" class="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-stone-300 bg-stone-50 focus:outline-none">
+                  <option value="Cash">Cash (Enters Cash Box)</option>
+                  <option value="GCash">GCash</option>
+                  <option value="Card">Card / Bank Transfer</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Event / Check-In Target Date</label>
+                <input type="date" id="col-target-date" class="w-full px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 focus:outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Notes / Ref #</label>
+                <input type="text" id="col-notes" placeholder="e.g., Ack Receipt #012" class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:outline-none" />
+              </div>
+            </div>
+
+            <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-sky-700 hover:bg-sky-800 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-2 mt-1">
+              <i class="fa-solid fa-plus-circle"></i>
+              <span>Record Downpayment / Reservation Collection</span>
+            </button>
+          </form>
+        </div>
+
+        <div class="lg:col-span-7 bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-stone-200 flex items-center justify-between bg-stone-50">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Collections Ledger (Held Deposits & Reservations)</h3>
+              <p class="text-xs text-slate-500">Click <strong>Issue SI & Recognize Sale</strong> once full payment is received</p>
+            </div>
+            <span id="collections-count-badge" class="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-100 text-sky-800">0 Open</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-stone-100 text-[10px] uppercase text-slate-600 border-b border-stone-200">
+                  <th class="py-2.5 px-3">Col # / Date</th>
+                  <th class="py-2.5 px-3">Client & Event/Room</th>
+                  <th class="py-2.5 px-3">Mode</th>
+                  <th class="py-2.5 px-3 text-right">Collected / Total</th>
+                  <th class="py-2.5 px-3 text-center">Status / Action</th>
+                </tr>
+              </thead>
+              <tbody id="collections-table-body" class="divide-y divide-stone-100"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- ===================================================================== -->
-    <!-- MODULE 3: CASHIER CASH-OUT & EXPENSES                                 -->
+    <!-- MODULE 3: CASH BOX, PURCHASES, CASH OUT TO MGMT & EMPLOYEE ADVANCES   -->
     <!-- ===================================================================== -->
-    <section id="view-cashout" class="module-view hidden grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-      <!-- Left: Cash-Out Entry Form -->
-      <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
-        <div class="flex items-center gap-2.5 mb-4 pb-3 border-b border-stone-100">
-          <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
-            <i class="fa-solid fa-receipt"></i>
-          </div>
-          <div>
-            <h2 class="text-base font-bold text-slate-900">Log Cash-Out / Expense</h2>
-            <p class="text-xs text-slate-500">Appends directly to <code class="font-mono text-emerald-800">Cash_Out_Log</code></p>
-          </div>
+    <section id="view-cashout" class="module-view hidden grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <!-- Left: Multi-Mode Drawer & Expense Entry Form -->
+      <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-stone-200/70 p-1 rounded-xl">
+          <button type="button" onclick="setDrawerFormMode('purchase')" id="dmode-purchase" class="dmode-btn py-2 px-2 rounded-lg text-[11px] font-bold transition bg-white text-emerald-950 shadow-xs">
+            Purchases
+          </button>
+          <button type="button" onclick="setDrawerFormMode('cashbox')" id="dmode-cashbox" class="dmode-btn py-2 px-2 rounded-lg text-[11px] font-bold transition text-slate-600 hover:text-slate-900">
+            Cash Box (+)
+          </button>
+          <button type="button" onclick="setDrawerFormMode('mgmtout')" id="dmode-mgmtout" class="dmode-btn py-2 px-2 rounded-lg text-[11px] font-bold transition text-slate-600 hover:text-slate-900">
+            Cash Out (-)
+          </button>
+          <button type="button" onclick="setDrawerFormMode('advance')" id="dmode-advance" class="dmode-btn py-2 px-2 rounded-lg text-[11px] font-bold transition text-slate-600 hover:text-slate-900">
+            Cash Advance
+          </button>
         </div>
 
-        <form id="cashout-form" onsubmit="submitCashOut(event)" class="flex flex-col gap-3.5">
+        <!-- 1. PURCHASES & SUPPLIER PAYMENTS -->
+        <form id="form-drawer-purchase" onsubmit="submitCashOut(event)" class="drawer-subform flex flex-col gap-3">
+          <div class="pb-2 border-b border-stone-100">
+            <h2 class="text-base font-bold text-slate-900">Log Purchase / Supplier Payment</h2>
+            <p class="text-xs text-slate-500">Categorized expenses synced to <code class="font-mono text-emerald-800">Cash_Out_Log</code></p>
+          </div>
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Expense Category *</label>
-            <select id="co-category" required class="w-full px-3 py-2.5 text-xs font-medium rounded-xl border border-stone-300 bg-stone-50 focus:bg-white focus:border-emerald-700 focus:outline-none">
-              <option value="Market / Spot Purchases">Market / Spot Purchases (Palengke, Ice, Produce)</option>
-              <option value="Manila Groceries">Manila Groceries & Dry Goods</option>
-              <option value="Beverage & Liquor Supplier">Beverage & Liquor Supplier</option>
-              <option value="Meat / 3-Month Term Supplier">Meat / 3-Month Term Supplier</option>
-              <option value="LPG & Kitchen Fuel">LPG & Kitchen Fuel / Charcoal</option>
-              <option value="Utilities & Maintenance">Utilities, Repairs & Maintenance</option>
-              <option value="Staff Cash Advance / Payroll">Staff Cash Advance / Daily Labor</option>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Purchase / Expense Category *</label>
+            <select id="co-category" required class="w-full px-3 py-2.5 text-xs font-semibold rounded-xl border border-stone-300 bg-stone-50 focus:bg-white focus:border-emerald-700 focus:outline-none">
+              <option value="Daily Purchases for Restaurant">Daily Purchases for Restaurant (Palengke, Ice, Produce)</option>
+              <option value="Catering Purchases">Catering Purchases</option>
+              <option value="Event Assets Purchases">Event Assets Purchases</option>
+              <option value="Building Assets">Building Assets</option>
+              <option value="Business Assets">Business Assets</option>
+              <option value="Maintenance & Repair">Maintenance & Repair</option>
+              <option value="Utilities">Utilities (Electricity, Water, LPG, Internet)</option>
+              <option value="Supplier - Meat">Supplier — Meat</option>
+              <option value="Supplier - Liquors & Beverages">Supplier — Liquors & Beverages</option>
+              <option value="Supplier - Groceries & Dry Goods">Supplier — Groceries & Dry Goods</option>
+              <option value="Taxes & Permits">Taxes & Permits</option>
+              <option value="Representation">Representation</option>
             </select>
           </div>
-
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Payee / Supplier Name *</label>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Supplier / Payee Name *</label>
               <input type="text" id="co-payee" required placeholder="e.g., Catanauan Public Market" class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:border-emerald-700 focus:outline-none" />
             </div>
             <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Voucher / OR #</label>
-              <input type="text" id="co-ref" placeholder="e.g., CV-042 or OR#119" class="w-full px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 focus:border-emerald-700 focus:outline-none" />
+              <label class="block text-xs font-bold text-slate-700 mb-1">OR / Invoice / Voucher #</label>
+              <input type="text" id="co-ref" placeholder="e.g., OR#119 / CV-042" class="w-full px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 focus:border-emerald-700 focus:outline-none" />
             </div>
           </div>
-
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Amount (₱) *</label>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Amount Paid (₱) *</label>
               <input type="number" step="0.01" min="1" id="co-amount" required placeholder="0.00" class="w-full px-3 py-2 text-sm font-mono font-bold rounded-xl border border-stone-300 focus:border-emerald-700 focus:outline-none" />
             </div>
             <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Disbursement Source *</label>
-              <select id="co-source" class="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-stone-300 bg-stone-50 focus:bg-white focus:border-emerald-700 focus:outline-none">
-                <option value="Cash Drawer">Cash Drawer (Deducts from Box)</option>
-                <option value="GCash / Bank">GCash / Bank Transfer (Non-Drawer)</option>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Payment Source *</label>
+              <select id="co-source" class="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-stone-300 bg-stone-50 focus:outline-none">
+                <option value="Cash Drawer">Cash Box (Deducts from Drawer)</option>
+                <option value="GCash / Bank">GCash / Bank Transfer</option>
               </select>
             </div>
           </div>
-
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Particulars / Notes</label>
-            <textarea id="co-notes" rows="2" placeholder="Itemized description (e.g., 15kg pork liempo, calamansi, 5 bags tube ice)..." class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:border-emerald-700 focus:outline-none"></textarea>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Particulars / Item Details</label>
+            <textarea id="co-notes" rows="2" placeholder="Itemized description..." class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:border-emerald-700 focus:outline-none"></textarea>
           </div>
+          <button type="submit" class="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-sm transition">
+            + Record Purchase / Payment
+          </button>
+        </form>
 
-          <button type="submit" class="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-sm transition flex items-center justify-center gap-2 mt-1">
-            <i class="fa-solid fa-plus-circle"></i>
-            <span>Record Cash-Out Entry</span>
+        <!-- 2. CASH BOX (MONEY COMING FROM MANAGEMENT) -->
+        <form id="form-drawer-cashbox" onsubmit="submitCashBoxInflow(event)" class="drawer-subform hidden flex-col gap-3">
+          <div class="pb-2 border-b border-stone-100">
+            <h2 class="text-base font-bold text-emerald-950">Cash Box Inflow (From Management)</h2>
+            <p class="text-xs text-slate-500">Money received from Management to fund or replenish the Cash Box</p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Amount Added to Cash Box (₱) *</label>
+              <input type="number" step="0.01" min="1" id="cb-amount" required placeholder="0.00" class="w-full px-3 py-2 text-sm font-mono font-bold rounded-xl border border-emerald-300 bg-emerald-50/40 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Fund Type *</label>
+              <select id="cb-type" class="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-stone-300 bg-stone-50 focus:outline-none">
+                <option value="Opening Cash Box Fund">Opening Cash Box Fund</option>
+                <option value="Management Drawer Replenishment">Management Drawer Replenishment</option>
+                <option value="Petty Cash / Change Fund">Petty Cash / Change Fund</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Handed Over By (Management) *</label>
+              <input type="text" id="cb-from" required placeholder="e.g., Owner / General Manager" class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Notes / Ref #</label>
+              <input type="text" id="cb-notes" placeholder="e.g., AM Change Fund" class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:outline-none" />
+            </div>
+          </div>
+          <button type="submit" class="w-full py-3 px-4 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-sm shadow-sm transition">
+            + Add Money to Cash Box
+          </button>
+        </form>
+
+        <!-- 3. CASH OUT (MONEY HANDED OVER TO MANAGEMENT) -->
+        <form id="form-drawer-mgmtout" onsubmit="submitMgmtCashOut(event)" class="drawer-subform hidden flex-col gap-3">
+          <div class="pb-2 border-b border-stone-100">
+            <h2 class="text-base font-bold text-rose-900">Cash Out to Management (Remittance)</h2>
+            <p class="text-xs text-slate-500">Cash taken out of the Cash Box and remitted to Management</p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Amount Remitted (₱) *</label>
+              <input type="number" step="0.01" min="1" id="mo-amount" required placeholder="0.00" class="w-full px-3 py-2 text-sm font-mono font-bold rounded-xl border border-rose-300 bg-rose-50/40 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Received By (Management) *</label>
+              <input type="text" id="mo-recipient" required placeholder="e.g., Owner / Sir / Ma'am" class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:outline-none" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Remittance / Envelope Notes</label>
+            <input type="text" id="mo-notes" placeholder="e.g., Mid-shift cash drop / EOD remittance" class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:outline-none" />
+          </div>
+          <button type="submit" class="w-full py-3 px-4 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-bold text-sm shadow-sm transition">
+            - Record Cash Out to Management
+          </button>
+        </form>
+
+        <!-- 4. EMPLOYEE CASH ADVANCE (SALARY DEDUCTIBLE) -->
+        <form id="form-drawer-advance" onsubmit="submitStaffCashAdvance(event)" class="drawer-subform hidden flex-col gap-3">
+          <div class="pb-2 border-b border-stone-100">
+            <h2 class="text-base font-bold text-indigo-950">Employee Cash Advance (Salary Deduction)</h2>
+            <p class="text-xs text-slate-500">Disbursed from Cash Box & queued for Employee Payroll Deduction</p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Employee Full Name *</label>
+              <input type="text" id="ca-emp-name" required placeholder="e.g., Pedro Penduko" class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Cash Advance Amount (₱) *</label>
+              <input type="number" step="0.01" min="1" id="ca-amount" required placeholder="0.00" class="w-full px-3 py-2 text-sm font-mono font-bold rounded-xl border border-indigo-300 bg-indigo-50/40 focus:outline-none" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Reason / Payroll Cut-Off Note</label>
+            <input type="text" id="ca-notes" placeholder="e.g., Vale for Nov 30 payroll deduction" class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:outline-none" />
+          </div>
+          <button type="submit" class="w-full py-3 px-4 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-sm shadow-sm transition">
+            + Disburse Employee Cash Advance
           </button>
         </form>
       </div>
 
-      <!-- Right: Today's Cash-Out Ledger Table -->
-      <div class="lg:col-span-7 bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-        <div class="p-4 border-b border-stone-200 flex flex-wrap items-center justify-between gap-3 bg-stone-50">
-          <div>
-            <h3 class="text-base font-bold text-slate-900">Today's Cash-Out & Expense Log</h3>
-            <p class="text-xs text-slate-500">Real-time payouts deducted from drawer or bank</p>
+      <!-- Right: Live Ledgers -->
+      <div class="lg:col-span-7 flex flex-col gap-5">
+        <div class="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-stone-200 flex flex-wrap items-center justify-between gap-3 bg-stone-50">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Today's Purchases, Cash Box & Management Cash-Out Log</h3>
+              <p class="text-xs text-slate-500">Tracks all drawer inflows from management, remittances, and categorized purchases</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl text-right">
+                <span class="block text-[9px] font-bold uppercase text-emerald-700">Cash Box (+)</span>
+                <span id="co-cashbox-in-total" class="font-mono text-xs font-extrabold text-emerald-800">₱0.00</span>
+              </div>
+              <div class="bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl text-right">
+                <span class="block text-[9px] font-bold uppercase text-amber-700">Purchases</span>
+                <span id="co-drawer-total" class="font-mono text-xs font-extrabold text-amber-800">₱0.00</span>
+              </div>
+              <div class="bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-xl text-right">
+                <span class="block text-[9px] font-bold uppercase text-rose-700">Cash Out to Mgmt</span>
+                <span id="co-mgmt-out-total" class="font-mono text-xs font-extrabold text-rose-800">₱0.00</span>
+              </div>
+            </div>
           </div>
-          <div class="flex items-center gap-3">
-            <div class="bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl text-right">
-              <span class="block text-[10px] font-bold uppercase text-rose-700">Cash Drawer Payouts</span>
-              <span id="co-drawer-total" class="font-mono text-sm font-extrabold text-rose-800">₱0.00</span>
-            </div>
-            <div class="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl text-right">
-              <span class="block text-[10px] font-bold uppercase text-slate-600">GCash / Bank</span>
-              <span id="co-noncash-total" class="font-mono text-sm font-extrabold text-slate-800">₱0.00</span>
-            </div>
+
+          <div class="overflow-x-auto max-h-80">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-stone-100 text-[11px] uppercase tracking-wider text-slate-600 border-b border-stone-200">
+                  <th class="py-2.5 px-4">Time / Ref</th>
+                  <th class="py-2.5 px-4">Type / Category & Payee</th>
+                  <th class="py-2.5 px-4">Drawer Impact</th>
+                  <th class="py-2.5 px-4 text-right">Amount</th>
+                  <th class="py-2.5 px-4 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody id="cashout-table-body" class="divide-y divide-stone-100 text-xs"></tbody>
+            </table>
           </div>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-stone-100 text-[11px] uppercase tracking-wider text-slate-600 border-b border-stone-200">
-                <th class="py-3 px-4">Time / Ref</th>
-                <th class="py-3 px-4">Category & Payee</th>
-                <th class="py-3 px-4">Source</th>
-                <th class="py-3 px-4 text-right">Amount</th>
-                <th class="py-3 px-4 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody id="cashout-table-body" class="divide-y divide-stone-100 text-xs">
-              <!-- Populated by JS -->
-            </tbody>
-          </table>
+        <!-- Employee Salary Deductions Ledger -->
+        <div class="bg-white rounded-2xl border border-indigo-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-indigo-100 flex flex-wrap items-center justify-between gap-3 bg-indigo-50/60">
+            <div>
+              <h3 class="text-sm font-bold text-indigo-950">Employee Payroll Deductions (Cash Advances + POS Staff Charges)</h3>
+              <p class="text-[11px] text-indigo-700">Combined salary-deductible balances per employee</p>
+            </div>
+            <span id="staff-deductions-total-badge" class="font-mono text-xs font-extrabold px-3 py-1 rounded-xl bg-indigo-900 text-white">
+              Total Deductible: ₱0.00
+            </span>
+          </div>
+          <div class="overflow-x-auto max-h-60">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-stone-100 text-[10px] uppercase text-slate-600 border-b border-stone-200">
+                  <th class="py-2 px-3">Date / Ref</th>
+                  <th class="py-2 px-3">Employee Name</th>
+                  <th class="py-2 px-3">Deduction Type</th>
+                  <th class="py-2 px-3 text-right">Amount</th>
+                  <th class="py-2 px-3 text-center">Payroll Status</th>
+                </tr>
+              </thead>
+              <tbody id="staff-deductions-tbody" class="divide-y divide-stone-100"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- ===================================================================== -->
-    <!-- MODULE 4: END-OF-DAY SALES SUMMARY (6-SECTION RECONCILIATION SHEET)   -->
+    <!-- MODULE 4: DAILY RECONCILIATION & Z-READING                            -->
     <!-- ===================================================================== -->
     <section id="view-summary" class="module-view hidden flex-col gap-5">
-      <!-- Top Action Bar -->
       <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-emerald-900 text-amber-400 flex items-center justify-center text-lg">
             <i class="fa-solid fa-scale-balanced"></i>
           </div>
           <div>
-            <h2 class="text-base sm:text-lg font-extrabold text-slate-900">Daily Sales Summary & Z-Reading</h2>
-            <p class="text-xs text-slate-500">6-Section Financial Reconciliation Sheet • Eyns' Hotel & Restaurant</p>
+            <h2 class="text-base sm:text-lg font-extrabold text-slate-900">Daily Cash Box & Sales Reconciliation</h2>
+            <p class="text-xs text-slate-500">Complete Accountability Sheet • Eyns' Hotel & Restaurant</p>
           </div>
         </div>
 
@@ -568,32 +756,28 @@
 
       <!-- 6-Section Grid Layout -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <!-- SECTION 1: GROSS SALES BREAKDOWN -->
+        <!-- SECTION 1: 2-TIER SALES BREAKDOWN -->
         <div class="lg:col-span-4 bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden flex flex-col">
           <div class="bg-emerald-950 text-white px-4 py-2.5 flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider">1. Gross Sales Breakdown</span>
+            <span class="text-xs font-bold uppercase tracking-wider">1. Sales Breakdown (2 Tiers)</span>
             <i class="fa-solid fa-chart-pie text-amber-400 text-xs"></i>
           </div>
           <div class="p-4 flex-1 flex flex-col justify-between space-y-2.5 text-xs">
             <div class="space-y-2">
               <div class="flex justify-between py-1 border-b border-stone-100">
-                <span class="text-slate-600">Restaurant — Dine-In Sales</span>
-                <span id="sum-dinein" class="font-mono font-semibold text-slate-900">₱0.00</span>
+                <span class="text-slate-700 font-medium">1) Takeouts (Order Slip Only — No SI)</span>
+                <span id="sum-tier-takeouts" class="font-mono font-semibold text-slate-900">₱0.00</span>
               </div>
               <div class="flex justify-between py-1 border-b border-stone-100">
-                <span class="text-slate-600">Restaurant — Take-Out Sales</span>
-                <span id="sum-takeout" class="font-mono font-semibold text-slate-900">₱0.00</span>
+                <span class="text-slate-700 font-medium">2a) Restaurant Sales (OS + Service Invoice)</span>
+                <span id="sum-tier-resto-si" class="font-mono font-semibold text-slate-900">₱0.00</span>
               </div>
               <div class="flex justify-between py-1 border-b border-stone-100">
-                <span class="text-slate-600">Restaurant — Room Charges Settled</span>
-                <span id="sum-room-food" class="font-mono font-semibold text-slate-900">₱0.00</span>
-              </div>
-              <div class="flex justify-between py-1 border-b border-stone-100">
-                <span class="text-slate-600">Hotel — Room Accommodation</span>
-                <span id="sum-hotel-room" class="font-mono font-semibold text-slate-900">₱0.00</span>
+                <span class="text-slate-700 font-medium">2b) Hotel & Full-Paid Collections (SI)</span>
+                <span id="sum-tier-hotel-si" class="font-mono font-semibold text-slate-900">₱0.00</span>
               </div>
               <div class="flex justify-between py-1.5 font-bold text-slate-800 bg-stone-50 px-2 rounded-lg">
-                <span>Total Gross Revenue</span>
+                <span>Total Gross Recognized Sales</span>
                 <span id="sum-gross-total" class="font-mono">₱0.00</span>
               </div>
               <div class="flex justify-between py-1 text-amber-700 px-2">
@@ -602,71 +786,83 @@
               </div>
             </div>
             <div class="flex justify-between items-center pt-3 border-t-2 border-emerald-900 text-sm font-extrabold text-emerald-950">
-              <span>NET TAXABLE / COLLECTIBLE SALES</span>
+              <span>NET RECOGNIZED SALES</span>
               <span id="sum-net-sales" class="font-mono text-base text-emerald-800">₱0.00</span>
             </div>
           </div>
         </div>
 
-        <!-- SECTION 2: PAYMENT & TENDER BREAKDOWN -->
+        <!-- SECTION 2: NON-SALES INFLOWS & TENDER MIX -->
         <div class="lg:col-span-4 bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden flex flex-col">
           <div class="bg-emerald-950 text-white px-4 py-2.5 flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider">2. Tender & Payment Mix</span>
+            <span class="text-xs font-bold uppercase tracking-wider">2. Tender, A/R & Collections Mix</span>
             <i class="fa-solid fa-wallet text-amber-400 text-xs"></i>
           </div>
-          <div class="p-4 flex-1 flex flex-col justify-between space-y-2.5 text-xs">
-            <div class="space-y-2">
-              <div class="flex justify-between py-1.5 border-b border-stone-100">
-                <span class="flex items-center gap-2 font-medium text-slate-700"><span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span> Cash Sales (POS & Hotel)</span>
+          <div class="p-4 flex-1 flex flex-col justify-between space-y-2 text-xs">
+            <div class="space-y-1.5">
+              <div class="flex justify-between py-1 border-b border-stone-100">
+                <span class="text-slate-700">Cash Sales (Takeouts + Sales SI)</span>
                 <span id="sum-tender-cash" class="font-mono font-bold text-slate-900">₱0.00</span>
               </div>
-              <div class="flex justify-between py-1.5 border-b border-stone-100">
-                <span class="flex items-center gap-2 font-medium text-slate-700"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> GCash E-Wallet</span>
-                <span id="sum-tender-gcash" class="font-mono font-bold text-slate-900">₱0.00</span>
+              <div class="flex justify-between py-1 border-b border-stone-100">
+                <span class="text-slate-700">GCash / Card / Bank Sales</span>
+                <span id="sum-tender-digital" class="font-mono font-bold text-slate-900">₱0.00</span>
               </div>
-              <div class="flex justify-between py-1.5 border-b border-stone-100">
-                <span class="flex items-center gap-2 font-medium text-slate-700"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Card / Bank Transfer</span>
-                <span id="sum-tender-card" class="font-mono font-bold text-slate-900">₱0.00</span>
+              <div class="flex justify-between py-1 border-b border-stone-100 text-amber-800">
+                <span>New Client A/R Charges (Uncollected)</span>
+                <span id="sum-tender-ar" class="font-mono font-bold">₱0.00</span>
               </div>
-              <div class="flex justify-between py-1.5 border-b border-stone-100">
-                <span class="flex items-center gap-2 font-medium text-amber-800"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Charge / A/R (Uncollected)</span>
-                <span id="sum-tender-ar" class="font-mono font-bold text-amber-700">₱0.00</span>
+              <div class="flex justify-between py-1 border-b border-stone-100 text-rose-800">
+                <span>Employee Charges (Salary Deductible)</span>
+                <span id="sum-tender-emp" class="font-mono font-bold">₱0.00</span>
               </div>
-              <div class="flex justify-between py-1.5 bg-emerald-50/70 px-2 rounded-lg text-emerald-900 font-semibold">
-                <span>+ Prior A/R Collections Today</span>
+              <div class="flex justify-between py-1 bg-emerald-50/70 px-2 rounded text-emerald-900 font-semibold">
+                <span>(+) A/R Payments Received Today</span>
                 <span id="sum-ar-collections" class="font-mono">₱0.00</span>
               </div>
+              <div class="flex justify-between py-1 bg-sky-50/70 px-2 rounded text-sky-900 font-semibold">
+                <span>(+) Collections (Downpayments/Deposits)</span>
+                <span id="sum-new-deposits" class="font-mono">₱0.00</span>
+              </div>
             </div>
-            <div class="flex justify-between items-center pt-3 border-t-2 border-emerald-900 text-sm font-extrabold text-emerald-950">
-              <span>TOTAL ACCOUNTED TENDER</span>
+            <div class="flex justify-between items-center pt-2 border-t-2 border-emerald-900 text-sm font-extrabold text-emerald-950">
+              <span>TOTAL ACCOUNTED INFLOWS</span>
               <span id="sum-tender-total" class="font-mono text-base text-emerald-800">₱0.00</span>
             </div>
           </div>
         </div>
 
-        <!-- SECTION 3: CASH DRAWER RECONCILIATION (CASH BOX) -->
+        <!-- SECTION 3: CASH BOX RECONCILIATION -->
         <div class="lg:col-span-4 bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden flex flex-col">
           <div class="bg-amber-600 text-white px-4 py-2.5 flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider">3. Cash Box Reconciliation</span>
+            <span class="text-xs font-bold uppercase tracking-wider">3. Cash Box Accountability</span>
             <i class="fa-solid fa-cash-register text-white text-xs"></i>
           </div>
-          <div class="p-4 flex-1 flex flex-col justify-between space-y-2 text-xs">
-            <div class="space-y-2">
+          <div class="p-4 flex-1 flex flex-col justify-between space-y-1.5 text-xs">
+            <div class="space-y-1.5">
               <div class="flex items-center justify-between py-1 border-b border-stone-100">
-                <span class="text-slate-700 font-medium">Opening Petty Cash Float</span>
-                <input type="number" id="opening-float-input" onchange="updateOpeningFloat(this.value)" value="5000" class="w-28 text-right font-mono font-bold text-slate-900 bg-stone-100 border border-stone-300 rounded-lg px-2 py-1 focus:bg-white focus:border-emerald-700 focus:outline-none" />
+                <span class="text-slate-700 font-medium">Base Opening Float</span>
+                <input type="number" id="opening-float-input" onchange="updateOpeningFloat(this.value)" value="5000" class="w-24 text-right font-mono font-bold text-slate-900 bg-stone-100 border border-stone-300 rounded-lg px-2 py-0.5 focus:bg-white focus:outline-none" />
               </div>
-              <div class="flex justify-between py-1 border-b border-stone-100 text-emerald-800">
-                <span>(+) Cash Sales Today</span>
+              <div class="flex justify-between py-0.5 text-emerald-800">
+                <span>(+) Cash Box Inflows (From Management)</span>
+                <span id="box-mgmt-inflows" class="font-mono font-semibold">+₱0.00</span>
+              </div>
+              <div class="flex justify-between py-0.5 text-emerald-800">
+                <span>(+) Cash Sales + A/R Payments + Cash Collections</span>
                 <span id="box-cash-sales" class="font-mono font-semibold">+₱0.00</span>
               </div>
-              <div class="flex justify-between py-1 border-b border-stone-100 text-emerald-800">
-                <span>(+) Cash A/R Collections</span>
-                <span id="box-cash-collections" class="font-mono font-semibold">+₱0.00</span>
+              <div class="flex justify-between py-0.5 text-rose-700">
+                <span>(-) Purchases Paid via Cash Box</span>
+                <span id="box-purchases-out" class="font-mono font-semibold">-₱0.00</span>
               </div>
-              <div class="flex justify-between py-1 border-b border-stone-100 text-rose-700">
-                <span>(-) Cash Drawer Payouts</span>
-                <span id="box-cash-outs" class="font-mono font-semibold">-₱0.00</span>
+              <div class="flex justify-between py-0.5 text-rose-700">
+                <span>(-) Employee Cash Advances Disbursed</span>
+                <span id="box-advances-out" class="font-mono font-semibold">-₱0.00</span>
+              </div>
+              <div class="flex justify-between py-0.5 text-rose-700">
+                <span>(-) Cash Out Remitted to Management</span>
+                <span id="box-mgmt-out" class="font-mono font-semibold">-₱0.00</span>
               </div>
               <div class="flex justify-between py-1.5 px-2.5 rounded-xl bg-emerald-50 border border-emerald-200 font-extrabold text-emerald-950 text-sm">
                 <span>Expected Cash in Box</span>
@@ -674,10 +870,10 @@
               </div>
             </div>
 
-            <div class="pt-2 border-t border-stone-200 space-y-1.5">
+            <div class="pt-1.5 border-t border-stone-200 space-y-1">
               <div class="flex items-center justify-between">
                 <span class="font-bold text-slate-700">Actual Physical Count (₱)</span>
-                <input type="number" id="actual-cash-input" oninput="calculateDrawerVariance()" placeholder="Enter count..." class="w-32 text-right font-mono font-bold text-slate-900 bg-amber-50 border border-amber-300 rounded-lg px-2 py-1 focus:bg-white focus:border-emerald-700 focus:outline-none" />
+                <input type="number" id="actual-cash-input" oninput="calculateDrawerVariance()" placeholder="Enter count..." class="w-28 text-right font-mono font-bold text-slate-900 bg-amber-50 border border-amber-300 rounded-lg px-2 py-1 focus:bg-white focus:outline-none" />
               </div>
               <div class="flex justify-between items-center">
                 <span class="font-semibold text-slate-600">Over / (Short) Variance</span>
@@ -687,49 +883,50 @@
           </div>
         </div>
 
-        <!-- SECTION 4: CASH-OUT & PURCHASES BY CATEGORY -->
+        <!-- SECTION 4: CATEGORIZED PURCHASES & EXPENSES -->
         <div class="lg:col-span-5 bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
           <div class="bg-slate-800 text-white px-4 py-2.5 flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider">4. Cash-Out & Purchases Summary</span>
+            <span class="text-xs font-bold uppercase tracking-wider">4. Purchases & Expenses by Category</span>
             <span id="sec4-total-badge" class="font-mono text-xs text-amber-300 font-bold">₱0.00</span>
           </div>
           <div class="p-4">
-            <div id="sec4-category-list" class="space-y-2 text-xs">
-              <!-- Populated by JS -->
-            </div>
+            <div id="sec4-category-list" class="space-y-2 text-xs"></div>
           </div>
         </div>
 
-        <!-- SECTION 5: ACCOUNTS RECEIVABLE (A/R) & CHARGE LEDGER -->
+        <!-- SECTION 5: CLIENT ACCOUNTS & CONSOLIDATED A/R LEDGER -->
         <div class="lg:col-span-7 bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
-          <div class="bg-slate-800 text-white px-4 py-2.5 flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider">5. Accounts Receivable (A/R) & Charge Log</span>
+          <div class="bg-slate-800 text-white px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider">5. Client Accounts & Consolidated A/R</span>
+              <button type="button" onclick="openClientAccountsModal()" class="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-emerald-950 font-bold text-[10px] transition">
+                + Client Accounts
+              </button>
+            </div>
             <span id="sec5-open-ar-badge" class="font-mono text-xs text-amber-300 font-bold">Open: ₱0.00</span>
           </div>
-          <div class="overflow-x-auto max-h-64">
+          <div class="overflow-x-auto max-h-72">
             <table class="w-full text-left border-collapse text-xs">
               <thead>
                 <tr class="bg-stone-100 text-[10px] uppercase text-slate-600 border-b border-stone-200">
-                  <th class="py-2.5 px-3">Ref #</th>
-                  <th class="py-2.5 px-3">Account / Guest</th>
-                  <th class="py-2.5 px-3">Date</th>
-                  <th class="py-2.5 px-3 text-right">Amount</th>
-                  <th class="py-2.5 px-3 text-center">Status / Action</th>
+                  <th class="py-2.5 px-3">Client Account</th>
+                  <th class="py-2.5 px-3 text-center">Invoices / Slips</th>
+                  <th class="py-2.5 px-3 text-right">Total Billed</th>
+                  <th class="py-2.5 px-3 text-right">Open Balance</th>
+                  <th class="py-2.5 px-3 text-center">Consolidate / Settle</th>
                 </tr>
               </thead>
-              <tbody id="sec5-ar-tbody" class="divide-y divide-stone-100">
-                <!-- Populated by JS -->
-              </tbody>
+              <tbody id="sec5-ar-tbody" class="divide-y divide-stone-100"></tbody>
             </table>
           </div>
         </div>
 
-        <!-- SECTION 6: TRANSACTION AUDIT LOG (ALL SALES & FOLIOS) -->
+        <!-- SECTION 6: TRANSACTION AUDIT LOG -->
         <div class="lg:col-span-12 bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
           <div class="bg-emerald-950 text-white px-4 py-3 flex flex-wrap items-center justify-between gap-2">
             <div>
               <span class="text-xs font-bold uppercase tracking-wider">6. Master Transaction Audit Log</span>
-              <span class="text-[11px] text-emerald-300 ml-2">(Order Slips, Room Check-Outs & A/R Collections)</span>
+              <span class="text-[11px] text-emerald-300 ml-2">(Takeouts OS, Sales SI, Room Check-Outs & A/R Payments)</span>
             </div>
             <span id="sec6-count-badge" class="text-xs font-mono bg-emerald-900 px-2.5 py-1 rounded-lg text-amber-300">0 Transactions</span>
           </div>
@@ -739,17 +936,15 @@
                 <tr class="bg-stone-100 text-[11px] uppercase tracking-wider text-slate-600 border-b border-stone-200">
                   <th class="py-3 px-4">Doc #</th>
                   <th class="py-3 px-4">Time</th>
-                  <th class="py-3 px-4">Source / Type</th>
-                  <th class="py-3 px-4">Details / Guest / Table</th>
-                  <th class="py-3 px-4">Payment</th>
+                  <th class="py-3 px-4">Classification</th>
+                  <th class="py-3 px-4">Details / Guest / Account</th>
+                  <th class="py-3 px-4">Settlement</th>
                   <th class="py-3 px-4 text-right">Discount</th>
-                  <th class="py-3 px-4 text-right">Net Total</th>
+                  <th class="py-3 px-4 text-right">Net Amount</th>
                   <th class="py-3 px-4 text-center">Receipt</th>
                 </tr>
               </thead>
-              <tbody id="sec6-audit-tbody" class="divide-y divide-stone-100">
-                <!-- Populated by JS -->
-              </tbody>
+              <tbody id="sec6-audit-tbody" class="divide-y divide-stone-100"></tbody>
             </table>
           </div>
         </div>
@@ -758,7 +953,7 @@
   </main>
 
   <!-- ======================================================================= -->
-  <!-- MODALS (CHECK-IN, FOLIO CHECK-OUT, RECEIPT PREVIEW, GOOGLE SHEETS SYNC) -->
+  <!-- MODALS (CHECK-IN, FOLIO CHECK-OUT, PRINT PREVIEW, SHEETS, CLIENT A/R)   -->
   <!-- ======================================================================= -->
 
   <!-- 1. HOTEL CHECK-IN MODAL -->
@@ -812,7 +1007,7 @@
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block font-bold text-slate-700 mb-1">Advance Deposit Paid (₱)</label>
+            <label class="block font-bold text-slate-700 mb-1">Advance Deposit (Collection ₱)</label>
             <input type="number" id="ci-deposit" min="0" step="0.01" value="0" oninput="updateCheckInEstimate()" class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono font-bold focus:border-emerald-700 focus:outline-none" />
           </div>
           <div>
@@ -826,7 +1021,7 @@
         </div>
 
         <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex justify-between items-center">
-          <span class="font-semibold text-amber-950">Estimated Room Total:</span>
+          <span class="font-semibold text-amber-950">Estimated Room Total (Recognized at Check-Out):</span>
           <span id="ci-est-total" class="font-mono text-base font-extrabold text-amber-900">₱1,400.00</span>
         </div>
 
@@ -843,7 +1038,7 @@
     <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-stone-200 flex flex-col max-h-[90vh]">
       <div class="bg-emerald-950 text-white px-5 py-4 flex items-center justify-between shrink-0">
         <div>
-          <span class="text-[10px] uppercase tracking-wider text-amber-400 font-bold">In-House Guest Folio</span>
+          <span class="text-[10px] uppercase tracking-wider text-amber-400 font-bold">In-House Guest Folio (Service Invoice on Check-Out)</span>
           <h3 id="folio-modal-title" class="text-lg font-extrabold">Room 102 — Guest Name</h3>
         </div>
         <button onclick="closeModal('folio-modal')" class="w-8 h-8 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white flex items-center justify-center">
@@ -854,7 +1049,6 @@
       <div class="p-5 overflow-y-auto space-y-4 text-xs flex-1">
         <input type="hidden" id="folio-room-number" />
 
-        <!-- Guest & Stay Summary -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-stone-50 p-3 rounded-xl border border-stone-200">
           <div>
             <span class="text-[10px] uppercase text-slate-500 font-bold">Check-In Date</span>
@@ -874,7 +1068,6 @@
           </div>
         </div>
 
-        <!-- Itemized Folio Charges -->
         <div>
           <div class="flex items-center justify-between mb-2">
             <h4 class="font-bold text-slate-900 uppercase tracking-wider text-[11px]">Itemized Folio Statement</h4>
@@ -891,21 +1084,18 @@
                   <th class="py-2 px-3 text-right">Amount</th>
                 </tr>
               </thead>
-              <tbody id="folio-items-tbody" class="divide-y divide-stone-100">
-                <!-- Populated by JS -->
-              </tbody>
+              <tbody id="folio-items-tbody" class="divide-y divide-stone-100"></tbody>
             </table>
           </div>
         </div>
 
-        <!-- Settlement Summary -->
         <div class="bg-stone-50 p-3.5 rounded-xl border border-stone-200 space-y-1.5">
           <div class="flex justify-between text-slate-600">
             <span>Total Folio Charges (Room + Restaurant)</span>
             <span id="folio-gross-total" class="font-mono font-bold text-slate-900">₱0.00</span>
           </div>
           <div class="flex justify-between text-emerald-700">
-            <span>Less: Advance Deposit Paid at Check-In</span>
+            <span>Less: Advance Collection / Deposit Paid</span>
             <span id="folio-deposit-less" class="font-mono font-semibold">-₱0.00</span>
           </div>
           <div class="flex justify-between items-center pt-2 border-t border-stone-300 text-base font-extrabold text-emerald-950">
@@ -914,7 +1104,6 @@
           </div>
         </div>
 
-        <!-- Settlement Payment Method -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block font-bold text-slate-700 mb-1">Settlement Payment Method</label>
@@ -922,31 +1111,36 @@
               <option value="Cash">Cash</option>
               <option value="GCash">GCash</option>
               <option value="Card">Card / Bank Transfer</option>
-              <option value="Charge / A/R">Charge / Corporate A/R</option>
+              <option value="Charge / A/R">Charge / Client Account A/R</option>
             </select>
           </div>
           <div id="folio-ar-box" class="hidden">
-            <label class="block font-bold text-amber-800 mb-1">Corporate / A/R Account Name *</label>
-            <input type="text" id="folio-ar-name" placeholder="Company or VIP Account" class="w-full px-3 py-2.5 rounded-xl border border-amber-400 bg-amber-50/50 focus:outline-none" />
+            <label class="block font-bold text-amber-800 mb-1">Select Client Account (A/R) *</label>
+            <div class="flex gap-1.5">
+              <select id="folio-ar-select" class="flex-1 px-3 py-2.5 rounded-xl border border-amber-400 bg-amber-50/50 text-xs font-bold text-slate-900 focus:outline-none"></select>
+              <button type="button" onclick="openClientAccountsModal()" class="px-2.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold text-xs shrink-0" title="Add New Client Account">
+                + New
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="p-4 bg-stone-50 border-t border-stone-200 flex flex-wrap justify-between items-center gap-2 shrink-0">
-        <button type="button" onclick="printGuestFolioPreview(false)" class="px-3.5 py-2.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-slate-800 text-xs font-bold flex items-center gap-1.5">
+        <button type="button" onclick="printGuestFolioPreview()" class="px-3.5 py-2.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-slate-800 text-xs font-bold flex items-center gap-1.5">
           <i class="fa-solid fa-file-invoice"></i> Preview Interim Bill
         </button>
         <div class="flex gap-2">
           <button type="button" onclick="closeModal('folio-modal')" class="px-4 py-2.5 rounded-xl bg-stone-200 hover:bg-stone-300 text-slate-700 text-xs font-bold">Close</button>
           <button type="button" onclick="settleFolioAndCheckOut()" class="px-5 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm flex items-center gap-2">
-            <i class="fa-solid fa-check-double"></i> Settle Folio & Check-Out
+            <i class="fa-solid fa-check-double"></i> Issue SI & Check-Out
           </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 3. PRINT PREVIEW MODAL (THERMAL ORDER SLIP, GUEST INVOICE, A4 SUMMARY) -->
+  <!-- 3. PRINT PREVIEW MODAL -->
   <div id="receipt-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-[90] hidden items-center justify-center p-4 no-print">
     <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-stone-300 flex flex-col max-h-[92vh]">
       <div class="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between shrink-0">
@@ -959,11 +1153,8 @@
         </button>
       </div>
 
-      <!-- Scrollable Preview Canvas -->
       <div class="p-6 bg-stone-200/80 overflow-y-auto flex-1 flex justify-center">
-        <div id="receipt-preview-paper" class="bg-white shadow-lg border border-stone-300 p-6 text-slate-900 w-full max-w-[380px]">
-          <!-- Injected dynamically -->
-        </div>
+        <div id="receipt-preview-paper" class="bg-white shadow-lg border border-stone-300 p-6 text-slate-900 w-full max-w-[380px]"></div>
       </div>
 
       <div class="p-4 bg-white border-t border-stone-200 flex justify-end gap-3 shrink-0">
@@ -985,7 +1176,7 @@
           <i class="fa-solid fa-table text-amber-400 text-lg"></i>
           <div>
             <h3 class="text-base font-extrabold">Google Sheets & Apps Script Bridge</h3>
-            <p class="text-[11px] text-emerald-300">Two-way sync with Daily Cash Sales Catalog</p>
+            <p class="text-[11px] text-emerald-300">Connected to Daily Cash Sales Catalog</p>
           </div>
         </div>
         <button onclick="closeModal('sheets-modal')" class="w-8 h-8 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white flex items-center justify-center">
@@ -995,13 +1186,13 @@
 
       <div class="p-5 space-y-4 text-xs">
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Google Apps Script Web App URL (`doGet` & `doPost` endpoint)</label>
-          <input type="url" id="sheets-webhook-url" placeholder="https://script.google.com/macros/s/AKfycbx.../exec" class="w-full px-3 py-2.5 rounded-xl border border-stone-300 font-mono text-xs focus:border-emerald-700 focus:outline-none" />
-          <p class="text-[11px] text-slate-500 mt-1">Pulls <code class="font-mono">Menu_Master</code>, <code class="font-mono">Rooms_Master</code>, <code class="font-mono">POS_Transactions</code>, <code class="font-mono">Cash_Out_Log</code>, <code class="font-mono">AR_Ledger</code>, and <code class="font-mono">Daily_Sales_Summary</code> on load, and pushes new records automatically.</p>
+          <label class="block font-bold text-slate-700 mb-1">Active Google Apps Script Web App URL</label>
+          <input type="url" id="sheets-webhook-url" readonly class="w-full px-3 py-2.5 rounded-xl border border-stone-300 bg-stone-100 font-mono text-xs text-slate-700 focus:outline-none" />
+          <p class="text-[11px] text-slate-500 mt-1">Hardcoded to your production Apps Script deployment. Automatically pulls <code class="font-mono">Menu_Master</code>, <code class="font-mono">Rooms_Master</code>, <code class="font-mono">POS_Transactions</code>, <code class="font-mono">Cash_Out_Log</code>, <code class="font-mono">AR_Ledger</code>, and <code class="font-mono">Daily_Sales_Summary</code>.</p>
         </div>
 
         <div>
-          <span class="block font-bold text-slate-700 mb-1">Live JSON Payload Preview (Latest Transaction):</span>
+          <span class="block font-bold text-slate-700 mb-1">Latest Synced Payload Preview:</span>
           <pre id="sheets-json-preview" class="bg-slate-900 text-emerald-300 p-3 rounded-xl font-mono text-[11px] overflow-x-auto max-h-44"></pre>
         </div>
 
@@ -1009,16 +1200,127 @@
           <button type="button" onclick="testSheetsSync()" class="px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold transition">
             <i class="fa-solid fa-paper-plane mr-1"></i> Test Webhook Ping
           </button>
-          <div class="flex gap-2">
-            <button type="button" onclick="closeModal('sheets-modal')" class="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-slate-700 font-bold">Cancel</button>
-            <button type="button" onclick="saveSheetsConfig()" class="px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold">Save & Sync</button>
+          <button type="button" onclick="closeModal('sheets-modal')" class="px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. CLIENT ACCOUNTS DIRECTORY & CONSOLIDATED SOA MODAL -->
+  <div id="client-accounts-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[60] hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden border border-stone-200 flex flex-col max-h-[90vh]">
+      <div class="bg-emerald-950 text-white px-5 py-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-building-user text-amber-400 text-lg"></i>
+          <div>
+            <h3 class="text-base font-extrabold">Client Accounts & Consolidated A/R Ledger</h3>
+            <p class="text-[11px] text-emerald-300">Create Client Accounts, consolidate unpaid POS & Hotel charges, and print Statements of Account</p>
+          </div>
+        </div>
+        <button onclick="closeModal('client-accounts-modal')" class="w-8 h-8 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-5 text-xs flex-1">
+        <!-- Left: Create New Client Account -->
+        <div class="lg:col-span-4 bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-3 h-fit">
+          <h4 class="font-bold text-slate-900 text-sm border-b border-stone-200 pb-2">Add New Client Account</h4>
+          <form id="new-client-form" onsubmit="submitNewClientAccount(event)" class="space-y-2.5">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Client / Company / Office Name *</label>
+              <input type="text" id="ca-new-name" required placeholder="e.g., LGU Catanauan / DepEd District" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white focus:border-emerald-700 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Account Type</label>
+              <select id="ca-new-type" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white focus:outline-none">
+                <option value="Corporate / Business">Corporate / Business</option>
+                <option value="Government / LGU / DepEd">Government / LGU / DepEd</option>
+                <option value="VIP / Regular Guest">VIP / Regular Guest</option>
+                <option value="Event / Catering Organizer">Event / Catering Organizer</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">Contact Person</label>
+                <input type="text" id="ca-new-contact-person" placeholder="Name" class="w-full px-2.5 py-2 rounded-xl border border-stone-300 bg-white focus:outline-none" />
+              </div>
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">Mobile / Phone</label>
+                <input type="text" id="ca-new-phone" placeholder="09XX-XXX-XXXX" class="w-full px-2.5 py-2 font-mono rounded-xl border border-stone-300 bg-white focus:outline-none" />
+              </div>
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Credit Terms / Billing Notes</label>
+              <input type="text" id="ca-new-terms" placeholder="e.g., 15 Days / Monthly Billing / TIN" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white focus:outline-none" />
+            </div>
+            <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold shadow-sm transition">
+              + Save Client Account
+            </button>
+          </form>
+        </div>
+
+        <!-- Right: Client Accounts List & Consolidated Statement Drilldown -->
+        <div class="lg:col-span-8 flex flex-col gap-4">
+          <div class="border border-stone-200 rounded-2xl overflow-hidden">
+            <div class="bg-stone-100 px-3.5 py-2.5 border-b border-stone-200 flex items-center justify-between">
+              <span class="font-bold text-slate-800">Registered Client Accounts (Consolidated Balances)</span>
+              <span id="ca-modal-total-open" class="font-mono font-extrabold text-amber-800">Total Open A/R: ₱0.00</span>
+            </div>
+            <div class="overflow-x-auto max-h-52">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-stone-50 text-[10px] uppercase text-slate-500 border-b border-stone-200">
+                    <th class="py-2 px-3">Account Name</th>
+                    <th class="py-2 px-3">Contact / Terms</th>
+                    <th class="py-2 px-3 text-right">Unpaid Balance</th>
+                    <th class="py-2 px-3 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ca-directory-tbody" class="divide-y divide-stone-100"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Consolidated Client Statement Drilldown Box -->
+          <div id="ca-statement-box" class="bg-amber-50/50 border border-amber-200 rounded-2xl p-4 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/80 pb-2.5">
+              <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-800">Consolidated Account Statement</span>
+                <h4 id="ca-stmt-title" class="text-sm font-extrabold text-slate-900">Select a Client Account above to inspect all charges</h4>
+              </div>
+              <div id="ca-stmt-actions" class="hidden flex items-center gap-2">
+                <button type="button" onclick="printConsolidatedClientSOA()" class="px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-slate-800 font-bold text-[11px] flex items-center gap-1.5">
+                  <i class="fa-solid fa-print"></i> Print Statement (SOA)
+                </button>
+                <button type="button" onclick="settleAllClientAr()" class="px-3 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center gap-1.5">
+                  <i class="fa-solid fa-peso-sign"></i> Settle Consolidated A/R
+                </button>
+              </div>
+            </div>
+            <div class="overflow-x-auto max-h-48 bg-white rounded-xl border border-stone-200">
+              <table class="w-full text-left border-collapse text-[11px]">
+                <thead>
+                  <tr class="bg-stone-100 text-[10px] uppercase text-slate-600 border-b border-stone-200">
+                    <th class="py-2 px-2.5">Doc #</th>
+                    <th class="py-2 px-2.5">Date</th>
+                    <th class="py-2 px-2.5">Particulars / Items</th>
+                    <th class="py-2 px-2.5 text-right">Amount</th>
+                    <th class="py-2 px-2.5 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="ca-stmt-tbody" class="divide-y divide-stone-100">
+                  <tr><td colspan="5" class="py-5 text-center text-slate-400">Click "Statement" on any client account to consolidate their charges.</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Dedicated Hidden Print Container (Used exclusively by @media print) -->
+  <!-- Dedicated Hidden Print Container -->
   <div id="print-area" class="hidden print:block"></div>
 
   <!-- ======================================================================= -->
@@ -1026,9 +1328,9 @@
   <!-- ======================================================================= -->
   <script>
     // =========================================================================
-    // 1. DEFAULT APPS SCRIPT BRIDGE & OFFLINE FALLBACK CATALOG
+    // 1. HARDCODED GOOGLE APPS SCRIPT BRIDGE & OFFLINE FALLBACK CATALOG
     // =========================================================================
-    const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzGQf9Snzp6HW4TRXn6qvPSXcZu2pQg0Wv80unqUwNsFCrdvN1VddPFmVcXNF72tkVK/exec';
+    const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxbI-kLMfQlt3r4SsRVdZfa3GoPKPKTWCiV96IOhBxro0-05GXaQeoFQbAt_8K3tg5K/exec';
 
     let MENU_ITEMS = [
       { id: 'M-001', name: 'Crispy Pata (Whole)', category: 'Main Dish', price: 680, desc: 'Best seller' },
@@ -1049,7 +1351,7 @@
     // =========================================================================
     // 2. APPLICATION STATE & LOCALSTORAGE PERSISTENCE
     // =========================================================================
-    const STORAGE_KEY = 'eyns_pos_state_v2';
+    const STORAGE_KEY = 'eyns_pos_process_flow_v4';
 
     function getTodayDateStr() {
       const now = new Date();
@@ -1082,19 +1384,34 @@
           { number: '302', sheetRowIndex: 11, type: 'Room 10', floor: 'VIP Suite', rate: 1400, status: 'Available', guest: null }
         ],
         transactions: [],
-        cashOuts: []
+        cashOuts: [],
+        collections: [],
+        staffDeductions: [],
+        cashBoxInflows: [],
+        mgmtCashOuts: [],
+        clientAccounts: [
+          { id: 'CLI-001', name: 'LGU Catanauan', type: 'Government / LGU / DepEd', contactPerson: 'Admin / Treasurer', phone: '', terms: 'Monthly Billing' },
+          { id: 'CLI-002', name: 'DepEd District Office - Catanauan', type: 'Government / LGU / DepEd', contactPerson: 'District Supervisor', phone: '', terms: '15 Days' },
+          { id: 'CLI-003', name: 'Walk-In Corporate / VIP Account', type: 'Corporate / Business', contactPerson: '', phone: '', terms: '7 Days' }
+        ]
       };
     }
 
     let appState = loadAppState();
+    let selectedClientAccountName = '';
 
     function loadAppState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (!parsed.sheetsWebhookUrl) {
-            parsed.sheetsWebhookUrl = DEFAULT_WEBHOOK_URL;
+          parsed.sheetsWebhookUrl = DEFAULT_WEBHOOK_URL;
+          if (!Array.isArray(parsed.collections)) parsed.collections = [];
+          if (!Array.isArray(parsed.staffDeductions)) parsed.staffDeductions = [];
+          if (!Array.isArray(parsed.cashBoxInflows)) parsed.cashBoxInflows = [];
+          if (!Array.isArray(parsed.mgmtCashOuts)) parsed.mgmtCashOuts = [];
+          if (!Array.isArray(parsed.clientAccounts) || parsed.clientAccounts.length === 0) {
+            parsed.clientAccounts = buildInitialSeedState().clientAccounts;
           }
           return parsed;
         }
@@ -1107,6 +1424,7 @@
     }
 
     function saveAppState(stateToSave = appState) {
+      stateToSave.sheetsWebhookUrl = DEFAULT_WEBHOOK_URL;
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
       } catch (err) {
@@ -1114,10 +1432,10 @@
       }
     }
 
-    // Active POS Cart State (ephemeral until finalized)
     let activeCategory = 'All';
     let currentOrder = {
       orderType: 'Dine-In',
+      salesClassification: 'Sales (OS + Service Invoice)',
       tableNumber: 'Table #1',
       roomNumber: '',
       items: [],
@@ -1128,7 +1446,7 @@
     };
 
     // =========================================================================
-    // 3. TWO-WAY GOOGLE SHEETS SYNC (BOOTSTRAP PULL & BACKGROUND PUSH)
+    // 3. TWO-WAY GOOGLE SHEETS SYNC
     // =========================================================================
     function formatAnyDate(val) {
       if (!val) return getTodayDateStr();
@@ -1156,7 +1474,7 @@
       let maxNum = fallbackStart - 1;
       (list || []).forEach(item => {
         const idStr = String(item.id || item.txn_id || '');
-        const match = idStr.match(new RegExp(`^${prefix}-(\\d+)$`, 'i'));
+        const match = idStr.match(new RegExp(`${prefix}-(\\d+)`, 'i'));
         if (match) {
           const n = parseInt(match[1], 10);
           if (!isNaN(n) && n > maxNum) maxNum = n;
@@ -1166,12 +1484,7 @@
     }
 
     async function syncFromGoogleSheets(showToastOnComplete = false) {
-      const url = (appState.sheetsWebhookUrl || '').trim();
-      if (!url) {
-        updateSheetsBadge(false);
-        return;
-      }
-
+      const url = DEFAULT_WEBHOOK_URL;
       const refreshIcon = document.getElementById('sheets-refresh-icon');
       const menuBadge = document.getElementById('menu-source-badge');
       if (refreshIcon) refreshIcon.classList.add('fa-spin');
@@ -1196,19 +1509,16 @@
           throw new Error(payload?.error || 'Invalid JSON response from Apps Script');
         }
 
-        // 1. Hydrate Menu_Master
         if (Array.isArray(payload.menu) && payload.menu.length > 0) {
           MENU_ITEMS = payload.menu;
           CATEGORIES = ['All', ...new Set(MENU_ITEMS.map(i => i.category).filter(Boolean))];
           if (!CATEGORIES.includes(activeCategory)) activeCategory = 'All';
         }
 
-        // 2. Hydrate Rooms_Master
         if (Array.isArray(payload.rooms) && payload.rooms.length > 0) {
           appState.rooms = payload.rooms;
         }
 
-        // 3. Hydrate POS_Transactions + AR_Ledger statuses
         const arStatusMap = {};
         (payload.arLedger || []).forEach(ar => {
           if (ar.txn_id) {
@@ -1231,6 +1541,7 @@
 
             const arInfo = arStatusMap[txnId];
             const isCharge = String(t.payment_method || '') === 'Charge / A/R';
+            const isTakeoutOnly = /takeout/i.test(String(t.order_type || '')) && !/SI-/i.test(txnId);
 
             return {
               id: txnId,
@@ -1238,6 +1549,7 @@
               time: extractTimeFromTimestamp(t.timestamp),
               source: String(t.source || 'Restaurant'),
               subType: String(t.order_type || 'Dine-In'),
+              salesClassification: isTakeoutOnly ? 'Takeouts (OS Only)' : 'Sales (OS + Service Invoice)',
               detail: String(t.customer_name || ''),
               items: Array.isArray(parsedItems) ? parsedItems : [],
               grossAmount: Number(t.gross_amount) || 0,
@@ -1261,19 +1573,74 @@
           appState.nextFolioReceiptNumber = deriveNextDocNumber(appState.transactions, 'SI', 501);
         }
 
-        // 4. Hydrate Cash_Out_Log
         if (Array.isArray(payload.cashOuts)) {
           appState.cashOuts = payload.cashOuts.map((c, idx) => ({
-            id: String(c.cashout_id || `CO-${String(idx + 1).padStart(3, '0')}`),
+            id: String(c.cashout_id || `PUR-${String(idx + 1).padStart(3, '0')}`),
             date: formatAnyDate(c.business_date || c.timestamp),
             time: extractTimeFromTimestamp(c.timestamp),
-            category: String(c.category || 'Market / Spot Purchases'),
+            category: String(c.category || 'Daily Purchases for Restaurant'),
             payee: String(c.payee_supplier || ''),
             ref: String(c.receipt_ref || ''),
             amount: Number(c.amount) || 0,
             source: String(c.source_drawer || 'Cash Drawer'),
             notes: String(c.description || ''),
             cashier: String(c.cashier || appState.cashier)
+          }));
+        }
+
+        if (Array.isArray(payload.collections)) {
+          appState.collections = payload.collections.map((c, idx) => ({
+            id: String(c.collection_id || `COL-${String(idx + 1).padStart(3, '0')}`),
+            date: formatAnyDate(c.business_date || c.timestamp),
+            time: extractTimeFromTimestamp(c.timestamp),
+            clientName: String(c.client_name || ''),
+            type: String(c.reservation_type || 'Event / Catering Downpayment'),
+            amount: Number(c.amount_collected) || 0,
+            contractTotal: Number(c.contract_total) || Number(c.amount_collected) || 0,
+            method: String(c.payment_method || 'Cash'),
+            targetDate: c.target_date ? formatAnyDate(c.target_date) : '',
+            notes: String(c.notes || ''),
+            status: String(c.status || 'Held (Unbilled)'),
+            cashier: String(c.cashier || appState.cashier)
+          }));
+        }
+
+        if (Array.isArray(payload.staffDeductions)) {
+          appState.staffDeductions = payload.staffDeductions.map((d, idx) => ({
+            id: String(d.deduction_id || `CA-${String(idx + 1).padStart(3, '0')}`),
+            date: formatAnyDate(d.business_date || d.timestamp),
+            time: extractTimeFromTimestamp(d.timestamp),
+            employeeName: String(d.employee_name || ''),
+            type: String(d.deduction_type || 'Cash Advance (Cash Box)'),
+            amount: Number(d.amount) || 0,
+            notes: String(d.notes || ''),
+            status: String(d.status || 'For Payroll Deduction'),
+            cashier: String(d.cashier || appState.cashier)
+          }));
+        }
+
+        if (Array.isArray(payload.cashBoxInflows)) {
+          appState.cashBoxInflows = payload.cashBoxInflows.map((i, idx) => ({
+            id: String(i.inflow_id || `CB-${String(idx + 1).padStart(3, '0')}`),
+            date: formatAnyDate(i.business_date || i.timestamp),
+            time: extractTimeFromTimestamp(i.timestamp),
+            type: String(i.fund_type || 'Management Drawer Replenishment'),
+            from: String(i.from_management || ''),
+            amount: Number(i.amount) || 0,
+            notes: String(i.notes || ''),
+            cashier: String(i.cashier || appState.cashier)
+          }));
+        }
+
+        if (Array.isArray(payload.mgmtCashOuts)) {
+          appState.mgmtCashOuts = payload.mgmtCashOuts.map((m, idx) => ({
+            id: String(m.remittance_id || `MO-${String(idx + 1).padStart(3, '0')}`),
+            date: formatAnyDate(m.business_date || m.timestamp),
+            time: extractTimeFromTimestamp(m.timestamp),
+            recipient: String(m.received_by || ''),
+            amount: Number(m.amount) || 0,
+            notes: String(m.notes || ''),
+            cashier: String(m.cashier || appState.cashier)
           }));
         }
 
@@ -1289,6 +1656,19 @@
           }
         }
 
+        // 6. Hydrate Client_Accounts from Google Sheet
+        if (Array.isArray(payload.clientAccounts) && payload.clientAccounts.length > 0) {
+          appState.clientAccounts = payload.clientAccounts.map((c, idx) => ({
+            id: String(c.id || c.client_id || `CLI-${String(idx + 1).padStart(3, '0')}`),
+            name: String(c.name || c.account_name || '').trim(),
+            type: String(c.type || c.account_type || 'Corporate / Business').trim(),
+            contactPerson: String(c.contactPerson || c.contact_person || '').trim(),
+            phone: String(c.phone || '').trim(),
+            terms: String(c.terms || c.credit_terms || '15 Days').trim()
+          })).filter(c => c.name);
+        }
+
+        ensureClientAccountsFromTransactions();
         isSheetConnected = true;
         saveAppState();
         updateSheetsBadge(true);
@@ -1318,9 +1698,8 @@
     }
 
     async function pushToGoogleSheets(sheetName, payloadObj) {
-      if (!appState.sheetsWebhookUrl) return;
       try {
-        await fetch(appState.sheetsWebhookUrl, {
+        await fetch(DEFAULT_WEBHOOK_URL, {
           method: 'POST',
           mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -1336,7 +1715,7 @@
     }
 
     // =========================================================================
-    // 4. UTILITY FORMATTERS, TOASTS & CONFIRMATION DIALOGS
+    // 4. UTILITY FORMATTERS, TOASTS & DIALOGS
     // =========================================================================
     function formatPHP(num) {
       const val = Number(num) || 0;
@@ -1360,10 +1739,7 @@
       toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.success} text-sm"></i><span>${message}</span>`;
       container.appendChild(toast);
 
-      requestAnimationFrame(() => {
-        toast.classList.remove('translate-y-2', 'opacity-0');
-      });
-
+      requestAnimationFrame(() => toast.classList.remove('translate-y-2', 'opacity-0'));
       setTimeout(() => {
         toast.classList.add('opacity-0', 'translate-y-2');
         setTimeout(() => toast.remove(), 300);
@@ -1377,16 +1753,13 @@
       modal.classList.remove('hidden');
       modal.classList.add('flex');
 
-      const cancelBtn = document.getElementById('confirm-cancel-btn');
-      const okBtn = document.getElementById('confirm-ok-btn');
-
       const cleanup = () => {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
       };
 
-      cancelBtn.onclick = cleanup;
-      okBtn.onclick = () => {
+      document.getElementById('confirm-cancel-btn').onclick = cleanup;
+      document.getElementById('confirm-ok-btn').onclick = () => {
         cleanup();
         onConfirm();
       };
@@ -1409,9 +1782,7 @@
         'Reset Local Cache & Re-Sync?',
         'This will clear local browser cache and reload fresh data directly from your Google Sheet.',
         () => {
-          const currentUrl = appState.sheetsWebhookUrl || DEFAULT_WEBHOOK_URL;
           appState = buildInitialSeedState();
-          appState.sheetsWebhookUrl = currentUrl;
           saveAppState();
           currentOrder.items = [];
           currentOrder.isScPwd = false;
@@ -1423,7 +1794,7 @@
     }
 
     // =========================================================================
-    // 5. NAVIGATION, LIVE CLOCK & SHEETS SETTINGS MODAL
+    // 5. NAVIGATION & LIVE CLOCK
     // =========================================================================
     function switchTab(tabName) {
       document.querySelectorAll('.module-view').forEach(view => {
@@ -1448,9 +1819,18 @@
       activeBtn.classList.remove('text-emerald-100', 'hover:bg-emerald-800/70');
       activeBtn.classList.add('bg-amber-500', 'text-emerald-950', 'shadow-sm');
 
-      if (tabName === 'pos') renderOrderTypeDetail();
-      if (tabName === 'hotel') renderRoomRack();
-      if (tabName === 'cashout') renderCashOutTable();
+      if (tabName === 'pos') {
+        renderOrderTypeDetail();
+        renderClientAccountDropdowns();
+      }
+      if (tabName === 'hotel') {
+        renderRoomRack();
+        renderCollectionsTable();
+      }
+      if (tabName === 'cashout') {
+        renderCashOutTable();
+        renderStaffDeductionsTable();
+      }
       if (tabName === 'summary') renderSalesSummary();
     }
 
@@ -1482,13 +1862,13 @@
     }
 
     function openSheetsModal() {
-      document.getElementById('sheets-webhook-url').value = appState.sheetsWebhookUrl || '';
-      const latestTx = appState.transactions[appState.transactions.length - 1] || { sample: 'No transactions yet' };
+      document.getElementById('sheets-webhook-url').value = DEFAULT_WEBHOOK_URL;
+      const latestTx = appState.transactions[appState.transactions.length - 1] || { sample: 'Ready to sync' };
       document.getElementById('sheets-json-preview').textContent = JSON.stringify(
         {
+          endpoint: DEFAULT_WEBHOOK_URL,
           targetSheet: 'POS_Transactions',
           timestamp: new Date().toISOString(),
-          branch: "Eyns' Hotel & Restaurant - Catanauan",
           payload: latestTx
         },
         null,
@@ -1497,47 +1877,24 @@
       openModal('sheets-modal');
     }
 
-    function saveSheetsConfig() {
-      const url = document.getElementById('sheets-webhook-url').value.trim();
-      appState.sheetsWebhookUrl = url;
-      saveAppState();
-      closeModal('sheets-modal');
-      if (url) {
-        syncFromGoogleSheets(true);
-      } else {
-        updateSheetsBadge(false);
-        showToast('Switched to LocalStorage-only mode.');
-      }
-    }
-
     function updateSheetsBadge(connected = isSheetConnected) {
       const label = document.getElementById('sheets-status-label');
-      if (appState.sheetsWebhookUrl && connected) {
+      if (connected) {
         label.textContent = 'Sheets: Live';
         label.classList.add('text-amber-300');
-      } else if (appState.sheetsWebhookUrl) {
-        label.textContent = 'Sheets: Cached';
-        label.classList.remove('text-amber-300');
       } else {
-        label.textContent = 'Sheets: Local';
+        label.textContent = 'Sheets: Cached';
         label.classList.remove('text-amber-300');
       }
     }
 
     function testSheetsSync() {
-      const url = document.getElementById('sheets-webhook-url').value.trim();
-      if (!url) {
-        showToast('Enter a valid Apps Script Web App URL first.', 'warning');
-        return;
-      }
-      appState.sheetsWebhookUrl = url;
-      saveAppState();
       pushToGoogleSheets('Test_Ping', { status: 'OK', cashier: appState.cashier });
-      showToast('Test ping dispatched to Google Apps Script!');
+      showToast('Test ping dispatched to hardcoded Google Apps Script!');
     }
 
     // =========================================================================
-    // 6. MODULE 1: RESTAURANT POS LOGIC
+    // 6. MODULE 1: RESTAURANT POS (2-TIER SALES, CLIENT A/R, STAFF CHARGES)
     // =========================================================================
     function renderCategoryPills() {
       const container = document.getElementById('category-pills');
@@ -1616,23 +1973,66 @@
         btn.classList.add('text-slate-600');
       });
       const activeBtn = document.getElementById(`otype-${type}`);
-      activeBtn.classList.remove('text-slate-600');
-      activeBtn.classList.add('bg-white', 'text-emerald-950', 'shadow-xs');
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-600');
+        activeBtn.classList.add('bg-white', 'text-emerald-950', 'shadow-xs');
+      }
+
+      if (type === 'Take-Out') {
+        setSalesClassification('Takeouts (OS Only)');
+      } else if (type === 'Dine-In') {
+        setSalesClassification('Sales (OS + Service Invoice)');
+      }
 
       renderOrderTypeDetail();
 
+      const classBox = document.getElementById('sales-classification-box');
       const paymentSec = document.getElementById('payment-section');
       const roomNotice = document.getElementById('room-charge-notice');
       const finalizeBtnText = document.getElementById('finalize-btn-text');
 
       if (type === 'Room Charge') {
+        classBox.classList.add('hidden');
         paymentSec.classList.add('hidden');
         roomNotice.classList.remove('hidden');
         finalizeBtnText.textContent = 'Post to Room Folio & Print Slip';
       } else {
+        classBox.classList.remove('hidden');
         paymentSec.classList.remove('hidden');
         roomNotice.classList.add('hidden');
-        finalizeBtnText.textContent = 'Finalize & Print Order Slip';
+        finalizeBtnText.textContent =
+          currentOrder.salesClassification === 'Takeouts (OS Only)'
+            ? 'Finalize Takeout (Order Slip Only)'
+            : 'Finalize Sale & Issue Service Invoice';
+      }
+    }
+
+    function setSalesClassification(classification) {
+      currentOrder.salesClassification = classification;
+      document.querySelectorAll('.sclass-btn').forEach(btn => {
+        btn.classList.remove('bg-emerald-900', 'text-white', 'border-emerald-900');
+        btn.classList.add('bg-white', 'text-slate-700', 'border-stone-300');
+      });
+      const activeBtn = document.getElementById(`sclass-${classification}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-white', 'text-slate-700', 'border-stone-300');
+        activeBtn.classList.add('bg-emerald-900', 'text-white', 'border-emerald-900');
+      }
+
+      const siRow = document.getElementById('si-number-preview-row');
+      const finalizeBtnText = document.getElementById('finalize-btn-text');
+
+      if (classification === 'Takeouts (OS Only)') {
+        siRow.classList.add('hidden');
+        if (currentOrder.orderType !== 'Room Charge') {
+          finalizeBtnText.textContent = 'Finalize Takeout (Order Slip Only)';
+        }
+      } else {
+        siRow.classList.remove('hidden');
+        document.getElementById('active-si-preview').textContent = `SI-${String(appState.nextFolioReceiptNumber).padStart(4, '0')}`;
+        if (currentOrder.orderType !== 'Room Charge') {
+          finalizeBtnText.textContent = 'Finalize Sale & Issue Service Invoice';
+        }
       }
     }
 
@@ -1663,7 +2063,7 @@
         if (occupiedRooms.length === 0) {
           container.innerHTML = `
             <div class="bg-rose-50 border border-rose-200 text-rose-800 px-3 py-2 rounded-xl text-xs font-semibold">
-              No Occupied rooms currently checked in. Check in a guest on the Hotel Rack first.
+              No Occupied rooms currently checked in. Check in a guest on the Hotel & Collections tab first.
             </div>
           `;
           currentOrder.roomNumber = '';
@@ -1726,12 +2126,16 @@
       document.getElementById('sc-pwd-toggle').checked = false;
       document.getElementById('cash-tendered').value = '';
       document.getElementById('payment-ref-input').value = '';
-      document.getElementById('ar-account-input').value = '';
+      const arSel = document.getElementById('ar-account-select');
+      if (arSel && arSel.options.length > 0) arSel.selectedIndex = 0;
+      const empInput = document.getElementById('emp-charge-name');
+      if (empInput) empInput.value = '';
       renderCart();
     }
 
     function renderCart() {
       document.getElementById('active-os-number').textContent = `#OS-${appState.nextOsNumber}`;
+      document.getElementById('active-si-preview').textContent = `SI-${String(appState.nextFolioReceiptNumber).padStart(4, '0')}`;
       const container = document.getElementById('cart-items-container');
 
       if (currentOrder.items.length === 0) {
@@ -1833,23 +2237,30 @@
         btn.classList.add('bg-white', 'text-slate-700', 'border-stone-300');
       });
       const activeBtn = document.getElementById(`pm-${method}`);
-      activeBtn.classList.remove('bg-white', 'text-slate-700', 'border-stone-300');
-      activeBtn.classList.add('bg-emerald-900', 'text-white', 'border-emerald-900');
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-white', 'text-slate-700', 'border-stone-300');
+        activeBtn.classList.add('bg-emerald-900', 'text-white', 'border-emerald-900');
+      }
 
       const cashBox = document.getElementById('cash-tender-box');
       const refBox = document.getElementById('ref-number-box');
       const arBox = document.getElementById('ar-account-box');
+      const empBox = document.getElementById('emp-charge-box');
 
       cashBox.classList.add('hidden');
       refBox.classList.add('hidden');
       arBox.classList.add('hidden');
+      empBox.classList.add('hidden');
 
       if (method === 'Cash') {
         cashBox.classList.remove('hidden');
       } else if (method === 'GCash' || method === 'Card') {
         refBox.classList.remove('hidden');
       } else if (method === 'Charge / A/R') {
+        renderClientAccountDropdowns();
         arBox.classList.remove('hidden');
+      } else if (method === 'Employee Charge') {
+        empBox.classList.remove('hidden');
       }
     }
 
@@ -1871,7 +2282,7 @@
       const today = getTodayDateStr();
       const timeNow = getCurrentTimeStr();
 
-      // Case A: Room Charge -> Attaches to Occupied Room Folio & syncs Rooms_Master
+      // Case A: Room Charge
       if (currentOrder.orderType === 'Room Charge') {
         if (!currentOrder.roomNumber) {
           showToast('Please select an Occupied Room to charge.', 'error');
@@ -1901,6 +2312,7 @@
           time: timeNow,
           source: 'Restaurant',
           subType: 'Room Charge',
+          salesClassification: 'Room Charge (Pending Check-Out SI)',
           detail: `Room ${room.number} (${room.guest.name})`,
           items: [...currentOrder.items],
           grossAmount: totals.gross,
@@ -1917,7 +2329,7 @@
         return;
       }
 
-      // Case B: Direct Settlement (Dine-In or Take-Out)
+      // Case B: Direct Settlement (Takeouts OS Only vs Sales OS + Service Invoice)
       let detailLabel = currentOrder.tableNumber;
       if (currentOrder.orderType === 'Take-Out') {
         const custName = (document.getElementById('takeout-customer-name')?.value || '').trim();
@@ -1939,19 +2351,33 @@
       } else if (currentOrder.paymentMethod === 'GCash' || currentOrder.paymentMethod === 'Card') {
         refNumber = (document.getElementById('payment-ref-input').value || '').trim();
       } else if (currentOrder.paymentMethod === 'Charge / A/R') {
-        arAccount = (document.getElementById('ar-account-input').value || '').trim();
+        arAccount = (document.getElementById('ar-account-select')?.value || '').trim();
         if (!arAccount) {
-          showToast('Please enter the Charge / A/R Account Name.', 'warning');
+          showToast('Please select or create a Client A/R Account first.', 'warning');
+          openClientAccountsModal();
+          return;
+        }
+      } else if (currentOrder.paymentMethod === 'Employee Charge') {
+        arAccount = (document.getElementById('emp-charge-name')?.value || '').trim();
+        if (!arAccount) {
+          showToast('Please enter the Employee Name for salary deduction.', 'warning');
           return;
         }
       }
 
+      const isServiceInvoice = currentOrder.salesClassification === 'Sales (OS + Service Invoice)';
+      const siTag = isServiceInvoice ? `SI-${String(appState.nextFolioReceiptNumber).padStart(4, '0')}` : '';
+      const docId = isServiceInvoice ? `${osId} / ${siTag}` : osId;
+
       const txRecord = {
-        id: osId,
+        id: docId,
+        osNumber: osId,
+        siNumber: siTag,
         date: today,
         time: timeNow,
         source: 'Restaurant',
         subType: currentOrder.orderType,
+        salesClassification: currentOrder.salesClassification,
         detail: detailLabel,
         items: [...currentOrder.items],
         grossAmount: totals.gross,
@@ -1970,35 +2396,375 @@
 
       appState.transactions.push(txRecord);
       appState.nextOsNumber += 1;
-      saveAppState();
-      pushToGoogleSheets('POS_Transactions', txRecord);
-      if (txRecord.paymentMethod === 'Charge / A/R') {
-        pushToGoogleSheets('AR_Ledger', txRecord);
+      if (isServiceInvoice) {
+        appState.nextFolioReceiptNumber += 1;
       }
 
+      if (currentOrder.paymentMethod === 'Charge / A/R') {
+        pushToGoogleSheets('AR_Ledger', txRecord);
+      } else if (currentOrder.paymentMethod === 'Employee Charge') {
+        const dedEntry = {
+          id: `ED-${String(appState.staffDeductions.length + 1).padStart(3, '0')}`,
+          date: today,
+          time: timeNow,
+          employeeName: arAccount,
+          type: `POS Staff Charge (${docId})`,
+          amount: totals.totalDue,
+          status: 'For Payroll Deduction',
+          cashier: appState.cashier
+        };
+        appState.staffDeductions.push(dedEntry);
+        pushToGoogleSheets('Staff_Deductions', dedEntry);
+      }
+
+      saveAppState();
+      pushToGoogleSheets('POS_Transactions', txRecord);
+
       clearCurrentOrder();
+      setSalesClassification(currentOrder.salesClassification);
+      renderClientAccountDropdowns();
       openOrderSlipReceipt(txRecord);
-      showToast(`Order ${osId} finalized (${formatPHP(txRecord.netAmount)})!`);
+      showToast(`${docId} finalized (${formatPHP(txRecord.netAmount)})!`);
     }
 
     // =========================================================================
-    // 7. MODULE 2: HOTEL ROOM RACK & FOLIO LOGIC
+    // 6B. CLIENT ACCOUNTS & CONSOLIDATED A/R MANAGEMENT
+    // =========================================================================
+    function ensureClientAccountsFromTransactions() {
+      if (!Array.isArray(appState.clientAccounts)) appState.clientAccounts = [];
+      const existingNames = new Set(appState.clientAccounts.map(c => c.name.toLowerCase().trim()));
+
+      appState.transactions
+        .filter(t => t.paymentMethod === 'Charge / A/R' && (t.arAccount || t.detail))
+        .forEach(t => {
+          const rawName = String(t.arAccount || t.detail).trim();
+          if (rawName && !existingNames.has(rawName.toLowerCase())) {
+            existingNames.add(rawName.toLowerCase());
+            appState.clientAccounts.push({
+              id: `CLI-${String(appState.clientAccounts.length + 1).padStart(3, '0')}`,
+              name: rawName,
+              type: 'Corporate / Business',
+              contactPerson: '',
+              phone: '',
+              terms: '15 Days'
+            });
+          }
+        });
+    }
+
+    function renderClientAccountDropdowns() {
+      ensureClientAccountsFromTransactions();
+      const accounts = appState.clientAccounts || [];
+      const optionsHtml = accounts.length === 0
+        ? `<option value="">-- No Client Accounts (Click + New) --</option>`
+        : `<option value="">-- Select Client Account --</option>` +
+          accounts.map(c => `<option value="${c.name.replace(/"/g, '&quot;')}">${c.name} (${c.type})</option>`).join('');
+
+      const posSelect = document.getElementById('ar-account-select');
+      if (posSelect) {
+        const prev = posSelect.value;
+        posSelect.innerHTML = optionsHtml;
+        if (prev) posSelect.value = prev;
+      }
+
+      const folioSelect = document.getElementById('folio-ar-select');
+      if (folioSelect) {
+        const prevFolio = folioSelect.value;
+        folioSelect.innerHTML = optionsHtml;
+        if (prevFolio) folioSelect.value = prevFolio;
+      }
+    }
+
+    function openClientAccountsModal(preselectClient = '') {
+      renderClientAccountsDirectory();
+      if (preselectClient) {
+        inspectClientStatement(preselectClient);
+      } else if (selectedClientAccountName) {
+        inspectClientStatement(selectedClientAccountName);
+      }
+      openModal('client-accounts-modal');
+    }
+
+    function submitNewClientAccount(event) {
+      event.preventDefault();
+      const name = document.getElementById('ca-new-name').value.trim();
+      const type = document.getElementById('ca-new-type').value;
+      const contactPerson = document.getElementById('ca-new-contact-person').value.trim();
+      const phone = document.getElementById('ca-new-phone').value.trim();
+      const terms = document.getElementById('ca-new-terms').value.trim() || '15 Days';
+
+      if (!name) return;
+      if ((appState.clientAccounts || []).some(c => c.name.toLowerCase() === name.toLowerCase())) {
+        showToast(`Client account "${name}" already exists.`, 'warning');
+        inspectClientStatement(name);
+        return;
+      }
+
+      const newAcc = {
+        id: `CLI-${String((appState.clientAccounts || []).length + 1).padStart(3, '0')}`,
+        name,
+        type,
+        contactPerson,
+        phone,
+        terms
+      };
+
+      appState.clientAccounts.push(newAcc);
+      saveAppState();
+      pushToGoogleSheets('Client_Accounts', newAcc);
+
+      document.getElementById('new-client-form').reset();
+      renderClientAccountDropdowns();
+      renderClientAccountsDirectory();
+      renderSalesSummary();
+      inspectClientStatement(name);
+
+      const posSel = document.getElementById('ar-account-select');
+      if (posSel) posSel.value = name;
+      const folioSel = document.getElementById('folio-ar-select');
+      if (folioSel) folioSel.value = name;
+
+      showToast(`Client Account "${name}" created!`);
+    }
+
+    function getClientConsolidatedSummary(clientName) {
+      const target = clientName.toLowerCase().trim();
+      const txs = appState.transactions.filter(
+        t => t.paymentMethod === 'Charge / A/R' && String(t.arAccount || t.detail || '').toLowerCase().trim() === target
+      );
+      const totalBilled = txs.reduce((s, t) => s + (Number(t.netAmount) || 0), 0);
+      const unpaidTxs = txs.filter(t => t.arStatus === 'Unpaid');
+      const openBalance = unpaidTxs.reduce((s, t) => s + (Number(t.netAmount) || 0), 0);
+      return { txs, unpaidTxs, totalBilled, openBalance };
+    }
+
+    function renderClientAccountsDirectory() {
+      ensureClientAccountsFromTransactions();
+      const tbody = document.getElementById('ca-directory-tbody');
+      const totalOpenBadge = document.getElementById('ca-modal-total-open');
+      if (!tbody) return;
+
+      let grandOpen = 0;
+      tbody.innerHTML = (appState.clientAccounts || []).map(acc => {
+        const stats = getClientConsolidatedSummary(acc.name);
+        grandOpen += stats.openBalance;
+        const safeName = acc.name.replace(/'/g, "\\'");
+        const isSelected = selectedClientAccountName.toLowerCase() === acc.name.toLowerCase();
+        return `
+          <tr class="${isSelected ? 'bg-amber-50' : 'hover:bg-stone-50'}">
+            <td class="py-2.5 px-3">
+              <p class="font-bold text-slate-900">${acc.name}</p>
+              <span class="text-[10px] text-slate-500">${acc.id} • ${acc.type}</span>
+            </td>
+            <td class="py-2.5 px-3 text-[11px] text-slate-600">
+              ${acc.contactPerson || '—'}${acc.phone ? ` (${acc.phone})` : ''}<br/>
+              <span class="text-[10px] text-emerald-800 font-semibold">Terms: ${acc.terms || '15 Days'}</span>
+            </td>
+            <td class="py-2.5 px-3 text-right font-mono font-extrabold ${stats.openBalance > 0 ? 'text-amber-800' : 'text-emerald-700'}">
+              ${formatPHP(stats.openBalance)}
+              <span class="block text-[10px] font-normal text-slate-400">${stats.unpaidTxs.length} open / ${stats.txs.length} total</span>
+            </td>
+            <td class="py-2.5 px-3 text-center">
+              <button type="button" onclick="inspectClientStatement('${safeName}')" class="px-2.5 py-1 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-[11px] transition">
+                Statement
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      if (totalOpenBadge) totalOpenBadge.textContent = `Total Open A/R: ${formatPHP(grandOpen)}`;
+    }
+
+    function inspectClientStatement(clientName) {
+      selectedClientAccountName = clientName;
+      renderClientAccountsDirectory();
+
+      const stats = getClientConsolidatedSummary(clientName);
+      document.getElementById('ca-stmt-title').textContent = `${clientName} — Consolidated Balance: ${formatPHP(stats.openBalance)}`;
+
+      const actionsEl = document.getElementById('ca-stmt-actions');
+      if (stats.txs.length > 0) actionsEl.classList.remove('hidden');
+      else actionsEl.classList.add('hidden');
+
+      const tbody = document.getElementById('ca-stmt-tbody');
+      if (stats.txs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-5 text-center text-slate-400">No A/R charges recorded under "${clientName}" yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = stats.txs.slice().reverse().map(t => {
+        const itemsText = (t.items || []).map(i => `${i.qty}x ${i.name}`).join(', ') || t.detail;
+        return `
+          <tr class="hover:bg-stone-50">
+            <td class="py-2 px-2.5 font-mono font-bold text-slate-800">${t.id}</td>
+            <td class="py-2 px-2.5 font-mono text-slate-500">${t.date}</td>
+            <td class="py-2 px-2.5 text-slate-700">${itemsText}</td>
+            <td class="py-2 px-2.5 text-right font-mono font-bold text-slate-900">${formatPHP(t.netAmount)}</td>
+            <td class="py-2 px-2.5 text-center">
+              ${
+                t.arStatus === 'Unpaid'
+                  ? `<button type="button" onclick="collectArAccount('${t.id}', true)" class="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold text-[10px]">
+                      Pay This
+                    </button>`
+                  : `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Paid</span>`
+              }
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function settleAllClientAr() {
+      if (!selectedClientAccountName) return;
+      const stats = getClientConsolidatedSummary(selectedClientAccountName);
+      if (stats.unpaidTxs.length === 0) {
+        showToast(`${selectedClientAccountName} has no open unpaid balance.`, 'warning');
+        return;
+      }
+
+      showConfirmDialog(
+        `Settle All Open A/R — ${selectedClientAccountName}`,
+        `Record consolidated cash payment of ${formatPHP(stats.openBalance)} covering ${stats.unpaidTxs.length} unpaid invoice(s)/slip(s) for ${selectedClientAccountName}?`,
+        () => {
+          const today = getTodayDateStr();
+          const timeNow = getCurrentTimeStr();
+          const crId = `CR-CONS-${Date.now().toString().slice(-4)}`;
+
+          stats.unpaidTxs.forEach(tx => {
+            tx.arStatus = 'Paid';
+            tx.collectedMethod = 'Cash';
+            tx.collectedDate = today;
+            pushToGoogleSheets('AR_Ledger_Update', {
+              txn_id: tx.id,
+              amount_paid: tx.netAmount,
+              collection_date: today,
+              cr_number: crId
+            });
+          });
+
+          const colRecord = {
+            id: crId,
+            date: today,
+            time: timeNow,
+            source: 'A/R Collection',
+            subType: 'Consolidated A/R Payment',
+            salesClassification: 'A/R Payment Received',
+            detail: `Consolidated A/R Settlement — ${selectedClientAccountName} (${stats.unpaidTxs.map(u => u.id).join(', ')})`,
+            items: stats.unpaidTxs.map(u => ({ name: `A/R Invoice ${u.id} (${u.date})`, qty: 1, price: u.netAmount })),
+            grossAmount: stats.openBalance,
+            vatLess: 0,
+            scDiscount: 0,
+            discountAmount: 0,
+            netAmount: stats.openBalance,
+            paymentMethod: 'Cash',
+            cashier: appState.cashier
+          };
+
+          appState.transactions.push(colRecord);
+          saveAppState();
+          pushToGoogleSheets('POS_Transactions', colRecord);
+
+          inspectClientStatement(selectedClientAccountName);
+          renderSalesSummary();
+          openOrderSlipReceipt(colRecord);
+          showToast(`Consolidated A/R of ${formatPHP(stats.openBalance)} settled for ${selectedClientAccountName}!`);
+        }
+      );
+    }
+
+    function printConsolidatedClientSOA() {
+      if (!selectedClientAccountName) return;
+      const acc = (appState.clientAccounts || []).find(c => c.name === selectedClientAccountName) || { name: selectedClientAccountName, type: 'Client Account', terms: '15 Days' };
+      const stats = getClientConsolidatedSummary(selectedClientAccountName);
+
+      const rowsHtml = stats.txs.map(t => {
+        const itemsText = (t.items || []).map(i => `${i.qty}x ${i.name}`).join(', ') || t.detail;
+        return `
+          <tr class="border-b border-slate-200">
+            <td class="py-1.5 font-mono">${t.date}</td>
+            <td class="py-1.5 font-mono font-bold">${t.id}</td>
+            <td class="py-1.5">${itemsText}</td>
+            <td class="py-1.5 text-center">${t.arStatus}</td>
+            <td class="py-1.5 text-right font-mono">${formatPHP(t.netAmount)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const html = `
+        <div class="text-xs text-slate-900 space-y-4">
+          <div class="flex justify-between items-end border-b-2 border-slate-900 pb-3">
+            <div>
+              <h1 class="text-lg font-extrabold tracking-tight">EYNS' HOTEL & RESTAURANT</h1>
+              <p class="text-[11px] text-slate-600">Catanauan, Quezon • Statement of Account (Consolidated A/R)</p>
+            </div>
+            <div class="text-right font-mono text-[11px]">
+              <p><strong>Statement Date:</strong> ${getTodayDateStr()}</p>
+              <p><strong>Terms:</strong> ${acc.terms || '15 Days'}</p>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 p-3 rounded border border-slate-300">
+            <p class="text-[10px] uppercase font-bold text-slate-500">Billed To Client Account:</p>
+            <p class="text-sm font-extrabold text-slate-900">${acc.name}</p>
+            <p class="text-[11px] text-slate-600">${acc.type}${acc.contactPerson ? ' • Attn: ' + acc.contactPerson : ''}${acc.phone ? ' • ' + acc.phone : ''}</p>
+          </div>
+
+          <table class="w-full text-left border-collapse text-[11px]">
+            <thead>
+              <tr class="bg-slate-100 border-b border-slate-400 text-slate-700">
+                <th class="py-1.5 px-1">Date</th>
+                <th class="py-1.5 px-1">Doc #</th>
+                <th class="py-1.5 px-1">Particulars / Charges</th>
+                <th class="py-1.5 px-1 text-center">Status</th>
+                <th class="py-1.5 px-1 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+
+          <div class="flex justify-end">
+            <div class="w-64 space-y-1 text-xs border-t-2 border-slate-800 pt-2">
+              <div class="flex justify-between"><span>Total Cumulative Charges:</span><span class="font-mono">${formatPHP(stats.totalBilled)}</span></div>
+              <div class="flex justify-between font-extrabold text-sm text-emerald-950">
+                <span>TOTAL BALANCE DUE:</span>
+                <span class="font-mono">${formatPHP(stats.openBalance)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-8 pt-8 text-center text-[11px]">
+            <div class="border-t border-slate-800 pt-1">Prepared By: ${appState.cashier}</div>
+            <div class="border-t border-slate-800 pt-1">Received / Acknowledged By Client</div>
+          </div>
+        </div>
+      `;
+
+      closeModal('client-accounts-modal');
+      showPrintPreviewModal(`Statement of Account — ${acc.name}`, html, 'max-w-[680px]');
+    }
+
+    // =========================================================================
+    // 7. MODULE 2: HOTEL ROOM RACK & COLLECTIONS LOGIC
     // =========================================================================
     function renderRoomRack() {
       const rooms = appState.rooms;
       const availCount = rooms.filter(r => r.status === 'Available').length;
       const occCount = rooms.filter(r => r.status === 'Occupied').length;
-      const dirtyCount = rooms.filter(r => r.status === 'Dirty').length;
 
       const today = getTodayDateStr();
       const todayRoomRev = appState.transactions
         .filter(t => t.date === today && t.source === 'Hotel')
         .reduce((sum, t) => sum + (t.roomRevenue || t.netAmount), 0);
 
+      const heldCollectionsTotal = (appState.collections || [])
+        .filter(c => c.status === 'Held (Unbilled)')
+        .reduce((s, c) => s + c.amount, 0);
+
       document.getElementById('kpi-total-rooms').textContent = rooms.length;
       document.getElementById('kpi-avail-rooms').textContent = availCount;
       document.getElementById('kpi-occ-rooms').textContent = occCount;
-      document.getElementById('kpi-dirty-rooms').textContent = dirtyCount;
+      document.getElementById('kpi-active-collections').textContent = formatPHP(heldCollectionsTotal);
       document.getElementById('kpi-room-rev').textContent = formatPHP(todayRoomRev);
       document.getElementById('badge-occupied-rooms').textContent = `${occCount}/${rooms.length}`;
 
@@ -2153,6 +2919,7 @@
       const extraBeds = Math.max(0, parseInt(document.getElementById('ci-extra-beds').value) || 0);
       const deposit = Math.max(0, parseFloat(document.getElementById('ci-deposit').value) || 0);
       const depositMethod = document.getElementById('ci-deposit-method').value;
+      const today = getTodayDateStr();
 
       room.status = 'Occupied';
       room.guest = {
@@ -2161,16 +2928,36 @@
         pax,
         nights,
         extraBeds,
-        checkInDate: getTodayDateStr(),
+        checkInDate: today,
         deposit,
         depositMethod,
         roomCharges: []
       };
 
+      if (deposit > 0) {
+        const colEntry = {
+          id: `COL-${String(appState.collections.length + 1).padStart(3, '0')}`,
+          date: today,
+          time: getCurrentTimeStr(),
+          clientName: `${guestName} (Room ${room.number})`,
+          type: 'Hotel Room Deposit',
+          amount: deposit,
+          contractTotal: (room.rate + extraBeds * 400) * nights,
+          method: depositMethod,
+          targetDate: today,
+          notes: `Check-in advance deposit for Room ${room.number}`,
+          status: 'Applied to Room Folio',
+          cashier: appState.cashier
+        };
+        appState.collections.push(colEntry);
+        pushToGoogleSheets('Collections_Log', colEntry);
+      }
+
       saveAppState();
       pushToGoogleSheets('Rooms_Master', { rooms: appState.rooms });
       closeModal('checkin-modal');
       renderRoomRack();
+      renderCollectionsTable();
       showToast(`Checked in ${guestName} to Room ${room.number}!`);
     }
 
@@ -2238,7 +3025,7 @@
 
       document.getElementById('folio-payment-method').value = 'Cash';
       document.getElementById('folio-ar-box').classList.add('hidden');
-      document.getElementById('folio-ar-name').value = '';
+      renderClientAccountDropdowns();
 
       openModal('folio-modal');
     }
@@ -2247,6 +3034,7 @@
       const pm = document.getElementById('folio-payment-method').value;
       const box = document.getElementById('folio-ar-box');
       if (pm === 'Charge / A/R') {
+        renderClientAccountDropdowns();
         box.classList.remove('hidden');
       } else {
         box.classList.add('hidden');
@@ -2269,9 +3057,10 @@
       if (!room || !room.guest) return;
 
       const pm = document.getElementById('folio-payment-method').value;
-      const arAccount = (document.getElementById('folio-ar-name').value || '').trim();
+      const arAccount = (document.getElementById('folio-ar-select')?.value || '').trim();
       if (pm === 'Charge / A/R' && !arAccount) {
-        showToast('Enter the Corporate / A/R Account Name for Charge check-out.', 'warning');
+        showToast('Select or create a Client Account for Charge check-out.', 'warning');
+        openClientAccountsModal();
         return;
       }
 
@@ -2296,10 +3085,12 @@
 
       const txRecord = {
         id: siId,
+        siNumber: siId,
         date: today,
         time: timeNow,
         source: 'Hotel',
         subType: 'Room Check-Out',
+        salesClassification: 'Sales (OS + Service Invoice)',
         detail: `Room ${room.number} — ${g.name} (${g.nights}nt)`,
         items: folioItems,
         roomRevenue,
@@ -2336,9 +3127,164 @@
       showToast(`Room ${room.number} Checked Out! Invoice ${siId} recorded.`);
     }
 
+    // COLLECTIONS (Downpayments & Reservations before full payment/SI)
+    function submitCollectionEntry(event) {
+      event.preventDefault();
+      const clientName = document.getElementById('col-client-name').value.trim();
+      const type = document.getElementById('col-type').value;
+      const amount = parseFloat(document.getElementById('col-amount').value) || 0;
+      const contractTotal = parseFloat(document.getElementById('col-contract-total').value) || amount;
+      const method = document.getElementById('col-method').value;
+      const targetDate = document.getElementById('col-target-date').value || getTodayDateStr();
+      const notes = document.getElementById('col-notes').value.trim();
+
+      if (amount <= 0) {
+        showToast('Enter a valid collection amount.', 'warning');
+        return;
+      }
+
+      const entry = {
+        id: `COL-${String(appState.collections.length + 1).padStart(3, '0')}`,
+        date: getTodayDateStr(),
+        time: getCurrentTimeStr(),
+        clientName,
+        type,
+        amount,
+        contractTotal,
+        method,
+        targetDate,
+        notes,
+        status: 'Held (Unbilled)',
+        cashier: appState.cashier
+      };
+
+      appState.collections.push(entry);
+      saveAppState();
+      pushToGoogleSheets('Collections_Log', entry);
+
+      document.getElementById('collection-form').reset();
+      renderRoomRack();
+      renderCollectionsTable();
+      showToast(`Collection ${entry.id} (${formatPHP(amount)}) held in Cash Box!`);
+    }
+
+    function convertCollectionToSale(colId) {
+      const col = appState.collections.find(c => c.id === colId);
+      if (!col || col.status !== 'Held (Unbilled)') return;
+
+      const finalTotal = Math.max(col.amount, col.contractTotal || col.amount);
+      const remainingBalance = Math.max(0, finalTotal - col.amount);
+
+      showConfirmDialog(
+        `Issue Service Invoice & Recognize Sale (${col.id})`,
+        `Convert ${col.clientName} (${col.type}) into a recognized Sale with Service Invoice? Prior deposit: ${formatPHP(col.amount)}. Remaining balance collected today: ${formatPHP(remainingBalance)}.`,
+        () => {
+          const siId = `SI-${String(appState.nextFolioReceiptNumber).padStart(4, '0')}`;
+          const today = getTodayDateStr();
+          const timeNow = getCurrentTimeStr();
+
+          col.status = `Converted (${siId})`;
+          col.settledDate = today;
+
+          const txRecord = {
+            id: siId,
+            siNumber: siId,
+            date: today,
+            time: timeNow,
+            source: 'Collection Settlement',
+            subType: col.type,
+            salesClassification: 'Sales (OS + Service Invoice)',
+            detail: `${col.clientName} (${col.id} Full Settlement)`,
+            items: [{ name: `${col.type} — ${col.clientName}`, qty: 1, price: finalTotal }],
+            grossAmount: finalTotal,
+            vatLess: 0,
+            scDiscount: 0,
+            discountAmount: 0,
+            netAmount: finalTotal,
+            depositPaid: col.amount,
+            paymentMethod: 'Cash',
+            cashier: appState.cashier
+          };
+
+          appState.transactions.push(txRecord);
+          appState.nextFolioReceiptNumber += 1;
+          saveAppState();
+          pushToGoogleSheets('POS_Transactions', txRecord);
+
+          renderRoomRack();
+          renderCollectionsTable();
+          openGuestFolioReceipt(txRecord);
+          showToast(`Service Invoice ${siId} issued and recognized in Sales!`);
+        }
+      );
+    }
+
+    function renderCollectionsTable() {
+      const tbody = document.getElementById('collections-table-body');
+      const badge = document.getElementById('collections-count-badge');
+      if (!tbody) return;
+
+      const heldCount = (appState.collections || []).filter(c => c.status === 'Held (Unbilled)').length;
+      if (badge) badge.textContent = `${heldCount} Held`;
+
+      if (!appState.collections || appState.collections.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">No reservation/downpayment collections recorded yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = appState.collections.slice().reverse().map(c => `
+        <tr class="hover:bg-stone-50">
+          <td class="py-2.5 px-3">
+            <span class="font-mono font-bold text-sky-900 block">${c.id}</span>
+            <span class="text-[10px] text-slate-400">${c.date}</span>
+          </td>
+          <td class="py-2.5 px-3">
+            <p class="font-bold text-slate-900">${c.clientName}</p>
+            <span class="text-[10px] text-slate-500">${c.type}${c.targetDate ? ` • Target: ${c.targetDate}` : ''}</span>
+          </td>
+          <td class="py-2.5 px-3 font-semibold text-slate-700">${c.method}</td>
+          <td class="py-2.5 px-3 text-right font-mono">
+            <span class="font-extrabold text-slate-900 block">${formatPHP(c.amount)}</span>
+            ${c.contractTotal > c.amount ? `<span class="text-[10px] text-slate-400">of ${formatPHP(c.contractTotal)}</span>` : ''}
+          </td>
+          <td class="py-2.5 px-3 text-center">
+            ${
+              c.status === 'Held (Unbilled)'
+                ? `<button type="button" onclick="convertCollectionToSale('${c.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-[10px] shadow-xs transition">
+                    Issue SI & Recognize Sale
+                  </button>`
+                : `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">${c.status}</span>`
+            }
+          </td>
+        </tr>
+      `).join('');
+    }
+
     // =========================================================================
-    // 8. MODULE 3: CASHIER CASH-OUT & EXPENSES LOGIC
+    // 8. MODULE 3: CASH BOX, PURCHASES, MGMT CASH-OUT & EMPLOYEE ADVANCES
     // =========================================================================
+    function setDrawerFormMode(mode) {
+      document.querySelectorAll('.dmode-btn').forEach(btn => {
+        btn.classList.remove('bg-white', 'text-emerald-950', 'shadow-xs');
+        btn.classList.add('text-slate-600');
+      });
+      const activeBtn = document.getElementById(`dmode-${mode}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-600');
+        activeBtn.classList.add('bg-white', 'text-emerald-950', 'shadow-xs');
+      }
+
+      document.querySelectorAll('.drawer-subform').forEach(f => {
+        f.classList.add('hidden');
+        f.classList.remove('flex');
+      });
+      const targetForm = document.getElementById(`form-drawer-${mode}`);
+      if (targetForm) {
+        targetForm.classList.remove('hidden');
+        targetForm.classList.add('flex');
+      }
+    }
+
     function submitCashOut(event) {
       event.preventDefault();
       const category = document.getElementById('co-category').value;
@@ -2354,7 +3300,7 @@
       }
 
       const entry = {
-        id: `CO-${String(appState.cashOuts.length + 1).padStart(3, '0')}`,
+        id: `PUR-${String(appState.cashOuts.length + 1).padStart(3, '0')}`,
         date: getTodayDateStr(),
         time: getCurrentTimeStr(),
         category,
@@ -2370,85 +3316,262 @@
       saveAppState();
       pushToGoogleSheets('Cash_Out_Log', entry);
 
-      document.getElementById('cashout-form').reset();
+      document.getElementById('form-drawer-purchase').reset();
       renderCashOutTable();
-      showToast(`Cash-Out ${formatPHP(amount)} recorded under ${category}`);
+      showToast(`Purchase ${formatPHP(amount)} recorded under ${category}`);
+    }
+
+    function submitCashBoxInflow(event) {
+      event.preventDefault();
+      const amount = parseFloat(document.getElementById('cb-amount').value) || 0;
+      const type = document.getElementById('cb-type').value;
+      const from = document.getElementById('cb-from').value.trim();
+      const notes = document.getElementById('cb-notes').value.trim();
+
+      if (amount <= 0) {
+        showToast('Enter a valid Cash Box inflow amount.', 'warning');
+        return;
+      }
+
+      const entry = {
+        id: `CB-${String(appState.cashBoxInflows.length + 1).padStart(3, '0')}`,
+        date: getTodayDateStr(),
+        time: getCurrentTimeStr(),
+        type,
+        from,
+        amount,
+        notes,
+        cashier: appState.cashier
+      };
+
+      appState.cashBoxInflows.push(entry);
+      saveAppState();
+      pushToGoogleSheets('Cash_Box_Inflows', entry);
+
+      document.getElementById('form-drawer-cashbox').reset();
+      renderCashOutTable();
+      showToast(`Added ${formatPHP(amount)} from Management into Cash Box!`);
+    }
+
+    function submitMgmtCashOut(event) {
+      event.preventDefault();
+      const amount = parseFloat(document.getElementById('mo-amount').value) || 0;
+      const recipient = document.getElementById('mo-recipient').value.trim();
+      const notes = document.getElementById('mo-notes').value.trim();
+
+      if (amount <= 0) {
+        showToast('Enter a valid Cash Out remittance amount.', 'warning');
+        return;
+      }
+
+      const entry = {
+        id: `MO-${String(appState.mgmtCashOuts.length + 1).padStart(3, '0')}`,
+        date: getTodayDateStr(),
+        time: getCurrentTimeStr(),
+        recipient,
+        amount,
+        notes,
+        cashier: appState.cashier
+      };
+
+      appState.mgmtCashOuts.push(entry);
+      saveAppState();
+      pushToGoogleSheets('Mgmt_Cash_Out', entry);
+
+      document.getElementById('form-drawer-mgmtout').reset();
+      renderCashOutTable();
+      showToast(`Recorded ${formatPHP(amount)} Cash Out remitted to ${recipient}!`);
+    }
+
+    function submitStaffCashAdvance(event) {
+      event.preventDefault();
+      const employeeName = document.getElementById('ca-emp-name').value.trim();
+      const amount = parseFloat(document.getElementById('ca-amount').value) || 0;
+      const notes = document.getElementById('ca-notes').value.trim();
+
+      if (amount <= 0) {
+        showToast('Enter a valid Cash Advance amount.', 'warning');
+        return;
+      }
+
+      const entry = {
+        id: `CA-${String(appState.staffDeductions.length + 1).padStart(3, '0')}`,
+        date: getTodayDateStr(),
+        time: getCurrentTimeStr(),
+        employeeName,
+        type: 'Cash Advance (Cash Box)',
+        amount,
+        notes,
+        status: 'For Payroll Deduction',
+        cashier: appState.cashier
+      };
+
+      appState.staffDeductions.push(entry);
+      saveAppState();
+      pushToGoogleSheets('Staff_Deductions', entry);
+
+      document.getElementById('form-drawer-advance').reset();
+      renderStaffDeductionsTable();
+      showToast(`Cash Advance of ${formatPHP(amount)} recorded for ${employeeName}!`);
     }
 
     function deleteCashOut(id) {
       showConfirmDialog(
-        'Remove Cash-Out Entry Locally?',
-        'Remove this expense record from the local cashier log? (Note: already-synced rows in Google Sheets should also be voided in Cash_Out_Log if needed.)',
+        'Remove Purchase Entry Locally?',
+        'Remove this purchase record from the local log?',
         () => {
           appState.cashOuts = appState.cashOuts.filter(c => c.id !== id);
           saveAppState();
           renderCashOutTable();
-          showToast('Cash-Out entry removed locally.', 'warning');
+          showToast('Purchase entry removed locally.', 'warning');
         }
       );
     }
 
     function renderCashOutTable() {
       const today = getTodayDateStr();
-      const todayEntries = appState.cashOuts.filter(c => c.date === today);
+      const todayPurchases = (appState.cashOuts || []).filter(c => c.date === today);
+      const todayCashBoxIn = (appState.cashBoxInflows || []).filter(c => c.date === today);
+      const todayMgmtOut = (appState.mgmtCashOuts || []).filter(c => c.date === today);
 
-      const drawerSum = todayEntries
-        .filter(c => c.source === 'Cash Drawer')
-        .reduce((s, c) => s + c.amount, 0);
-      const nonCashSum = todayEntries
-        .filter(c => c.source !== 'Cash Drawer')
-        .reduce((s, c) => s + c.amount, 0);
+      const cashBoxInSum = todayCashBoxIn.reduce((s, c) => s + c.amount, 0);
+      const drawerPurSum = todayPurchases.filter(c => c.source === 'Cash Drawer').reduce((s, c) => s + c.amount, 0);
+      const mgmtOutSum = todayMgmtOut.reduce((s, c) => s + c.amount, 0);
 
-      document.getElementById('co-drawer-total').textContent = formatPHP(drawerSum);
-      document.getElementById('co-noncash-total').textContent = formatPHP(nonCashSum);
+      document.getElementById('co-cashbox-in-total').textContent = formatPHP(cashBoxInSum);
+      document.getElementById('co-drawer-total').textContent = formatPHP(drawerPurSum);
+      document.getElementById('co-mgmt-out-total').textContent = formatPHP(mgmtOutSum);
+
+      const combinedRows = [
+        ...todayCashBoxIn.map(i => ({
+          id: i.id,
+          time: i.time,
+          ref: i.id,
+          badge: i.type,
+          badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-200',
+          title: `From Management: ${i.from}`,
+          notes: i.notes,
+          impact: '+ Cash Box Inflow',
+          impactClass: 'bg-emerald-100 text-emerald-800',
+          amount: i.amount,
+          deletable: false
+        })),
+        ...todayMgmtOut.map(m => ({
+          id: m.id,
+          time: m.time,
+          ref: m.id,
+          badge: 'Cash Out to Management',
+          badgeClass: 'bg-rose-100 text-rose-900 border-rose-200',
+          title: `Remitted to: ${m.recipient}`,
+          notes: m.notes,
+          impact: '- Cash Box Out',
+          impactClass: 'bg-rose-100 text-rose-800',
+          amount: m.amount,
+          deletable: false
+        })),
+        ...todayPurchases.map(p => ({
+          id: p.id,
+          time: p.time,
+          ref: p.ref,
+          badge: p.category,
+          badgeClass: 'bg-amber-50 text-amber-800 border-amber-200/70',
+          title: p.payee,
+          notes: p.notes,
+          impact: p.source === 'Cash Drawer' ? '- Cash Box' : p.source,
+          impactClass: p.source === 'Cash Drawer' ? 'bg-amber-100 text-amber-900' : 'bg-sky-100 text-sky-800',
+          amount: p.amount,
+          deletable: true
+        }))
+      ];
 
       const tbody = document.getElementById('cashout-table-body');
-      if (todayEntries.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="5" class="py-8 text-center text-slate-400">No cash-out entries recorded today.</td>
-          </tr>
-        `;
+      if (combinedRows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400">No Cash Box inflows, purchases, or remittances logged today.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = todayEntries
-        .slice()
-        .reverse()
-        .map(c => `
-          <tr class="hover:bg-stone-50">
-            <td class="py-3 px-4 align-top">
-              <span class="font-mono font-bold text-slate-800 block">${c.ref}</span>
-              <span class="text-[11px] text-slate-400">${c.time}</span>
-            </td>
-            <td class="py-3 px-4 align-top">
-              <span class="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200/70 mb-1">
-                ${c.category}
-              </span>
-              <p class="font-bold text-slate-900">${c.payee}</p>
-              ${c.notes ? `<p class="text-[11px] text-slate-500 mt-0.5">${c.notes}</p>` : ''}
-            </td>
-            <td class="py-3 px-4 align-top">
-              <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                c.source === 'Cash Drawer' ? 'bg-rose-100 text-rose-800' : 'bg-sky-100 text-sky-800'
-              }">
-                ${c.source}
-              </span>
-            </td>
-            <td class="py-3 px-4 align-top text-right font-mono font-extrabold text-slate-900">
-              ${formatPHP(c.amount)}
-            </td>
-            <td class="py-3 px-4 align-top text-center">
-              <button onclick="deleteCashOut('${c.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition" title="Remove Local Entry">
-                <i class="fa-solid fa-trash-can"></i>
-              </button>
-            </td>
-          </tr>
-        `).join('');
+      tbody.innerHTML = combinedRows.reverse().map(r => `
+        <tr class="hover:bg-stone-50">
+          <td class="py-3 px-4 align-top">
+            <span class="font-mono font-bold text-slate-800 block">${r.ref}</span>
+            <span class="text-[11px] text-slate-400">${r.time}</span>
+          </td>
+          <td class="py-3 px-4 align-top">
+            <span class="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded border mb-1 ${r.badgeClass}">
+              ${r.badge}
+            </span>
+            <p class="font-bold text-slate-900">${r.title}</p>
+            ${r.notes ? `<p class="text-[11px] text-slate-500 mt-0.5">${r.notes}</p>` : ''}
+          </td>
+          <td class="py-3 px-4 align-top">
+            <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ${r.impactClass}">
+              ${r.impact}
+            </span>
+          </td>
+          <td class="py-3 px-4 align-top text-right font-mono font-extrabold text-slate-900">
+            ${formatPHP(r.amount)}
+          </td>
+          <td class="py-3 px-4 align-top text-center">
+            ${
+              r.deletable
+                ? `<button onclick="deleteCashOut('${r.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition" title="Remove Local Entry"><i class="fa-solid fa-trash-can"></i></button>`
+                : `<span class="text-[10px] text-slate-400">Logged</span>`
+            }
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function markStaffDeductionSettled(dedId) {
+      const item = (appState.staffDeductions || []).find(d => d.id === dedId);
+      if (!item || item.status !== 'For Payroll Deduction') return;
+      showConfirmDialog(
+        `Mark Payroll Deduction Settled (${item.id})?`,
+        `Confirm ${formatPHP(item.amount)} has been deducted from ${item.employeeName}'s payroll?`,
+        () => {
+          item.status = 'Deducted in Payroll';
+          saveAppState();
+          renderStaffDeductionsTable();
+          showToast(`Marked ${item.employeeName}'s deduction as settled!`);
+        }
+      );
+    }
+
+    function renderStaffDeductionsTable() {
+      const tbody = document.getElementById('staff-deductions-tbody');
+      const badge = document.getElementById('staff-deductions-total-badge');
+      if (!tbody) return;
+
+      const openItems = (appState.staffDeductions || []).filter(d => d.status === 'For Payroll Deduction');
+      const openTotal = openItems.reduce((s, d) => s + d.amount, 0);
+      if (badge) badge.textContent = `Total Deductible: ${formatPHP(openTotal)}`;
+
+      if (!appState.staffDeductions || appState.staffDeductions.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">No employee cash advances or POS staff charges recorded.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = appState.staffDeductions.slice().reverse().map(d => `
+        <tr class="hover:bg-stone-50">
+          <td class="py-2 px-3 font-mono text-slate-600">${d.date}<br/><span class="text-[10px] text-slate-400">${d.id}</span></td>
+          <td class="py-2 px-3 font-bold text-slate-900">${d.employeeName}</td>
+          <td class="py-2 px-3 text-slate-700">${d.type}${d.notes ? ` — <span class="text-slate-500">${d.notes}</span>` : ''}</td>
+          <td class="py-2 px-3 text-right font-mono font-bold text-indigo-900">${formatPHP(d.amount)}</td>
+          <td class="py-2 px-3 text-center">
+            ${
+              d.status === 'For Payroll Deduction'
+                ? `<button type="button" onclick="markStaffDeductionSettled('${d.id}')" class="px-2 py-0.5 rounded bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-bold text-[10px]">
+                    Deducted in Payroll
+                  </button>`
+                : `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">${d.status}</span>`
+            }
+          </td>
+        </tr>
+      `).join('');
     }
 
     // =========================================================================
-    // 9. MODULE 4: END-OF-DAY SALES SUMMARY (6-SECTION RECONCILIATION)
+    // 9. MODULE 4: DAILY RECONCILIATION & Z-READING
     // =========================================================================
     function updateOpeningFloat(val) {
       appState.openingFloat = Math.max(0, parseFloat(val) || 0);
@@ -2466,96 +3589,111 @@
       document.getElementById('opening-float-input').value = appState.openingFloat;
 
       const dayTx = appState.transactions.filter(t => t.date === targetDate);
-      const dayCashOuts = appState.cashOuts.filter(c => c.date === targetDate);
+      const dayPurchases = appState.cashOuts.filter(c => c.date === targetDate);
+      const dayCashBoxIn = (appState.cashBoxInflows || []).filter(c => c.date === targetDate);
+      const dayMgmtOut = (appState.mgmtCashOuts || []).filter(c => c.date === targetDate);
+      const dayCollections = (appState.collections || []).filter(c => c.date === targetDate);
+      const dayStaffAdv = (appState.staffDeductions || []).filter(d => d.date === targetDate && d.type.includes('Cash Advance'));
 
-      // Section 1: Gross Sales Breakdown
-      let dineInGross = 0;
-      let takeOutGross = 0;
-      let roomFoodGross = 0;
-      let hotelRoomGross = 0;
+      // Section 1: 2-Tier Sales Breakdown
+      let tier1Takeouts = 0;
+      let tier2RestoSI = 0;
+      let tier2HotelSI = 0;
       let totalDiscounts = 0;
 
       dayTx.forEach(t => {
-        if (t.source === 'Restaurant') {
-          if (t.subType === 'Dine-In') dineInGross += t.grossAmount;
-          else if (t.subType === 'Take-Out') takeOutGross += t.grossAmount;
-          totalDiscounts += t.discountAmount || 0;
-        } else if (t.source === 'Hotel') {
-          hotelRoomGross += t.roomRevenue !== undefined ? t.roomRevenue : t.grossAmount;
-          roomFoodGross += t.roomFoodRevenue || 0;
-          totalDiscounts += t.discountAmount || 0;
+        if (t.source === 'A/R Collection') return;
+        totalDiscounts += t.discountAmount || 0;
+        if (t.source === 'Hotel' || t.source === 'Collection Settlement') {
+          tier2HotelSI += t.grossAmount;
+        } else if (t.salesClassification === 'Takeouts (OS Only)') {
+          tier1Takeouts += t.grossAmount;
+        } else {
+          tier2RestoSI += t.grossAmount;
         }
       });
 
-      const totalGross = dineInGross + takeOutGross + roomFoodGross + hotelRoomGross;
+      const totalGross = tier1Takeouts + tier2RestoSI + tier2HotelSI;
       const netSales = totalGross - totalDiscounts;
 
-      document.getElementById('sum-dinein').textContent = formatPHP(dineInGross);
-      document.getElementById('sum-takeout').textContent = formatPHP(takeOutGross);
-      document.getElementById('sum-room-food').textContent = formatPHP(roomFoodGross);
-      document.getElementById('sum-hotel-room').textContent = formatPHP(hotelRoomGross);
+      document.getElementById('sum-tier-takeouts').textContent = formatPHP(tier1Takeouts);
+      document.getElementById('sum-tier-resto-si').textContent = formatPHP(tier2RestoSI);
+      document.getElementById('sum-tier-hotel-si').textContent = formatPHP(tier2HotelSI);
       document.getElementById('sum-gross-total').textContent = formatPHP(totalGross);
       document.getElementById('sum-discounts').textContent = `-${formatPHP(totalDiscounts)}`;
       document.getElementById('sum-net-sales').textContent = formatPHP(netSales);
 
-      // Section 2: Tender & Payment Mix
+      // Section 2: Tender, A/R & Collections Mix
       let cashSales = 0;
-      let gcashSales = 0;
-      let cardSales = 0;
-      let arSales = 0;
-      let arCashCollections = 0;
-      let arGcashCollections = 0;
+      let digitalSales = 0;
+      let newArCharges = 0;
+      let newEmpCharges = 0;
+      let arPaymentsToday = 0;
 
       dayTx.forEach(t => {
         if (t.source === 'A/R Collection') {
-          if (t.paymentMethod === 'Cash') arCashCollections += t.netAmount;
-          else arGcashCollections += t.netAmount;
-        } else {
-          if (t.paymentMethod === 'Cash') cashSales += t.netAmount;
-          else if (t.paymentMethod === 'GCash') gcashSales += t.netAmount;
-          else if (t.paymentMethod === 'Card') cardSales += t.netAmount;
-          else if (t.paymentMethod === 'Charge / A/R') arSales += t.netAmount;
+          arPaymentsToday += t.netAmount;
+        } else if (t.paymentMethod === 'Cash') {
+          cashSales += t.netAmount;
+        } else if (t.paymentMethod === 'GCash' || t.paymentMethod === 'Card') {
+          digitalSales += t.netAmount;
+        } else if (t.paymentMethod === 'Charge / A/R') {
+          newArCharges += t.netAmount;
+        } else if (t.paymentMethod === 'Employee Charge') {
+          newEmpCharges += t.netAmount;
         }
       });
 
-      const totalArCollections = arCashCollections + arGcashCollections;
-      const totalAccountedTender = cashSales + gcashSales + cardSales + arSales + totalArCollections;
+      const newCashCollections = dayCollections.filter(c => c.method === 'Cash').reduce((s, c) => s + c.amount, 0);
+      const totalNewCollections = dayCollections.reduce((s, c) => s + c.amount, 0);
+      const totalAccountedInflows = cashSales + digitalSales + newArCharges + newEmpCharges + arPaymentsToday + totalNewCollections;
 
       document.getElementById('sum-tender-cash').textContent = formatPHP(cashSales);
-      document.getElementById('sum-tender-gcash').textContent = formatPHP(gcashSales);
-      document.getElementById('sum-tender-card').textContent = formatPHP(cardSales);
-      document.getElementById('sum-tender-ar').textContent = formatPHP(arSales);
-      document.getElementById('sum-ar-collections').textContent = formatPHP(totalArCollections);
-      document.getElementById('sum-tender-total').textContent = formatPHP(totalAccountedTender);
+      document.getElementById('sum-tender-digital').textContent = formatPHP(digitalSales);
+      document.getElementById('sum-tender-ar').textContent = formatPHP(newArCharges);
+      document.getElementById('sum-tender-emp').textContent = formatPHP(newEmpCharges);
+      document.getElementById('sum-ar-collections').textContent = formatPHP(arPaymentsToday);
+      document.getElementById('sum-new-deposits').textContent = formatPHP(totalNewCollections);
+      document.getElementById('sum-tender-total').textContent = formatPHP(totalAccountedInflows);
 
-      // Section 3: Cash Box Reconciliation
-      const drawerCashOuts = dayCashOuts
-        .filter(c => c.source === 'Cash Drawer')
-        .reduce((s, c) => s + c.amount, 0);
+      // Section 3: Cash Box Accountability
+      const mgmtInflowsTotal = dayCashBoxIn.reduce((s, c) => s + c.amount, 0);
+      const cashInFromOps = cashSales + arPaymentsToday + newCashCollections;
+      const drawerPurchasesOut = dayPurchases.filter(c => c.source === 'Cash Drawer').reduce((s, c) => s + c.amount, 0);
+      const staffAdvancesOut = dayStaffAdv.reduce((s, d) => s + d.amount, 0);
+      const mgmtCashOutTotal = dayMgmtOut.reduce((s, m) => s + m.amount, 0);
 
-      const expectedCash = appState.openingFloat + cashSales + arCashCollections - drawerCashOuts;
+      const expectedCash =
+        appState.openingFloat +
+        mgmtInflowsTotal +
+        cashInFromOps -
+        drawerPurchasesOut -
+        staffAdvancesOut -
+        mgmtCashOutTotal;
 
-      document.getElementById('box-cash-sales').textContent = `+${formatPHP(cashSales)}`;
-      document.getElementById('box-cash-collections').textContent = `+${formatPHP(arCashCollections)}`;
-      document.getElementById('box-cash-outs').textContent = `-${formatPHP(drawerCashOuts)}`;
+      document.getElementById('box-mgmt-inflows').textContent = `+${formatPHP(mgmtInflowsTotal)}`;
+      document.getElementById('box-cash-sales').textContent = `+${formatPHP(cashInFromOps)}`;
+      document.getElementById('box-purchases-out').textContent = `-${formatPHP(drawerPurchasesOut)}`;
+      document.getElementById('box-advances-out').textContent = `-${formatPHP(staffAdvancesOut)}`;
+      document.getElementById('box-mgmt-out').textContent = `-${formatPHP(mgmtCashOutTotal)}`;
       document.getElementById('box-expected-cash').textContent = formatPHP(expectedCash);
       document.getElementById('box-expected-cash').dataset.expected = expectedCash;
 
       calculateDrawerVariance();
 
-      // Section 4: Cash-Out Grouped by Category
+      // Section 4: Purchases by Category
       const catMap = {};
-      let totalAllCashOuts = 0;
-      dayCashOuts.forEach(c => {
+      let totalAllPurchases = 0;
+      dayPurchases.forEach(c => {
         catMap[c.category] = (catMap[c.category] || 0) + c.amount;
-        totalAllCashOuts += c.amount;
+        totalAllPurchases += c.amount;
       });
 
-      document.getElementById('sec4-total-badge').textContent = formatPHP(totalAllCashOuts);
+      document.getElementById('sec4-total-badge').textContent = formatPHP(totalAllPurchases);
       const sec4List = document.getElementById('sec4-category-list');
       const catEntries = Object.entries(catMap);
       if (catEntries.length === 0) {
-        sec4List.innerHTML = `<p class="text-slate-400 text-center py-6">No cash-out expenses logged for ${targetDate}.</p>`;
+        sec4List.innerHTML = `<p class="text-slate-400 text-center py-6">No purchases logged for ${targetDate}.</p>`;
       } else {
         sec4List.innerHTML = catEntries
           .map(([cat, amt]) => `
@@ -2567,40 +3705,52 @@
           .join('');
       }
 
-      // Section 5: Accounts Receivable (A/R) & Charge Log
+      // Section 5: Client Accounts & Consolidated A/R
       const arTxs = appState.transactions.filter(t => t.paymentMethod === 'Charge / A/R');
-      const openArTotal = arTxs
-        .filter(t => t.arStatus === 'Unpaid')
-        .reduce((s, t) => s + t.netAmount, 0);
+      const openArTotal = arTxs.filter(t => t.arStatus === 'Unpaid').reduce((s, t) => s + t.netAmount, 0);
 
       document.getElementById('sec5-open-ar-badge').textContent = `Open: ${formatPHP(openArTotal)}`;
       const arTbody = document.getElementById('sec5-ar-tbody');
-      if (arTxs.length === 0) {
-        arTbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">No Charge / A/R accounts recorded.</td></tr>`;
+      ensureClientAccountsFromTransactions();
+
+      const accountsWithActivity = (appState.clientAccounts || [])
+        .map(acc => ({ acc, stats: getClientConsolidatedSummary(acc.name) }))
+        .filter(entry => entry.stats.txs.length > 0 || entry.stats.openBalance > 0);
+
+      if (accountsWithActivity.length === 0) {
+        arTbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">No Client A/R charges recorded yet. Click "+ Client Accounts" to manage accounts.</td></tr>`;
       } else {
-        arTbody.innerHTML = arTxs
-          .slice()
-          .reverse()
-          .map(t => `
-            <tr class="hover:bg-stone-50">
-              <td class="py-2.5 px-3 font-mono font-bold text-slate-800">${t.id}</td>
-              <td class="py-2.5 px-3 font-semibold text-slate-900">${t.arAccount || t.detail}</td>
-              <td class="py-2.5 px-3 font-mono text-slate-500">${t.date}</td>
-              <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">${formatPHP(t.netAmount)}</td>
-              <td class="py-2.5 px-3 text-center">
-                ${
-                  t.arStatus === 'Unpaid'
-                    ? `<button onclick="collectArAccount('${t.id}')" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold text-[11px] shadow-xs transition">
-                        Record Collection
-                      </button>`
-                    : `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Collected (${t.collectedMethod || 'Cash'})</span>`
-                }
-              </td>
-            </tr>
-          `).join('');
+        arTbody.innerHTML = accountsWithActivity
+          .map(({ acc, stats }) => {
+            const safeName = acc.name.replace(/'/g, "\\'");
+            return `
+              <tr class="hover:bg-stone-50">
+                <td class="py-2.5 px-3">
+                  <p class="font-bold text-slate-900">${acc.name}</p>
+                  <span class="text-[10px] text-slate-500">${acc.type} • ${acc.terms || '15 Days'}</span>
+                </td>
+                <td class="py-2.5 px-3 text-center font-mono">
+                  <span class="font-bold text-slate-800">${stats.unpaidTxs.length} open</span> / ${stats.txs.length}
+                </td>
+                <td class="py-2.5 px-3 text-right font-mono text-slate-600">${formatPHP(stats.totalBilled)}</td>
+                <td class="py-2.5 px-3 text-right font-mono font-extrabold ${stats.openBalance > 0 ? 'text-amber-800' : 'text-emerald-700'}">
+                  ${formatPHP(stats.openBalance)}
+                </td>
+                <td class="py-2.5 px-3 text-center">
+                  <button onclick="openClientAccountsModal('${safeName}')" class="px-2.5 py-1 rounded-lg ${
+                    stats.openBalance > 0
+                      ? 'bg-amber-500 hover:bg-amber-600 text-emerald-950'
+                      : 'bg-stone-100 hover:bg-stone-200 text-slate-700'
+                  } font-bold text-[11px] shadow-xs transition">
+                    ${stats.openBalance > 0 ? 'Statement / Settle' : 'View Statement'}
+                  </button>
+                </td>
+              </tr>
+            `;
+          }).join('');
       }
 
-      // Section 6: Transaction Audit Log
+      // Section 6: Master Transaction Audit Log
       document.getElementById('sec6-count-badge').textContent = `${dayTx.length} Transaction(s)`;
       const auditTbody = document.getElementById('sec6-audit-tbody');
       if (dayTx.length === 0) {
@@ -2615,16 +3765,16 @@
               <td class="py-2.5 px-4 font-mono text-slate-500">${t.time}</td>
               <td class="py-2.5 px-4">
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                  t.source === 'Hotel'
-                    ? 'bg-amber-100 text-amber-900'
+                  t.salesClassification === 'Takeouts (OS Only)'
+                    ? 'bg-stone-200 text-slate-800'
                     : t.source === 'A/R Collection'
                     ? 'bg-sky-100 text-sky-900'
                     : 'bg-emerald-100 text-emerald-900'
                 }">
-                  ${t.source} • ${t.subType}
+                  ${t.salesClassification || t.source}
                 </span>
               </td>
-              <td class="py-2.5 px-4 font-medium text-slate-800">${t.detail}</td>
+              <td class="py-2.5 px-4 font-medium text-slate-800">${t.detail}${t.arAccount ? ` (${t.arAccount})` : ''}</td>
               <td class="py-2.5 px-4 font-semibold text-slate-700">${t.paymentMethod}</td>
               <td class="py-2.5 px-4 text-right font-mono text-slate-500">${t.discountAmount > 0 ? formatPHP(t.discountAmount) : '-'}</td>
               <td class="py-2.5 px-4 text-right font-mono font-extrabold text-slate-900">${formatPHP(t.netAmount)}</td>
@@ -2664,13 +3814,13 @@
       }
     }
 
-    function collectArAccount(txId) {
+    function collectArAccount(txId, refreshModal = false) {
       const tx = appState.transactions.find(t => t.id === txId);
       if (!tx || tx.arStatus === 'Paid') return;
 
       showConfirmDialog(
-        `Collect A/R Account (${tx.id})`,
-        `Mark ${formatPHP(tx.netAmount)} for "${tx.arAccount || tx.detail}" as Collected in Cash today?`,
+        `Record A/R Payment (${tx.id})`,
+        `Mark ${formatPHP(tx.netAmount)} for "${tx.arAccount || tx.detail}" as Paid in Cash today?`,
         () => {
           const today = getTodayDateStr();
           tx.arStatus = 'Paid';
@@ -2682,8 +3832,9 @@
             date: today,
             time: getCurrentTimeStr(),
             source: 'A/R Collection',
-            subType: 'Cash Collection',
-            detail: `Collection for ${tx.id} (${tx.arAccount || tx.detail})`,
+            subType: 'A/R Payment',
+            salesClassification: 'A/R Payment Received',
+            detail: `A/R Payment for ${tx.id} (${tx.arAccount || tx.detail})`,
             items: [{ name: `A/R Settlement (${tx.id})`, qty: 1, price: tx.netAmount }],
             grossAmount: tx.netAmount,
             vatLess: 0,
@@ -2703,8 +3854,11 @@
             collection_date: today,
             cr_number: colRecord.id
           });
+          if (refreshModal && selectedClientAccountName) {
+            inspectClientStatement(selectedClientAccountName);
+          }
           renderSalesSummary();
-          showToast(`Collected ${formatPHP(tx.netAmount)} into Cash Drawer!`);
+          showToast(`Recorded ${formatPHP(tx.netAmount)} A/R Payment into Cash Box!`);
         }
       );
     }
@@ -2712,18 +3866,21 @@
     function saveDailySummaryToSheet() {
       const targetDate = document.getElementById('summary-date-filter').value || getTodayDateStr();
       const dayTx = appState.transactions.filter(t => t.date === targetDate);
-      const dayCashOuts = appState.cashOuts.filter(c => c.date === targetDate);
+      const dayPurchases = appState.cashOuts.filter(c => c.date === targetDate);
+      const dayCashBoxIn = (appState.cashBoxInflows || []).filter(c => c.date === targetDate);
+      const dayMgmtOut = (appState.mgmtCashOuts || []).filter(c => c.date === targetDate);
+      const dayCollections = (appState.collections || []).filter(c => c.date === targetDate);
 
-      let dineIn = 0, takeOut = 0, hotelSales = 0, arCol = 0;
+      let takeouts = 0, restoSI = 0, hotelSI = 0, arCol = 0;
       let gcash = 0, card = 0, newAr = 0, cashSales = 0;
 
       dayTx.forEach(t => {
         if (t.source === 'A/R Collection') {
           arCol += t.netAmount;
         } else {
-          if (t.source === 'Restaurant' && t.subType === 'Dine-In') dineIn += t.netAmount;
-          else if (t.source === 'Restaurant' && t.subType === 'Take-Out') takeOut += t.netAmount;
-          else if (t.source === 'Hotel') hotelSales += t.netAmount;
+          if (t.source === 'Hotel' || t.source === 'Collection Settlement') hotelSI += t.netAmount;
+          else if (t.salesClassification === 'Takeouts (OS Only)') takeouts += t.netAmount;
+          else restoSI += t.netAmount;
 
           if (t.paymentMethod === 'Cash') cashSales += t.netAmount;
           else if (t.paymentMethod === 'GCash') gcash += t.netAmount;
@@ -2732,29 +3889,26 @@
         }
       });
 
-      let spot = 0, supplier = 0, overhead = 0, drawerOuts = 0;
-      dayCashOuts.forEach(c => {
-        if (c.source === 'Cash Drawer') drawerOuts += c.amount;
-        if (/spot|market/i.test(c.category)) spot += c.amount;
-        else if (/supplier|grocer|meat|beverage/i.test(c.category)) supplier += c.amount;
-        else overhead += c.amount;
-      });
+      const cashCol = dayCollections.filter(c => c.method === 'Cash').reduce((s, c) => s + c.amount, 0);
+      const mgmtIn = dayCashBoxIn.reduce((s, c) => s + c.amount, 0);
+      const mgmtOut = dayMgmtOut.reduce((s, m) => s + m.amount, 0);
+      const drawerPurchases = dayPurchases.filter(c => c.source === 'Cash Drawer').reduce((s, c) => s + c.amount, 0);
 
-      const expected = appState.openingFloat + cashSales + arCol - drawerOuts;
+      const expected = appState.openingFloat + mgmtIn + cashSales + arCol + cashCol - drawerPurchases - mgmtOut;
       const actual = parseFloat(document.getElementById('actual-cash-input').value) || 0;
 
       pushToGoogleSheets('Daily_Sales_Summary', {
         business_date: targetDate,
-        opening_fund: appState.openingFloat,
-        dine_in_sales: dineIn,
-        takeout_sales: takeOut,
-        hotel_sales: hotelSales,
-        ar_collections: arCol,
-        total_cash_in: cashSales + arCol,
-        spot_purchases: spot,
-        supplier_payouts: supplier,
-        overhead_cashout: overhead,
-        total_cash_out: drawerOuts,
+        opening_fund: appState.openingFloat + mgmtIn,
+        dine_in_sales: restoSI,
+        takeout_sales: takeouts,
+        hotel_sales: hotelSI,
+        ar_collections: arCol + cashCol,
+        total_cash_in: cashSales + arCol + cashCol + mgmtIn,
+        spot_purchases: drawerPurchases,
+        supplier_payouts: 0,
+        overhead_cashout: mgmtOut,
+        total_cash_out: drawerPurchases + mgmtOut,
         expected_drawer_cash: expected,
         actual_cash_count: actual,
         variance: actual - expected,
@@ -2767,7 +3921,7 @@
     }
 
     // =========================================================================
-    // 10. RECEIPT, FOLIO INVOICE & A4 DAILY SUMMARY PRINT ENGINE
+    // 10. RECEIPT, FOLIO INVOICE & A4 SUMMARY PRINT ENGINE
     // =========================================================================
     function openOrderSlipReceipt(tx) {
       const itemsHtml = (tx.items || [])
@@ -2782,17 +3936,22 @@
         )
         .join('');
 
+      const docTitle =
+        tx.salesClassification === 'Takeouts (OS Only)'
+          ? 'TAKEOUT ORDER SLIP (NO SI)'
+          : 'OFFICIAL ORDER SLIP & SERVICE INVOICE';
+
       const html = `
         <div class="font-mono text-xs text-slate-900 space-y-2.5">
           <div class="text-center border-b border-dashed border-slate-400 pb-2.5">
             <p class="font-extrabold text-sm tracking-tight">EYNS' HOTEL & RESTAURANT</p>
             <p class="text-[10px]">Brgy. Poblacion, Catanauan, Quezon</p>
-            <p class="text-[10px]">Est. 1988 • Official Order Slip</p>
+            <p class="text-[10px] font-bold mt-0.5">${docTitle}</p>
           </div>
           <div class="text-[11px] space-y-0.5 border-b border-dashed border-slate-400 pb-2">
-            <div class="flex justify-between"><span>Slip #:</span><span class="font-bold">${tx.id}</span></div>
+            <div class="flex justify-between"><span>Doc #:</span><span class="font-bold">${tx.id}</span></div>
             <div class="flex justify-between"><span>Date/Time:</span><span>${tx.date} ${tx.time}</span></div>
-            <div class="flex justify-between"><span>Type:</span><span class="font-bold">${tx.subType} (${tx.detail})</span></div>
+            <div class="flex justify-between"><span>Channel:</span><span class="font-bold">${tx.subType} (${tx.detail})</span></div>
             <div class="flex justify-between"><span>Cashier:</span><span>${tx.cashier}</span></div>
           </div>
           <div class="border-b border-dashed border-slate-400 pb-2">
@@ -2809,19 +3968,18 @@
               <span>TOTAL DUE:</span>
               <span>${formatPHP(tx.netAmount)}</span>
             </div>
-            <div class="flex justify-between pt-1"><span>Payment:</span><span class="font-bold">${tx.paymentMethod}</span></div>
+            <div class="flex justify-between pt-1"><span>Settlement:</span><span class="font-bold">${tx.paymentMethod}</span></div>
             ${tx.cashTendered ? `<div class="flex justify-between"><span>Cash Tendered:</span><span>${formatPHP(tx.cashTendered)}</span></div>` : ''}
             ${tx.cashChange ? `<div class="flex justify-between"><span>Change:</span><span>${formatPHP(tx.cashChange)}</span></div>` : ''}
-            ${tx.arAccount ? `<div class="flex justify-between"><span>Charge Account:</span><span>${tx.arAccount}</span></div>` : ''}
+            ${tx.arAccount ? `<div class="flex justify-between"><span>Charged To:</span><span>${tx.arAccount}</span></div>` : ''}
           </div>
           <div class="text-center text-[10px] pt-3 border-t border-dashed border-slate-400">
             <p>Maraming Salamat po!</p>
-            <p>Thank you for dining at Eyns'!</p>
           </div>
         </div>
       `;
 
-      showPrintPreviewModal(`Order Slip — ${tx.id}`, html, 'max-w-[360px]');
+      showPrintPreviewModal(`Document — ${tx.id}`, html, 'max-w-[360px]');
     }
 
     function openGuestFolioReceipt(tx) {
@@ -2846,8 +4004,8 @@
             <p class="font-mono font-bold text-xs mt-1">INVOICE #: ${tx.id}</p>
           </div>
           <div class="grid grid-cols-2 gap-1 text-[11px] bg-slate-50 p-2.5 rounded border border-slate-200">
-            <div><span class="text-slate-500">Guest / Room:</span><br/><strong>${tx.detail}</strong></div>
-            <div class="text-right"><span class="text-slate-500">Check-Out Date:</span><br/><strong>${tx.date} ${tx.time}</strong></div>
+            <div><span class="text-slate-500">Guest / Client:</span><br/><strong>${tx.detail}</strong></div>
+            <div class="text-right"><span class="text-slate-500">Date:</span><br/><strong>${tx.date} ${tx.time}</strong></div>
           </div>
           <table class="w-full text-left border-collapse text-[11px]">
             <thead>
@@ -2860,7 +4018,7 @@
           </table>
           <div class="space-y-1 text-xs pt-2 border-t border-slate-300">
             <div class="flex justify-between"><span>Total Folio Charges:</span><span class="font-mono font-bold">${formatPHP(tx.netAmount)}</span></div>
-            <div class="flex justify-between text-slate-600"><span>Less Advance Deposit:</span><span class="font-mono">-${formatPHP(tx.depositPaid || 0)}</span></div>
+            <div class="flex justify-between text-slate-600"><span>Less Advance Collection / Deposit:</span><span class="font-mono">-${formatPHP(tx.depositPaid || 0)}</span></div>
             <div class="flex justify-between font-extrabold text-sm pt-1 border-t border-slate-800">
               <span>BALANCE SETTLED (${tx.paymentMethod}):</span>
               <span class="font-mono">${formatPHP(balanceCollected)}</span>
@@ -2868,12 +4026,11 @@
           </div>
           <div class="pt-4 text-[10px] text-center text-slate-500 border-t border-dashed border-slate-300">
             <p>Prepared by: ${tx.cashier}</p>
-            <p class="mt-1">We hope you enjoyed your stay in Catanauan!</p>
           </div>
         </div>
       `;
 
-      showPrintPreviewModal(`Guest Folio Statement — ${tx.id}`, html, 'max-w-[440px]');
+      showPrintPreviewModal(`Service Invoice — ${tx.id}`, html, 'max-w-[440px]');
     }
 
     function printGuestFolioPreview() {
@@ -2906,7 +4063,7 @@
     function reprintTransaction(txId) {
       const tx = appState.transactions.find(t => t.id === txId);
       if (!tx) return;
-      if (tx.source === 'Hotel') {
+      if (tx.source === 'Hotel' || tx.source === 'Collection Settlement') {
         openGuestFolioReceipt(tx);
       } else {
         openOrderSlipReceipt(tx);
@@ -2915,22 +4072,19 @@
 
     function printDailySummary() {
       const targetDate = document.getElementById('summary-date-filter').value || getTodayDateStr();
-      const dineIn = document.getElementById('sum-dinein').textContent;
-      const takeOut = document.getElementById('sum-takeout').textContent;
-      const roomFood = document.getElementById('sum-room-food').textContent;
-      const hotelRoom = document.getElementById('sum-hotel-room').textContent;
+      const tierTakeouts = document.getElementById('sum-tier-takeouts').textContent;
+      const tierRestoSI = document.getElementById('sum-tier-resto-si').textContent;
+      const tierHotelSI = document.getElementById('sum-tier-hotel-si').textContent;
       const grossTotal = document.getElementById('sum-gross-total').textContent;
       const discounts = document.getElementById('sum-discounts').textContent;
       const netSales = document.getElementById('sum-net-sales').textContent;
 
-      const tCash = document.getElementById('sum-tender-cash').textContent;
-      const tGcash = document.getElementById('sum-tender-gcash').textContent;
-      const tCard = document.getElementById('sum-tender-card').textContent;
-      const tAr = document.getElementById('sum-tender-ar').textContent;
-      const tArCol = document.getElementById('sum-ar-collections').textContent;
-
       const openFloat = formatPHP(appState.openingFloat);
-      const boxCashOuts = document.getElementById('box-cash-outs').textContent;
+      const boxMgmtIn = document.getElementById('box-mgmt-inflows').textContent;
+      const boxCashSales = document.getElementById('box-cash-sales').textContent;
+      const boxPurchasesOut = document.getElementById('box-purchases-out').textContent;
+      const boxAdvancesOut = document.getElementById('box-advances-out').textContent;
+      const boxMgmtOut = document.getElementById('box-mgmt-out').textContent;
       const boxExpected = document.getElementById('box-expected-cash').textContent;
       const variance = document.getElementById('box-variance').textContent;
       const catListHtml = document.getElementById('sec4-category-list').innerHTML;
@@ -2940,7 +4094,7 @@
           <div class="flex justify-between items-end border-b-2 border-slate-900 pb-3">
             <div>
               <h1 class="text-lg font-extrabold tracking-tight">EYNS' HOTEL & RESTAURANT</h1>
-              <p class="text-[11px] text-slate-600">Catanauan, Quezon • Daily Sales & Cash Reconciliation Sheet</p>
+              <p class="text-[11px] text-slate-600">Catanauan, Quezon • Daily Cash Box & Sales Reconciliation</p>
             </div>
             <div class="text-right font-mono text-[11px]">
               <p><strong>Date:</strong> ${targetDate}</p>
@@ -2950,27 +4104,26 @@
 
           <div class="grid grid-cols-2 gap-4">
             <div class="border border-slate-300 p-3 rounded">
-              <h3 class="font-bold uppercase text-[11px] bg-slate-100 px-2 py-1 mb-2">1. Gross Sales Breakdown</h3>
+              <h3 class="font-bold uppercase text-[11px] bg-slate-100 px-2 py-1 mb-2">1. Sales Breakdown (2 Tiers)</h3>
               <div class="space-y-1 text-[11px]">
-                <div class="flex justify-between"><span>Restaurant Dine-In:</span><span class="font-mono">${dineIn}</span></div>
-                <div class="flex justify-between"><span>Restaurant Take-Out:</span><span class="font-mono">${takeOut}</span></div>
-                <div class="flex justify-between"><span>Room Food Charges:</span><span class="font-mono">${roomFood}</span></div>
-                <div class="flex justify-between"><span>Hotel Rooms:</span><span class="font-mono">${hotelRoom}</span></div>
-                <div class="flex justify-between font-bold border-t pt-1"><span>Gross Total:</span><span class="font-mono">${grossTotal}</span></div>
+                <div class="flex justify-between"><span>1) Takeouts (OS Only):</span><span class="font-mono">${tierTakeouts}</span></div>
+                <div class="flex justify-between"><span>2a) Resto Sales (OS + SI):</span><span class="font-mono">${tierRestoSI}</span></div>
+                <div class="flex justify-between"><span>2b) Hotel & Collections (SI):</span><span class="font-mono">${tierHotelSI}</span></div>
+                <div class="flex justify-between font-bold border-t pt-1"><span>Gross Recognized:</span><span class="font-mono">${grossTotal}</span></div>
                 <div class="flex justify-between"><span>Less SC/PWD Disc:</span><span class="font-mono">${discounts}</span></div>
                 <div class="flex justify-between font-extrabold text-xs border-t border-slate-800 pt-1"><span>NET SALES:</span><span class="font-mono">${netSales}</span></div>
               </div>
             </div>
 
             <div class="border border-slate-300 p-3 rounded">
-              <h3 class="font-bold uppercase text-[11px] bg-slate-100 px-2 py-1 mb-2">2. Tender & Cash Box</h3>
+              <h3 class="font-bold uppercase text-[11px] bg-slate-100 px-2 py-1 mb-2">2. Cash Box Accountability</h3>
               <div class="space-y-1 text-[11px]">
-                <div class="flex justify-between"><span>Cash Sales:</span><span class="font-mono">${tCash}</span></div>
-                <div class="flex justify-between"><span>GCash / Card:</span><span class="font-mono">${tGcash} / ${tCard}</span></div>
-                <div class="flex justify-between"><span>Charge / A/R:</span><span class="font-mono">${tAr}</span></div>
-                <div class="flex justify-between"><span>A/R Collections:</span><span class="font-mono">${tArCol}</span></div>
-                <div class="flex justify-between border-t pt-1"><span>Opening Float:</span><span class="font-mono">${openFloat}</span></div>
-                <div class="flex justify-between"><span>Drawer Cash-Outs:</span><span class="font-mono">${boxCashOuts}</span></div>
+                <div class="flex justify-between"><span>Base Float:</span><span class="font-mono">${openFloat}</span></div>
+                <div class="flex justify-between"><span>Mgmt Cash Box Inflows:</span><span class="font-mono">${boxMgmtIn}</span></div>
+                <div class="flex justify-between"><span>Cash Sales/A/R/Col:</span><span class="font-mono">${boxCashSales}</span></div>
+                <div class="flex justify-between"><span>Purchases (Cash Box):</span><span class="font-mono">${boxPurchasesOut}</span></div>
+                <div class="flex justify-between"><span>Employee Advances:</span><span class="font-mono">${boxAdvancesOut}</span></div>
+                <div class="flex justify-between"><span>Cash Out to Mgmt:</span><span class="font-mono">${boxMgmtOut}</span></div>
                 <div class="flex justify-between font-extrabold text-xs border-t border-slate-800 pt-1"><span>EXPECTED BOX CASH:</span><span class="font-mono">${boxExpected}</span></div>
                 <div class="flex justify-between text-[10px] pt-0.5"><span>Count Variance:</span><span class="font-mono font-bold">${variance}</span></div>
               </div>
@@ -2978,7 +4131,7 @@
           </div>
 
           <div class="border border-slate-300 p-3 rounded">
-            <h3 class="font-bold uppercase text-[11px] bg-slate-100 px-2 py-1 mb-2">3. Cash-Out & Purchases by Category</h3>
+            <h3 class="font-bold uppercase text-[11px] bg-slate-100 px-2 py-1 mb-2">3. Purchases & Expenses by Category</h3>
             <div class="space-y-1">${catListHtml}</div>
           </div>
 
@@ -3013,13 +4166,17 @@
       document.getElementById('cashier-select').value = appState.cashier || 'Maria Clara (AM)';
       document.getElementById('summary-date-filter').value = getTodayDateStr();
       updateSheetsBadge();
+      renderClientAccountDropdowns();
       renderCategoryPills();
       renderMenuGrid();
       setOrderType(currentOrder.orderType || 'Dine-In');
+      setSalesClassification(currentOrder.salesClassification || 'Sales (OS + Service Invoice)');
       setPaymentMethod(currentOrder.paymentMethod || 'Cash');
       renderCart();
       renderRoomRack();
+      renderCollectionsTable();
       renderCashOutTable();
+      renderStaffDeductionsTable();
       renderSalesSummary();
     }
 
