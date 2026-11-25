@@ -1,0 +1,2921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eyns' Hotel & Restaurant — POS & Front-Desk System</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono for receipts/numbers -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              emerald: '#064e3b',
+              emeraldDark: '#04382a',
+              emeraldLight: '#065f46',
+              gold: '#d97706',
+              goldLight: '#fef3c7',
+              cream: '#fafaf9',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Custom scrollbar for tablet friendliness */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Thermal & A4 Print Rules */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #print-area,
+      #print-area * {
+        visibility: visible;
+      }
+      #print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      @page {
+        margin: 10mm;
+      }
+    }
+  </style>
+</head>
+<body class="bg-stone-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col selection:bg-amber-200 selection:text-emerald-950">
+
+  <!-- Toast Notification Banner (Replaces alert()) -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
+
+  <!-- Confirmation Modal (Replaces confirm()) -->
+  <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[95] hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+        </div>
+        <h3 id="confirm-title" class="text-lg font-bold text-slate-900">Confirm Action</h3>
+      </div>
+      <p id="confirm-message" class="text-sm text-slate-600 mb-6 leading-relaxed">Are you sure you want to proceed?</p>
+      <div class="flex justify-end gap-3">
+        <button id="confirm-cancel-btn" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition">
+          Cancel
+        </button>
+        <button id="confirm-ok-btn" class="px-4 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-semibold text-sm shadow-sm transition">
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Persistent Top Navigation Bar -->
+  <header class="bg-emerald-950 text-white shadow-lg sticky top-0 z-40 border-b border-emerald-800/80 no-print">
+    <div class="max-w-[1600px] mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      <!-- Brand Identity -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-emerald-950 flex items-center justify-center font-extrabold text-xl shadow-inner shrink-0">
+          E
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-extrabold text-base sm:text-lg tracking-tight text-white leading-none">
+              Eyns' Hotel & Restaurant
+            </h1>
+            <span class="hidden md:inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+              Est. 1988
+            </span>
+          </div>
+          <p class="text-[11px] text-emerald-300/90 mt-0.5">Catanauan, Quezon • Front-Desk & Cashier POS</p>
+        </div>
+      </div>
+
+      <!-- 4 Main Module Tabs -->
+      <nav class="flex items-center gap-1.5 bg-emerald-900/70 p-1 rounded-xl border border-emerald-800 overflow-x-auto max-w-full order-3 lg:order-2 w-full lg:w-auto justify-between lg:justify-start">
+        <button onclick="switchTab('pos')" id="tab-btn-pos" class="tab-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap bg-amber-500 text-emerald-950 shadow-sm">
+          <i class="fa-solid fa-utensils"></i>
+          <span>Restaurant POS</span>
+        </button>
+        <button onclick="switchTab('hotel')" id="tab-btn-hotel" class="tab-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap text-emerald-100 hover:bg-emerald-800/70">
+          <i class="fa-solid fa-bed"></i>
+          <span>Hotel Rack</span>
+          <span id="badge-occupied-rooms" class="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-700 text-amber-300 font-mono">0</span>
+        </button>
+        <button onclick="switchTab('cashout')" id="tab-btn-cashout" class="tab-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap text-emerald-100 hover:bg-emerald-800/70">
+          <i class="fa-solid fa-money-bill-transfer"></i>
+          <span>Cash-Out</span>
+        </button>
+        <button onclick="switchTab('summary')" id="tab-btn-summary" class="tab-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap text-emerald-100 hover:bg-emerald-800/70">
+          <i class="fa-solid fa-file-invoice-dollar"></i>
+          <span>Sales Summary</span>
+        </button>
+      </nav>
+
+      <!-- Right Status Controls: Clock, Cashier, Sheets Sync, Reset -->
+      <div class="flex items-center gap-2 sm:gap-3 order-2 lg:order-3">
+        <!-- Live Clock -->
+        <div class="hidden xl:flex flex-col items-end text-right pr-2 border-r border-emerald-800">
+          <span id="live-clock" class="font-mono text-xs font-bold text-amber-300">--:--:-- --</span>
+          <span id="live-date" class="text-[11px] text-emerald-300">Loading date...</span>
+        </div>
+
+        <!-- Cashier Badge -->
+        <div class="hidden sm:flex items-center gap-1.5 bg-emerald-900/90 border border-emerald-700/80 px-2.5 py-1.5 rounded-xl text-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-emerald-200">Shift:</span>
+          <select id="cashier-select" onchange="updateCashier(this.value)" class="bg-transparent font-semibold text-white focus:outline-none cursor-pointer">
+            <option value="Maria Clara (AM)" class="text-slate-900">Maria Clara (AM)</option>
+            <option value="Jose Rizalino (PM)" class="text-slate-900">Jose Rizalino (PM)</option>
+            <option value="Admin / Manager" class="text-slate-900">Admin / Manager</option>
+          </select>
+        </div>
+
+        <!-- Google Sheets Sync Button -->
+        <button onclick="openSheetsModal()" id="sheets-sync-btn" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 border border-emerald-700 text-xs font-semibold text-emerald-100 transition" title="Google Sheets Apps Script Sync">
+          <i class="fa-solid fa-cloud-arrow-up text-amber-400"></i>
+          <span class="hidden md:inline" id="sheets-status-label">Sheets: Local</span>
+        </button>
+
+        <!-- Reset Demo Data -->
+        <button onclick="confirmResetDemoData()" class="p-2 rounded-xl bg-emerald-900 hover:bg-rose-900/80 border border-emerald-700 hover:border-rose-700 text-emerald-200 hover:text-white text-xs transition" title="Reset Demo Data">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT WORKSPACE -->
+  <main class="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-5 no-print">
+
+    <!-- ===================================================================== -->
+    <!-- MODULE 1: RESTAURANT POS (ORDER & BILLING)                            -->
+    <!-- ===================================================================== -->
+    <section id="view-pos" class="module-view grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <!-- Left Pane: Menu Categories & Item Grid -->
+      <div class="lg:col-span-7 xl:col-span-8 flex flex-col gap-4">
+        <!-- Search & Category Filter Pills -->
+        <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-stone-200/90 flex flex-col gap-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-bowl-rice text-amber-600"></i>
+                Restaurant & Bar Menu
+              </h2>
+              <p class="text-xs text-slate-500">Tap an item to add to the active order slip</p>
+            </div>
+            <div class="relative w-full sm:w-64">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input type="text" id="menu-search" oninput="renderMenuGrid()" placeholder="Search dish or drink..." class="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-stone-100 border border-stone-200 focus:bg-white focus:border-emerald-700 focus:outline-none transition" />
+            </div>
+          </div>
+
+          <!-- Category Pills -->
+          <div id="category-pills" class="flex items-center gap-2 overflow-x-auto pb-1">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Menu Grid -->
+        <div id="menu-grid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Right Pane: Active Order Slip & Checkout -->
+      <div class="lg:col-span-5 xl:col-span-4 bg-white rounded-2xl shadow-md border border-stone-200 flex flex-col sticky top-20 overflow-hidden">
+        <!-- Order Header -->
+        <div class="bg-emerald-950 text-white px-4 py-3 flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs uppercase tracking-wider text-emerald-300 font-semibold">Order Slip</span>
+              <span id="active-os-number" class="font-mono text-sm font-bold text-amber-400">#OS-1005</span>
+            </div>
+            <p class="text-[11px] text-emerald-200/80" id="order-timestamp-preview">Ready for order</p>
+          </div>
+          <button onclick="clearCurrentOrder()" class="text-xs px-2.5 py-1.5 rounded-lg bg-emerald-900 hover:bg-rose-800 text-emerald-100 hover:text-white transition flex items-center gap-1">
+            <i class="fa-solid fa-trash-can text-[11px]"></i> Clear
+          </button>
+        </div>
+
+        <!-- Order Type Selector (Dine-In, Take-Out, Room Charge) -->
+        <div class="p-3.5 bg-stone-50 border-b border-stone-200 flex flex-col gap-2.5">
+          <div class="grid grid-cols-3 gap-1.5 bg-stone-200/70 p-1 rounded-xl">
+            <button type="button" onclick="setOrderType('Dine-In')" id="otype-Dine-In" class="otype-btn py-2 px-2 rounded-lg text-xs font-bold transition bg-white text-emerald-950 shadow-xs">
+              <i class="fa-solid fa-chair mr-1 text-amber-600"></i>Dine-In
+            </button>
+            <button type="button" onclick="setOrderType('Take-Out')" id="otype-Take-Out" class="otype-btn py-2 px-2 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+              <i class="fa-solid fa-bag-shopping mr-1"></i>Take-Out
+            </button>
+            <button type="button" onclick="setOrderType('Room Charge')" id="otype-Room Charge" class="otype-btn py-2 px-2 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+              <i class="fa-solid fa-key mr-1"></i>Room Chg
+            </button>
+          </div>
+
+          <!-- Conditional Sub-selector based on Order Type -->
+          <div id="order-type-detail-container">
+            <!-- Populated dynamically by JS -->
+          </div>
+        </div>
+
+        <!-- Itemized Cart List -->
+        <div id="cart-items-container" class="p-3.5 flex-1 max-h-[310px] overflow-y-auto divide-y divide-stone-100">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Totals & Discount Section -->
+        <div class="p-3.5 bg-stone-50 border-t border-stone-200 flex flex-col gap-2.5">
+          <!-- Senior Citizen / PWD 20% VAT-Exempt Toggle -->
+          <div class="flex items-center justify-between bg-amber-50/80 border border-amber-200/80 px-3 py-2 rounded-xl">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="sc-pwd-toggle" onchange="recalculateCart()" class="w-4 h-4 accent-emerald-800 rounded cursor-pointer" />
+              <label for="sc-pwd-toggle" class="text-xs font-semibold text-amber-950 cursor-pointer select-none">
+                SC / PWD Discount (20% + VAT-Exempt)
+              </label>
+            </div>
+            <span class="text-[10px] font-mono font-semibold text-amber-800 bg-amber-200/60 px-1.5 py-0.5 rounded">BIR Rule</span>
+          </div>
+
+          <!-- SC/PWD ID Input (shown when checked) -->
+          <div id="sc-pwd-id-box" class="hidden grid-cols-2 gap-2">
+            <input type="text" id="sc-pwd-name" placeholder="SC/PWD Cardholder Name" class="px-2.5 py-1.5 text-xs rounded-lg border border-stone-300 bg-white focus:outline-none focus:border-emerald-700" />
+            <input type="text" id="sc-pwd-id" placeholder="OSCA / PWD ID #" class="px-2.5 py-1.5 text-xs rounded-lg border border-stone-300 bg-white focus:outline-none focus:border-emerald-700 font-mono" />
+          </div>
+
+          <!-- Financial Math Lines -->
+          <div class="space-y-1 text-xs pt-1">
+            <div class="flex justify-between text-slate-600">
+              <span>Gross Subtotal</span>
+              <span id="cart-subtotal" class="font-mono font-semibold">₱0.00</span>
+            </div>
+            <div id="vat-exempt-row" class="hidden justify-between text-slate-500 text-[11px]">
+              <span>Less 12% VAT (VAT-Exempt Sale)</span>
+              <span id="cart-vat-less" class="font-mono">-₱0.00</span>
+            </div>
+            <div id="sc-discount-row" class="hidden justify-between text-amber-700 font-medium">
+              <span>Less 20% SC/PWD Discount</span>
+              <span id="cart-discount" class="font-mono">-₱0.00</span>
+            </div>
+            <div class="flex justify-between items-center pt-1.5 border-t border-stone-200 text-base font-extrabold text-emerald-950">
+              <span>TOTAL DUE</span>
+              <span id="cart-total" class="font-mono text-lg text-emerald-900">₱0.00</span>
+            </div>
+          </div>
+
+          <!-- Payment Method (Hidden if Room Charge, since Room Charge posts directly to Folio) -->
+          <div id="payment-section" class="flex flex-col gap-2 pt-1">
+            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Payment Method</label>
+            <div class="grid grid-cols-4 gap-1.5">
+              <button type="button" onclick="setPaymentMethod('Cash')" id="pm-Cash" class="pm-btn py-2 px-1 rounded-xl border text-xs font-bold transition bg-emerald-900 text-white border-emerald-900">
+                Cash
+              </button>
+              <button type="button" onclick="setPaymentMethod('GCash')" id="pm-GCash" class="pm-btn py-2 px-1 rounded-xl border text-xs font-bold transition bg-white text-slate-700 border-stone-300 hover:bg-stone-100">
+                GCash
+              </button>
+              <button type="button" onclick="setPaymentMethod('Card')" id="pm-Card" class="pm-btn py-2 px-1 rounded-xl border text-xs font-bold transition bg-white text-slate-700 border-stone-300 hover:bg-stone-100">
+                Card/Bank
+              </button>
+              <button type="button" onclick="setPaymentMethod('Charge / A/R')" id="pm-Charge / A/R" class="pm-btn py-2 px-1 rounded-xl border text-xs font-bold transition bg-white text-slate-700 border-stone-300 hover:bg-stone-100">
+                Charge A/R
+              </button>
+            </div>
+
+            <!-- Cash Tendered & Change Box -->
+            <div id="cash-tender-box" class="grid grid-cols-2 gap-2 items-center bg-white p-2.5 rounded-xl border border-stone-200">
+              <div>
+                <label class="block text-[10px] font-bold uppercase text-slate-500 mb-0.5">Cash Tendered (₱)</label>
+                <input type="number" id="cash-tendered" oninput="calculateChange()" placeholder="0.00" class="w-full font-mono text-sm font-bold text-slate-900 border border-stone-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-700" />
+              </div>
+              <div class="text-right">
+                <span class="block text-[10px] font-bold uppercase text-slate-500 mb-0.5">Change Due</span>
+                <span id="cash-change" class="font-mono text-base font-extrabold text-emerald-700">₱0.00</span>
+              </div>
+            </div>
+
+            <!-- Reference # for GCash / Card -->
+            <div id="ref-number-box" class="hidden">
+              <input type="text" id="payment-ref-input" placeholder="GCash / Bank Transfer Reference # (Optional)" class="w-full text-xs px-3 py-2 rounded-xl border border-stone-300 bg-white font-mono focus:outline-none focus:border-emerald-700" />
+            </div>
+
+            <!-- Charge / A/R Account Name Input -->
+            <div id="ar-account-box" class="hidden">
+              <input type="text" id="ar-account-input" placeholder="Charge Account / Company / VIP Name (Required)" class="w-full text-xs px-3 py-2 rounded-xl border border-amber-400 bg-amber-50/50 focus:outline-none focus:border-emerald-700" />
+            </div>
+          </div>
+
+          <!-- Room Charge Notice Banner -->
+          <div id="room-charge-notice" class="hidden bg-amber-50 border border-amber-300 rounded-xl p-2.5 text-xs text-amber-900">
+            <i class="fa-solid fa-circle-info mr-1 text-amber-600"></i>
+            This order will be posted directly to the selected guest's <strong>Room Folio</strong> and settled upon Hotel Check-Out.
+          </div>
+
+          <!-- Submit Button -->
+          <button onclick="finalizeOrderSlip()" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-900 to-emerald-800 hover:from-emerald-800 hover:to-emerald-700 text-white font-bold text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 mt-1">
+            <i class="fa-solid fa-print"></i>
+            <span id="finalize-btn-text">Finalize & Print Order Slip</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- MODULE 2: HOTEL ROOM RACK & GUEST FOLIO                               -->
+    <!-- ===================================================================== -->
+    <section id="view-hotel" class="module-view hidden flex-col gap-5">
+      <!-- KPI Strip -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
+          <span class="text-xs font-semibold text-slate-500">Total Rooms</span>
+          <div class="flex items-end justify-between mt-1">
+            <span id="kpi-total-rooms" class="text-2xl font-extrabold text-slate-900 font-mono">10</span>
+            <span class="text-xs text-slate-400">2 Floors</span>
+          </div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-emerald-200 shadow-xs">
+          <span class="text-xs font-semibold text-emerald-700">Available</span>
+          <div class="flex items-end justify-between mt-1">
+            <span id="kpi-avail-rooms" class="text-2xl font-extrabold text-emerald-700 font-mono">0</span>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">Ready</span>
+          </div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-amber-200 shadow-xs">
+          <span class="text-xs font-semibold text-amber-700">Occupied</span>
+          <div class="flex items-end justify-between mt-1">
+            <span id="kpi-occ-rooms" class="text-2xl font-extrabold text-amber-600 font-mono">0</span>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">In-House</span>
+          </div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-rose-200 shadow-xs">
+          <span class="text-xs font-semibold text-rose-700">Dirty / Housekeeping</span>
+          <div class="flex items-end justify-between mt-1">
+            <span id="kpi-dirty-rooms" class="text-2xl font-extrabold text-rose-600 font-mono">0</span>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-semibold">Needs Clean</span>
+          </div>
+        </div>
+        <div class="col-span-2 sm:col-span-1 bg-emerald-950 text-white p-4 rounded-2xl shadow-sm">
+          <span class="text-xs font-semibold text-emerald-300">Today's Room Revenue</span>
+          <div class="flex items-end justify-between mt-1">
+            <span id="kpi-room-rev" class="text-xl sm:text-2xl font-extrabold text-amber-400 font-mono">₱0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legend & Filter Header -->
+      <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Front-Desk Room Rack</h2>
+          <p class="text-xs text-slate-500">Tap an Available/Reserved room to Check-In, an Occupied room to view Folio & Check-Out, or a Dirty room to mark clean.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 text-xs font-semibold">
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Available</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500"></span> Occupied</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-sky-500"></span> Reserved</span>
+          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500"></span> Dirty</span>
+        </div>
+      </div>
+
+      <!-- Room Cards Grid -->
+      <div id="room-rack-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- MODULE 3: CASHIER CASH-OUT & EXPENSES                                 -->
+    <!-- ===================================================================== -->
+    <section id="view-cashout" class="module-view hidden grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <!-- Left: Cash-Out Entry Form -->
+      <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+        <div class="flex items-center gap-2.5 mb-4 pb-3 border-b border-stone-100">
+          <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Log Cash-Out / Expense</h2>
+            <p class="text-xs text-slate-500">Record spot purchases, supplier payouts & drawer disbursements</p>
+          </div>
+        </div>
+
+        <form id="cashout-form" onsubmit="submitCashOut(event)" class="flex flex-col gap-3.5">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Expense Category *</label>
+            <select id="co-category" required class="w-full px-3 py-2.5 text-xs font-medium rounded-xl border border-stone-300 bg-stone-50 focus:bg-white focus:border-emerald-700 focus:outline-none">
+              <option value="Market / Spot Purchases">Market / Spot Purchases (Palengke, Ice, Produce)</option>
+              <option value="Manila Groceries">Manila Groceries & Dry Goods</option>
+              <option value="Beverage & Liquor Supplier">Beverage & Liquor Supplier</option>
+              <option value="Meat / 3-Month Term Supplier">Meat / 3-Month Term Supplier</option>
+              <option value="LPG & Kitchen Fuel">LPG & Kitchen Fuel / Charcoal</option>
+              <option value="Utilities & Maintenance">Utilities, Repairs & Maintenance</option>
+              <option value="Staff Cash Advance / Payroll">Staff Cash Advance / Daily Labor</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Payee / Supplier Name *</label>
+              <input type="text" id="co-payee" required placeholder="e.g., Catanauan Public Market" class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:border-emerald-700 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Voucher / OR #</label>
+              <input type="text" id="co-ref" placeholder="e.g., CV-042 or OR#119" class="w-full px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 focus:border-emerald-700 focus:outline-none" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Amount (₱) *</label>
+              <input type="number" step="0.01" min="1" id="co-amount" required placeholder="0.00" class="w-full px-3 py-2 text-sm font-mono font-bold rounded-xl border border-stone-300 focus:border-emerald-700 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Disbursement Source *</label>
+              <select id="co-source" class="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-stone-300 bg-stone-50 focus:bg-white focus:border-emerald-700 focus:outline-none">
+                <option value="Cash Drawer">Cash Drawer (Deducts from Box)</option>
+                <option value="GCash / Bank">GCash / Bank Transfer (Non-Drawer)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Particulars / Notes</label>
+            <textarea id="co-notes" rows="2" placeholder="Itemized description (e.g., 15kg pork liempo, calamansi, 5 bags tube ice)..." class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:border-emerald-700 focus:outline-none"></textarea>
+          </div>
+
+          <button type="submit" class="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-sm transition flex items-center justify-center gap-2 mt-1">
+            <i class="fa-solid fa-plus-circle"></i>
+            <span>Record Cash-Out Entry</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Right: Today's Cash-Out Ledger Table -->
+      <div class="lg:col-span-7 bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-stone-200 flex flex-wrap items-center justify-between gap-3 bg-stone-50">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Today's Cash-Out & Expense Log</h3>
+            <p class="text-xs text-slate-500">Real-time payouts deducted from drawer or bank</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl text-right">
+              <span class="block text-[10px] font-bold uppercase text-rose-700">Cash Drawer Payouts</span>
+              <span id="co-drawer-total" class="font-mono text-sm font-extrabold text-rose-800">₱0.00</span>
+            </div>
+            <div class="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl text-right">
+              <span class="block text-[10px] font-bold uppercase text-slate-600">GCash / Bank</span>
+              <span id="co-noncash-total" class="font-mono text-sm font-extrabold text-slate-800">₱0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-stone-100 text-[11px] uppercase tracking-wider text-slate-600 border-b border-stone-200">
+                <th class="py-3 px-4">Time / Ref</th>
+                <th class="py-3 px-4">Category & Payee</th>
+                <th class="py-3 px-4">Source</th>
+                <th class="py-3 px-4 text-right">Amount</th>
+                <th class="py-3 px-4 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="cashout-table-body" class="divide-y divide-stone-100 text-xs">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- MODULE 4: END-OF-DAY SALES SUMMARY (6-SECTION RECONCILIATION SHEET)   -->
+    <!-- ===================================================================== -->
+    <section id="view-summary" class="module-view hidden flex-col gap-5">
+      <!-- Top Action Bar -->
+      <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-900 text-amber-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-scale-balanced"></i>
+          </div>
+          <div>
+            <h2 class="text-base sm:text-lg font-extrabold text-slate-900">Daily Sales Summary & Z-Reading</h2>
+            <p class="text-xs text-slate-500">6-Section Financial Reconciliation Sheet • Eyns' Hotel & Restaurant</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <div class="flex items-center gap-2 bg-stone-100 px-3 py-2 rounded-xl border border-stone-200">
+            <label for="summary-date-filter" class="text-xs font-bold text-slate-600">Business Date:</label>
+            <input type="date" id="summary-date-filter" onchange="renderSalesSummary()" class="bg-transparent text-xs font-mono font-bold text-slate-900 focus:outline-none" />
+          </div>
+          <button onclick="printDailySummary()" class="px-4 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm transition flex items-center gap-2">
+            <i class="fa-solid fa-print"></i>
+            <span>Print Daily Summary (A4)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 6-Section Grid Layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- SECTION 1: GROSS SALES BREAKDOWN -->
+        <div class="lg:col-span-4 bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden flex flex-col">
+          <div class="bg-emerald-950 text-white px-4 py-2.5 flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider">1. Gross Sales Breakdown</span>
+            <i class="fa-solid fa-chart-pie text-amber-400 text-xs"></i>
+          </div>
+          <div class="p-4 flex-1 flex flex-col justify-between space-y-2.5 text-xs">
+            <div class="space-y-2">
+              <div class="flex justify-between py-1 border-b border-stone-100">
+                <span class="text-slate-600">Restaurant — Dine-In Sales</span>
+                <span id="sum-dinein" class="font-mono font-semibold text-slate-900">₱0.00</span>
+              </div>
+              <div class="flex justify-between py-1 border-b border-stone-100">
+                <span class="text-slate-600">Restaurant — Take-Out Sales</span>
+                <span id="sum-takeout" class="font-mono font-semibold text-slate-900">₱0.00</span>
+              </div>
+              <div class="flex justify-between py-1 border-b border-stone-100">
+                <span class="text-slate-600">Restaurant — Room Charges Settled</span>
+                <span id="sum-room-food" class="font-mono font-semibold text-slate-900">₱0.00</span>
+              </div>
+              <div class="flex justify-between py-1 border-b border-stone-100">
+                <span class="text-slate-600">Hotel — Room Accommodation</span>
+                <span id="sum-hotel-room" class="font-mono font-semibold text-slate-900">₱0.00</span>
+              </div>
+              <div class="flex justify-between py-1.5 font-bold text-slate-800 bg-stone-50 px-2 rounded-lg">
+                <span>Total Gross Revenue</span>
+                <span id="sum-gross-total" class="font-mono">₱0.00</span>
+              </div>
+              <div class="flex justify-between py-1 text-amber-700 px-2">
+                <span>Less: SC / PWD Discounts & VAT Ex.</span>
+                <span id="sum-discounts" class="font-mono">-₱0.00</span>
+              </div>
+            </div>
+            <div class="flex justify-between items-center pt-3 border-t-2 border-emerald-900 text-sm font-extrabold text-emerald-950">
+              <span>NET TAXABLE / COLLECTIBLE SALES</span>
+              <span id="sum-net-sales" class="font-mono text-base text-emerald-800">₱0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 2: PAYMENT & TENDER BREAKDOWN -->
+        <div class="lg:col-span-4 bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden flex flex-col">
+          <div class="bg-emerald-950 text-white px-4 py-2.5 flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider">2. Tender & Payment Mix</span>
+            <i class="fa-solid fa-wallet text-amber-400 text-xs"></i>
+          </div>
+          <div class="p-4 flex-1 flex flex-col justify-between space-y-2.5 text-xs">
+            <div class="space-y-2">
+              <div class="flex justify-between py-1.5 border-b border-stone-100">
+                <span class="flex items-center gap-2 font-medium text-slate-700"><span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span> Cash Sales (POS & Hotel)</span>
+                <span id="sum-tender-cash" class="font-mono font-bold text-slate-900">₱0.00</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-stone-100">
+                <span class="flex items-center gap-2 font-medium text-slate-700"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> GCash E-Wallet</span>
+                <span id="sum-tender-gcash" class="font-mono font-bold text-slate-900">₱0.00</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-stone-100">
+                <span class="flex items-center gap-2 font-medium text-slate-700"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Card / Bank Transfer</span>
+                <span id="sum-tender-card" class="font-mono font-bold text-slate-900">₱0.00</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-stone-100">
+                <span class="flex items-center gap-2 font-medium text-amber-800"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Charge / A/R (Uncollected)</span>
+                <span id="sum-tender-ar" class="font-mono font-bold text-amber-700">₱0.00</span>
+              </div>
+              <div class="flex justify-between py-1.5 bg-emerald-50/70 px-2 rounded-lg text-emerald-900 font-semibold">
+                <span>+ Prior A/R Collections Today</span>
+                <span id="sum-ar-collections" class="font-mono">₱0.00</span>
+              </div>
+            </div>
+            <div class="flex justify-between items-center pt-3 border-t-2 border-emerald-900 text-sm font-extrabold text-emerald-950">
+              <span>TOTAL ACCOUNTED TENDER</span>
+              <span id="sum-tender-total" class="font-mono text-base text-emerald-800">₱0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 3: CASH DRAWER RECONCILIATION (CASH BOX) -->
+        <div class="lg:col-span-4 bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden flex flex-col">
+          <div class="bg-amber-600 text-white px-4 py-2.5 flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider">3. Cash Box Reconciliation</span>
+            <i class="fa-solid fa-cash-register text-white text-xs"></i>
+          </div>
+          <div class="p-4 flex-1 flex flex-col justify-between space-y-2 text-xs">
+            <div class="space-y-2">
+              <div class="flex items-center justify-between py-1 border-b border-stone-100">
+                <span class="text-slate-700 font-medium">Opening Petty Cash Float</span>
+                <input type="number" id="opening-float-input" onchange="updateOpeningFloat(this.value)" value="5000" class="w-28 text-right font-mono font-bold text-slate-900 bg-stone-100 border border-stone-300 rounded-lg px-2 py-1 focus:bg-white focus:border-emerald-700 focus:outline-none" />
+              </div>
+              <div class="flex justify-between py-1 border-b border-stone-100 text-emerald-800">
+                <span>(+) Cash Sales Today</span>
+                <span id="box-cash-sales" class="font-mono font-semibold">+₱0.00</span>
+              </div>
+              <div class="flex justify-between py-1 border-b border-stone-100 text-emerald-800">
+                <span>(+) Cash A/R Collections</span>
+                <span id="box-cash-collections" class="font-mono font-semibold">+₱0.00</span>
+              </div>
+              <div class="flex justify-between py-1 border-b border-stone-100 text-rose-700">
+                <span>(-) Cash Drawer Payouts</span>
+                <span id="box-cash-outs" class="font-mono font-semibold">-₱0.00</span>
+              </div>
+              <div class="flex justify-between py-1.5 px-2.5 rounded-xl bg-emerald-50 border border-emerald-200 font-extrabold text-emerald-950 text-sm">
+                <span>Expected Cash in Box</span>
+                <span id="box-expected-cash" class="font-mono">₱0.00</span>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-stone-200 space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-700">Actual Physical Count (₱)</span>
+                <input type="number" id="actual-cash-input" oninput="calculateDrawerVariance()" placeholder="Enter count..." class="w-32 text-right font-mono font-bold text-slate-900 bg-amber-50 border border-amber-300 rounded-lg px-2 py-1 focus:bg-white focus:border-emerald-700 focus:outline-none" />
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="font-semibold text-slate-600">Over / (Short) Variance</span>
+                <span id="box-variance" class="font-mono text-xs font-extrabold px-2 py-0.5 rounded bg-stone-100 text-slate-700">₱0.00 (Unverified)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 4: CASH-OUT & PURCHASES BY CATEGORY -->
+        <div class="lg:col-span-5 bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
+          <div class="bg-slate-800 text-white px-4 py-2.5 flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider">4. Cash-Out & Purchases Summary</span>
+            <span id="sec4-total-badge" class="font-mono text-xs text-amber-300 font-bold">₱0.00</span>
+          </div>
+          <div class="p-4">
+            <div id="sec4-category-list" class="space-y-2 text-xs">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 5: ACCOUNTS RECEIVABLE (A/R) & CHARGE LEDGER -->
+        <div class="lg:col-span-7 bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
+          <div class="bg-slate-800 text-white px-4 py-2.5 flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider">5. Accounts Receivable (A/R) & Charge Log</span>
+            <span id="sec5-open-ar-badge" class="font-mono text-xs text-amber-300 font-bold">Open: ₱0.00</span>
+          </div>
+          <div class="overflow-x-auto max-h-64">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-stone-100 text-[10px] uppercase text-slate-600 border-b border-stone-200">
+                  <th class="py-2.5 px-3">Ref #</th>
+                  <th class="py-2.5 px-3">Account / Guest</th>
+                  <th class="py-2.5 px-3">Date</th>
+                  <th class="py-2.5 px-3 text-right">Amount</th>
+                  <th class="py-2.5 px-3 text-center">Status / Action</th>
+                </tr>
+              </thead>
+              <tbody id="sec5-ar-tbody" class="divide-y divide-stone-100">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SECTION 6: TRANSACTION AUDIT LOG (ALL SALES & FOLIOS) -->
+        <div class="lg:col-span-12 bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
+          <div class="bg-emerald-950 text-white px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider">6. Master Transaction Audit Log</span>
+              <span class="text-[11px] text-emerald-300 ml-2">(Order Slips, Room Check-Outs & A/R Collections)</span>
+            </div>
+            <span id="sec6-count-badge" class="text-xs font-mono bg-emerald-900 px-2.5 py-1 rounded-lg text-amber-300">0 Transactions</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-stone-100 text-[11px] uppercase tracking-wider text-slate-600 border-b border-stone-200">
+                  <th class="py-3 px-4">Doc #</th>
+                  <th class="py-3 px-4">Time</th>
+                  <th class="py-3 px-4">Source / Type</th>
+                  <th class="py-3 px-4">Details / Guest / Table</th>
+                  <th class="py-3 px-4">Payment</th>
+                  <th class="py-3 px-4 text-right">Discount</th>
+                  <th class="py-3 px-4 text-right">Net Total</th>
+                  <th class="py-3 px-4 text-center">Receipt</th>
+                </tr>
+              </thead>
+              <tbody id="sec6-audit-tbody" class="divide-y divide-stone-100">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ======================================================================= -->
+  <!-- MODALS (CHECK-IN, FOLIO CHECK-OUT, RECEIPT PREVIEW, GOOGLE SHEETS SYNC) -->
+  <!-- ======================================================================= -->
+
+  <!-- 1. HOTEL CHECK-IN MODAL -->
+  <div id="checkin-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-stone-200">
+      <div class="bg-emerald-950 text-white px-5 py-4 flex items-center justify-between">
+        <div>
+          <span class="text-[10px] uppercase tracking-wider text-amber-400 font-bold">Hotel Front-Desk</span>
+          <h3 id="ci-modal-title" class="text-lg font-extrabold">Check-In: Room 101</h3>
+        </div>
+        <button onclick="closeModal('checkin-modal')" class="w-8 h-8 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="checkin-form" onsubmit="confirmHotelCheckIn(event)" class="p-5 space-y-3.5 text-xs">
+        <input type="hidden" id="ci-room-number" />
+        <div class="bg-stone-50 p-3 rounded-xl border border-stone-200 flex justify-between items-center">
+          <div>
+            <span id="ci-room-type" class="font-bold text-slate-900 text-sm">Standard Twin/Queen</span>
+            <p class="text-slate-500">Base Rate per Night</p>
+          </div>
+          <span id="ci-room-rate" class="font-mono text-base font-extrabold text-emerald-800">₱1,800.00</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Guest Full Name *</label>
+            <input type="text" id="ci-guest-name" required placeholder="e.g., Juan Dela Cruz" class="w-full px-3 py-2 rounded-xl border border-stone-300 focus:border-emerald-700 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Mobile / Contact #</label>
+            <input type="text" id="ci-contact" placeholder="0917-XXX-XXXX" class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono focus:border-emerald-700 focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Adults / Pax *</label>
+            <input type="number" id="ci-pax" min="1" max="10" value="2" required class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono focus:border-emerald-700 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Nights *</label>
+            <input type="number" id="ci-nights" min="1" max="30" value="1" oninput="updateCheckInEstimate()" required class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono focus:border-emerald-700 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Extra Bed (₱400/nt)</label>
+            <input type="number" id="ci-extra-beds" min="0" max="4" value="0" oninput="updateCheckInEstimate()" class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono focus:border-emerald-700 focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Advance Deposit Paid (₱)</label>
+            <input type="number" id="ci-deposit" min="0" step="0.01" value="0" oninput="updateCheckInEstimate()" class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono font-bold focus:border-emerald-700 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Deposit Method</label>
+            <select id="ci-deposit-method" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white focus:border-emerald-700 focus:outline-none">
+              <option value="Cash">Cash</option>
+              <option value="GCash">GCash</option>
+              <option value="Card">Card / Bank</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 flex justify-between items-center">
+          <span class="font-semibold text-amber-950">Estimated Room Total:</span>
+          <span id="ci-est-total" class="font-mono text-base font-extrabold text-amber-900">₱1,800.00</span>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal('checkin-modal')" class="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-slate-700 font-bold">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold shadow-sm">Confirm Check-In</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. HOTEL GUEST FOLIO & CHECK-OUT MODAL -->
+  <div id="folio-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-stone-200 flex flex-col max-h-[90vh]">
+      <div class="bg-emerald-950 text-white px-5 py-4 flex items-center justify-between shrink-0">
+        <div>
+          <span class="text-[10px] uppercase tracking-wider text-amber-400 font-bold">In-House Guest Folio</span>
+          <h3 id="folio-modal-title" class="text-lg font-extrabold">Room 102 — Guest Name</h3>
+        </div>
+        <button onclick="closeModal('folio-modal')" class="w-8 h-8 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4 text-xs flex-1">
+        <input type="hidden" id="folio-room-number" />
+
+        <!-- Guest & Stay Summary -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-stone-50 p-3 rounded-xl border border-stone-200">
+          <div>
+            <span class="text-[10px] uppercase text-slate-500 font-bold">Check-In Date</span>
+            <p id="folio-checkin-date" class="font-mono font-bold text-slate-800 mt-0.5">--</p>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase text-slate-500 font-bold">Stay Duration</span>
+            <p id="folio-nights-pax" class="font-bold text-slate-800 mt-0.5">--</p>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase text-slate-500 font-bold">Contact #</span>
+            <p id="folio-contact" class="font-mono text-slate-800 mt-0.5">--</p>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase text-slate-500 font-bold">Room Rate</span>
+            <p id="folio-rate-display" class="font-mono font-bold text-emerald-800 mt-0.5">--</p>
+          </div>
+        </div>
+
+        <!-- Itemized Folio Charges -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="font-bold text-slate-900 uppercase tracking-wider text-[11px]">Itemized Folio Statement</h4>
+            <button type="button" onclick="quickPostRoomFood()" class="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 transition">
+              + Add Restaurant Order
+            </button>
+          </div>
+          <div class="border border-stone-200 rounded-xl overflow-hidden">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-stone-100 text-[10px] uppercase text-slate-600 border-b border-stone-200">
+                  <th class="py-2 px-3">Description</th>
+                  <th class="py-2 px-3">Ref / Details</th>
+                  <th class="py-2 px-3 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody id="folio-items-tbody" class="divide-y divide-stone-100">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Settlement Summary -->
+        <div class="bg-stone-50 p-3.5 rounded-xl border border-stone-200 space-y-1.5">
+          <div class="flex justify-between text-slate-600">
+            <span>Total Folio Charges (Room + Restaurant)</span>
+            <span id="folio-gross-total" class="font-mono font-bold text-slate-900">₱0.00</span>
+          </div>
+          <div class="flex justify-between text-emerald-700">
+            <span>Less: Advance Deposit Paid at Check-In</span>
+            <span id="folio-deposit-less" class="font-mono font-semibold">-₱0.00</span>
+          </div>
+          <div class="flex justify-between items-center pt-2 border-t border-stone-300 text-base font-extrabold text-emerald-950">
+            <span>BALANCE DUE AT CHECK-OUT</span>
+            <span id="folio-balance-due" class="font-mono text-lg text-emerald-900">₱0.00</span>
+          </div>
+        </div>
+
+        <!-- Settlement Payment Method -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Settlement Payment Method</label>
+            <select id="folio-payment-method" onchange="toggleFolioArInput()" class="w-full px-3 py-2.5 rounded-xl border border-stone-300 bg-white font-semibold focus:border-emerald-700 focus:outline-none">
+              <option value="Cash">Cash</option>
+              <option value="GCash">GCash</option>
+              <option value="Card">Card / Bank Transfer</option>
+              <option value="Charge / A/R">Charge / Corporate A/R</option>
+            </select>
+          </div>
+          <div id="folio-ar-box" class="hidden">
+            <label class="block font-bold text-amber-800 mb-1">Corporate / A/R Account Name *</label>
+            <input type="text" id="folio-ar-name" placeholder="Company or VIP Account" class="w-full px-3 py-2.5 rounded-xl border border-amber-400 bg-amber-50/50 focus:outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-stone-50 border-t border-stone-200 flex flex-wrap justify-between items-center gap-2 shrink-0">
+        <button type="button" onclick="printGuestFolioPreview(false)" class="px-3.5 py-2.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-slate-800 text-xs font-bold flex items-center gap-1.5">
+          <i class="fa-solid fa-file-invoice"></i> Preview Interim Bill
+        </button>
+        <div class="flex gap-2">
+          <button type="button" onclick="closeModal('folio-modal')" class="px-4 py-2.5 rounded-xl bg-stone-200 hover:bg-stone-300 text-slate-700 text-xs font-bold">Close</button>
+          <button type="button" onclick="settleFolioAndCheckOut()" class="px-5 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm flex items-center gap-2">
+            <i class="fa-solid fa-check-double"></i> Settle Folio & Check-Out
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. PRINT PREVIEW MODAL (THERMAL ORDER SLIP, GUEST INVOICE, A4 SUMMARY) -->
+  <div id="receipt-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-[90] hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-stone-300 flex flex-col max-h-[92vh]">
+      <div class="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-print text-amber-400"></i>
+          <h3 id="receipt-modal-title" class="text-sm font-bold">Document Print Preview</h3>
+        </div>
+        <button onclick="closeModal('receipt-modal')" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Scrollable Preview Canvas -->
+      <div class="p-6 bg-stone-200/80 overflow-y-auto flex-1 flex justify-center">
+        <div id="receipt-preview-paper" class="bg-white shadow-lg border border-stone-300 p-6 text-slate-900 w-full max-w-[380px]">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+
+      <div class="p-4 bg-white border-t border-stone-200 flex justify-end gap-3 shrink-0">
+        <button onclick="closeModal('receipt-modal')" class="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-slate-700 text-xs font-bold">
+          Close Preview
+        </button>
+        <button onclick="triggerBrowserPrint()" class="px-5 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-bold shadow-sm flex items-center gap-2">
+          <i class="fa-solid fa-print"></i> Print Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. GOOGLE SHEETS SYNC CONFIGURATION MODAL -->
+  <div id="sheets-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-stone-200">
+      <div class="bg-emerald-950 text-white px-5 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-table text-amber-400 text-lg"></i>
+          <div>
+            <h3 class="text-base font-extrabold">Google Sheets & Apps Script Bridge</h3>
+            <p class="text-[11px] text-emerald-300">Auto-sync POS sales & cash-outs to your Master Workbook</p>
+          </div>
+        </div>
+        <button onclick="closeModal('sheets-modal')" class="w-8 h-8 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Google Apps Script Web App URL (`doPost` endpoint)</label>
+          <input type="url" id="sheets-webhook-url" placeholder="https://script.google.com/macros/s/AKfycbx.../exec" class="w-full px-3 py-2.5 rounded-xl border border-stone-300 font-mono text-xs focus:border-emerald-700 focus:outline-none" />
+          <p class="text-[11px] text-slate-500 mt-1">Leave blank to operate in offline-first LocalStorage mode, or paste your deployed Apps Script URL to push live JSON payloads on every transaction.</p>
+        </div>
+
+        <div>
+          <span class="block font-bold text-slate-700 mb-1">Live JSON Payload Preview (Latest Transaction):</span>
+          <pre id="sheets-json-preview" class="bg-slate-900 text-emerald-300 p-3 rounded-xl font-mono text-[11px] overflow-x-auto max-h-44"></pre>
+        </div>
+
+        <div class="flex justify-between items-center pt-2">
+          <button type="button" onclick="testSheetsSync()" class="px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold transition">
+            <i class="fa-solid fa-paper-plane mr-1"></i> Test Webhook Push
+          </button>
+          <div class="flex gap-2">
+            <button type="button" onclick="closeModal('sheets-modal')" class="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-slate-700 font-bold">Cancel</button>
+            <button type="button" onclick="saveSheetsConfig()" class="px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold">Save Connection</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dedicated Hidden Print Container (Used exclusively by @media print) -->
+  <div id="print-area" class="hidden print:block"></div>
+
+  <!-- ======================================================================= -->
+  <!-- JAVASCRIPT APPLICATION LOGIC                                            -->
+  <!-- ======================================================================= -->
+  <script>
+    // =========================================================================
+    // 1. MASTER MENU & ROOM CATALOG DATA
+    // =========================================================================
+    const MENU_ITEMS = [
+      // Filipino Heritage
+      { id: 'M01', name: 'Crispy Pata (Family)', category: 'Filipino Heritage', price: 680, desc: 'Deep-fried pork knuckle w/ soy-vinegar dip' },
+      { id: 'M02', name: 'Beef Kare-Kare', category: 'Filipino Heritage', price: 460, desc: 'Oxtail & tripe in rich peanut sauce + bagoong' },
+      { id: 'M03', name: 'Sinigang na Baboy', category: 'Filipino Heritage', price: 380, desc: 'Tamarind pork ribs soup w/ native vegetables' },
+      { id: 'M04', name: 'Bulalo Especial', category: 'Filipino Heritage', price: 520, desc: 'Slow-simmered Quezon beef shank & marrow' },
+      { id: 'M05', name: 'Laing sa Gata (Quezon)', category: 'Filipino Heritage', price: 240, desc: 'Dried taro leaves simmered in thick coconut cream' },
+      { id: 'M06', name: 'Adobong Pusit', category: 'Filipino Heritage', price: 320, desc: 'Fresh Lamon Bay squid in garlic-ink adobo' },
+
+      // Sizzlers & Grill
+      { id: 'M07', name: 'Sizzling Pork Sisig', category: 'Sizzlers & Grill', price: 260, desc: 'Chopped maskara, calamansi, chili & egg' },
+      { id: 'M08', name: 'Grilled Tuna Belly', category: 'Sizzlers & Grill', price: 340, desc: 'Char-grilled yellowfin tuna w/ toyomansi' },
+      { id: 'M09', name: 'Inihaw na Liempo', category: 'Sizzlers & Grill', price: 280, desc: 'Marinated pork belly strips w/ ensalada' },
+      { id: 'M10', name: 'Sizzling Gambas', category: 'Sizzlers & Grill', price: 330, desc: 'Sautéed shrimp in garlic-chili olive oil' },
+
+      // Noodles & Rice
+      { id: 'M11', name: 'Pancit Canton Guisado', category: 'Noodles & Rice', price: 230, desc: 'Stir-fried egg noodles w/ pork, shrimp & veggies' },
+      { id: 'M12', name: 'Pancit Habhab Platter', category: 'Noodles & Rice', price: 210, desc: 'Quezon specialty miki noodles w/ sukang tuba' },
+      { id: 'M13', name: 'Garlic Rice Platter', category: 'Noodles & Rice', price: 160, desc: 'Good for 4-5 pax topped w/ toasted garlic' },
+      { id: 'M14', name: 'Steamed White Rice', category: 'Noodles & Rice', price: 35, desc: 'Single cup steamed Catanauan rice' },
+
+      // Beverages & Bar
+      { id: 'M15', name: 'Fresh Calamansi Juice', category: 'Beverages & Bar', price: 75, desc: 'Chilled freshly squeezed local calamansi' },
+      { id: 'M16', name: 'San Miguel Pale Pilsen', category: 'Beverages & Bar', price: 85, desc: 'Ice-cold 330ml bottle' },
+      { id: 'M17', name: 'San Mig Light', category: 'Beverages & Bar', price: 90, desc: 'Ice-cold 330ml bottle' },
+      { id: 'M18', name: 'Barako Brewed Coffee', category: 'Beverages & Bar', price: 80, desc: 'Hot Batangas/Quezon tablea-roast coffee' },
+      { id: 'M19', name: 'Buko Shake', category: 'Beverages & Bar', price: 110, desc: 'Fresh young coconut blended w/ milk' },
+
+      // Desserts & Grazing
+      { id: 'M20', name: 'Eyns Special Halo-Halo', category: 'Desserts & Grazing', price: 145, desc: 'Topped w/ homemade leche flan & ube halaya' },
+      { id: 'M21', name: 'Leche Flan Whole', category: 'Desserts & Grazing', price: 180, desc: 'Creamy caramel custard mold' },
+      { id: 'M22', name: 'Cheesy Nachos & Salsa', category: 'Desserts & Grazing', price: 220, desc: 'Crispy tortilla chips w/ beef & cheese sauce' }
+    ];
+
+    const CATEGORIES = [
+      'All',
+      'Filipino Heritage',
+      'Sizzlers & Grill',
+      'Noodles & Rice',
+      'Beverages & Bar',
+      'Desserts & Grazing'
+    ];
+
+    // =========================================================================
+    // 2. APPLICATION STATE & LOCALSTORAGE PERSISTENCE
+    // =========================================================================
+    const STORAGE_KEY = 'eyns_pos_state_v1';
+
+    function getTodayDateStr() {
+      const now = new Date();
+      const offset = now.getTimezoneOffset();
+      const local = new Date(now.getTime() - offset * 60 * 1000);
+      return local.toISOString().split('T')[0];
+    }
+
+    function getCurrentTimeStr() {
+      return new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function buildInitialSeedState() {
+      const today = getTodayDateStr();
+      return {
+        cashier: 'Maria Clara (AM)',
+        sheetsWebhookUrl: '',
+        openingFloat: 5000,
+        nextOsNumber: 1005,
+        nextFolioReceiptNumber: 503,
+        rooms: [
+          { number: '101', type: 'Standard Twin/Queen', floor: '1st Floor', rate: 1800, status: 'Available', guest: null },
+          {
+            number: '102',
+            type: 'Standard Twin/Queen',
+            floor: '1st Floor',
+            rate: 1800,
+            status: 'Occupied',
+            guest: {
+              name: 'Engr. Marco Reyes',
+              contact: '0917-554-8821',
+              pax: 2,
+              nights: 2,
+              extraBeds: 0,
+              checkInDate: today,
+              deposit: 2000,
+              depositMethod: 'GCash',
+              roomCharges: [
+                {
+                  osNumber: 'OS-1002',
+                  time: '12:40 PM',
+                  itemsSummary: '1x Bulalo Especial, 2x Steamed White Rice, 2x Fresh Calamansi Juice',
+                  amount: 740
+                }
+              ]
+            }
+          },
+          { number: '103', type: 'Standard Twin/Queen', floor: '1st Floor', rate: 1800, status: 'Dirty', guest: null },
+          { number: '104', type: 'Standard Twin/Queen', floor: '1st Floor', rate: 1800, status: 'Reserved', guest: { name: 'Atty. Lorna Mendoza (ETA 4PM)', contact: '0918-221-9043' } },
+          {
+            number: '105',
+            type: 'Deluxe Family Room',
+            floor: '1st Floor',
+            rate: 2800,
+            status: 'Occupied',
+            guest: {
+              name: 'Dr. Carmela Santos & Family',
+              contact: '0920-887-1120',
+              pax: 4,
+              nights: 1,
+              extraBeds: 1,
+              checkInDate: today,
+              deposit: 1500,
+              depositMethod: 'Cash',
+              roomCharges: []
+            }
+          },
+          { number: '106', type: 'Deluxe Family Room', floor: '1st Floor', rate: 2800, status: 'Available', guest: null },
+          { number: '107', type: 'Deluxe Family Room', floor: '1st Floor', rate: 2800, status: 'Available', guest: null },
+          { number: '201', type: 'Executive Suite', floor: '2nd Floor', rate: 3800, status: 'Available', guest: null },
+          { number: '202', type: 'Executive Suite', floor: '2nd Floor', rate: 3800, status: 'Occupied', guest: {
+              name: 'Mayor Office Delegation (Lucena)',
+              contact: '0917-900-3411',
+              pax: 2,
+              nights: 2,
+              extraBeds: 0,
+              checkInDate: today,
+              deposit: 3800,
+              depositMethod: 'Cash',
+              roomCharges: []
+            }
+          },
+          { number: '203', type: 'Executive Suite', floor: '2nd Floor', rate: 3800, status: 'Available', guest: null }
+        ],
+        transactions: [
+          {
+            id: 'OS-1001',
+            date: today,
+            time: '11:35 AM',
+            source: 'Restaurant',
+            subType: 'Dine-In',
+            detail: 'Table #4',
+            items: [
+              { name: 'Crispy Pata (Family)', qty: 1, price: 680 },
+              { name: 'Garlic Rice Platter', qty: 1, price: 160 },
+              { name: 'Fresh Calamansi Juice', qty: 4, price: 75 }
+            ],
+            grossAmount: 1140,
+            discountAmount: 0,
+            netAmount: 1140,
+            paymentMethod: 'Cash',
+            refNumber: '',
+            arAccount: '',
+            arStatus: 'Paid',
+            cashier: 'Maria Clara (AM)'
+          },
+          {
+            id: 'OS-1003',
+            date: today,
+            time: '01:15 PM',
+            source: 'Restaurant',
+            subType: 'Take-Out',
+            detail: 'Walk-in Take-Out',
+            items: [
+              { name: 'Pancit Canton Guisado', qty: 2, price: 230 },
+              { name: 'Inihaw na Liempo', qty: 1, price: 280 }
+            ],
+            grossAmount: 740,
+            discountAmount: 0,
+            netAmount: 740,
+            paymentMethod: 'GCash',
+            refNumber: 'GC-9084122',
+            arAccount: '',
+            arStatus: 'Paid',
+            cashier: 'Maria Clara (AM)'
+          },
+          {
+            id: 'OS-1004',
+            date: today,
+            time: '02:10 PM',
+            source: 'Restaurant',
+            subType: 'Dine-In',
+            detail: 'Table #7 (DepEd Catanauan)',
+            items: [
+              { name: 'Beef Kare-Kare', qty: 2, price: 460 },
+              { name: 'Sinigang na Baboy', qty: 2, price: 380 },
+              { name: 'Garlic Rice Platter', qty: 2, price: 160 }
+            ],
+            grossAmount: 2000,
+            discountAmount: 0,
+            netAmount: 2000,
+            paymentMethod: 'Charge / A/R',
+            refNumber: '',
+            arAccount: 'DepEd District Office - Catanauan',
+            arStatus: 'Unpaid',
+            cashier: 'Maria Clara (AM)'
+          },
+          {
+            id: 'SI-0501',
+            date: today,
+            time: '10:20 AM',
+            source: 'Hotel',
+            subType: 'Room Check-Out',
+            detail: 'Room 103 — Carlos Villanueva (1 Night)',
+            items: [
+              { name: 'Standard Twin/Queen (1 Night)', qty: 1, price: 1800 }
+            ],
+            roomRevenue: 1800,
+            roomFoodRevenue: 0,
+            grossAmount: 1800,
+            discountAmount: 0,
+            netAmount: 1800,
+            paymentMethod: 'Cash',
+            refNumber: '',
+            arAccount: '',
+            arStatus: 'Paid',
+            cashier: 'Maria Clara (AM)'
+          }
+        ],
+        cashOuts: [
+          {
+            id: 'CO-001',
+            date: today,
+            time: '08:30 AM',
+            category: 'Market / Spot Purchases',
+            payee: 'Catanauan Public Market',
+            ref: 'CV-101',
+            amount: 1450,
+            source: 'Cash Drawer',
+            notes: 'Fresh calamansi, vegetables, banana leaves & 6 bags tube ice',
+            cashier: 'Maria Clara (AM)'
+          },
+          {
+            id: 'CO-002',
+            date: today,
+            time: '01:45 PM',
+            category: 'LPG & Kitchen Fuel',
+            payee: 'Petron Gasul Catanauan',
+            ref: 'OR-4412',
+            amount: 1120,
+            source: 'Cash Drawer',
+            notes: '1x 11kg kitchen LPG cylinder refill',
+            cashier: 'Maria Clara (AM)'
+          }
+        ]
+      };
+    }
+
+    let appState = loadAppState();
+
+    function loadAppState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          return JSON.parse(raw);
+        }
+      } catch (err) {
+        console.error('Failed to parse saved POS state:', err);
+      }
+      const seeded = buildInitialSeedState();
+      saveAppState(seeded);
+      return seeded;
+    }
+
+    function saveAppState(stateToSave = appState) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+      } catch (err) {
+        console.error('Failed to persist POS state:', err);
+      }
+    }
+
+    // Active POS Cart State (ephemeral until finalized)
+    let activeCategory = 'All';
+    let currentOrder = {
+      orderType: 'Dine-In',
+      tableNumber: 'Table #1',
+      roomNumber: '',
+      items: [],
+      isScPwd: false,
+      scPwdName: '',
+      scPwdId: '',
+      paymentMethod: 'Cash'
+    };
+
+    // =========================================================================
+    // 3. UTILITY FORMATTERS, TOASTS & CONFIRMATION DIALOGS
+    // =========================================================================
+    function formatPHP(num) {
+      const val = Number(num) || 0;
+      return '₱' + val.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const styles = {
+        success: 'bg-emerald-900 text-white border-emerald-700',
+        warning: 'bg-amber-600 text-white border-amber-500',
+        error: 'bg-rose-700 text-white border-rose-600'
+      };
+      const icons = {
+        success: 'fa-circle-check text-amber-300',
+        warning: 'fa-triangle-exclamation text-white',
+        error: 'fa-circle-xmark text-white'
+      };
+      toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border text-xs font-semibold transition-all duration-300 transform translate-y-2 opacity-0 ${styles[type] || styles.success}`;
+      toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.success} text-sm"></i><span>${message}</span>`;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+
+    function showConfirmDialog(title, message, onConfirm) {
+      const modal = document.getElementById('confirm-modal');
+      document.getElementById('confirm-title').textContent = title;
+      document.getElementById('confirm-message').textContent = message;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      const cancelBtn = document.getElementById('confirm-cancel-btn');
+      const okBtn = document.getElementById('confirm-ok-btn');
+
+      const cleanup = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      };
+
+      cancelBtn.onclick = cleanup;
+      okBtn.onclick = () => {
+        cleanup();
+        onConfirm();
+      };
+    }
+
+    function openModal(id) {
+      const el = document.getElementById(id);
+      el.classList.remove('hidden');
+      el.classList.add('flex');
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      el.classList.add('hidden');
+      el.classList.remove('flex');
+    }
+
+    function confirmResetDemoData() {
+      showConfirmDialog(
+        'Reset Demo Data?',
+        'This will restore the initial sample rooms, restaurant orders, and cash-outs for Eyns\' Hotel & Restaurant. Any custom entries will be cleared.',
+        () => {
+          appState = buildInitialSeedState();
+          saveAppState();
+          currentOrder.items = [];
+          currentOrder.isScPwd = false;
+          document.getElementById('sc-pwd-toggle').checked = false;
+          refreshAllViews();
+          showToast('Demo data restored to initial state.', 'warning');
+        }
+      );
+    }
+
+    // =========================================================================
+    // 4. NAVIGATION, LIVE CLOCK & GOOGLE SHEETS SYNC
+    // =========================================================================
+    function switchTab(tabName) {
+      document.querySelectorAll('.module-view').forEach(view => {
+        view.classList.add('hidden');
+        view.classList.remove('flex', 'grid');
+      });
+
+      const activeView = document.getElementById(`view-${tabName}`);
+      activeView.classList.remove('hidden');
+      if (tabName === 'pos' || tabName === 'cashout') {
+        activeView.classList.add('grid');
+      } else {
+        activeView.classList.add('flex');
+      }
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-amber-500', 'text-emerald-950', 'shadow-sm');
+        btn.classList.add('text-emerald-100', 'hover:bg-emerald-800/70');
+      });
+
+      const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+      activeBtn.classList.remove('text-emerald-100', 'hover:bg-emerald-800/70');
+      activeBtn.classList.add('bg-amber-500', 'text-emerald-950', 'shadow-sm');
+
+      if (tabName === 'pos') renderOrderTypeDetail();
+      if (tabName === 'hotel') renderRoomRack();
+      if (tabName === 'cashout') renderCashOutTable();
+      if (tabName === 'summary') renderSalesSummary();
+    }
+
+    function startLiveClock() {
+      const update = () => {
+        const now = new Date();
+        document.getElementById('live-clock').textContent = now.toLocaleTimeString('en-PH', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        document.getElementById('live-date').textContent = now.toLocaleDateString('en-PH', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+        document.getElementById('order-timestamp-preview').textContent =
+          `${getTodayDateStr()} • ${now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}`;
+      };
+      update();
+      setInterval(update, 1000);
+    }
+
+    function updateCashier(name) {
+      appState.cashier = name;
+      saveAppState();
+      showToast(`Active shift switched to ${name}`);
+    }
+
+    function openSheetsModal() {
+      document.getElementById('sheets-webhook-url').value = appState.sheetsWebhookUrl || '';
+      const latestTx = appState.transactions[appState.transactions.length - 1] || { sample: 'No transactions yet' };
+      document.getElementById('sheets-json-preview').textContent = JSON.stringify(
+        {
+          targetSheet: 'POS_Transactions',
+          timestamp: new Date().toISOString(),
+          branch: "Eyns' Hotel & Restaurant - Catanauan",
+          payload: latestTx
+        },
+        null,
+        2
+      );
+      openModal('sheets-modal');
+    }
+
+    function saveSheetsConfig() {
+      const url = document.getElementById('sheets-webhook-url').value.trim();
+      appState.sheetsWebhookUrl = url;
+      saveAppState();
+      updateSheetsBadge();
+      closeModal('sheets-modal');
+      showToast(url ? 'Google Sheets Webhook URL saved!' : 'Switched to LocalStorage-only mode.');
+    }
+
+    function updateSheetsBadge() {
+      const label = document.getElementById('sheets-status-label');
+      if (appState.sheetsWebhookUrl) {
+        label.textContent = 'Sheets: Connected';
+        label.classList.add('text-amber-300');
+      } else {
+        label.textContent = 'Sheets: Local';
+        label.classList.remove('text-amber-300');
+      }
+    }
+
+    async function pushToGoogleSheets(sheetName, payloadObj) {
+      if (!appState.sheetsWebhookUrl) return;
+      try {
+        await fetch(appState.sheetsWebhookUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sheet: sheetName,
+            timestamp: new Date().toISOString(),
+            data: payloadObj
+          })
+        });
+      } catch (err) {
+        console.warn('Webhook background sync queued locally:', err);
+      }
+    }
+
+    function testSheetsSync() {
+      const url = document.getElementById('sheets-webhook-url').value.trim();
+      if (!url) {
+        showToast('Enter a valid Apps Script Web App URL first.', 'warning');
+        return;
+      }
+      appState.sheetsWebhookUrl = url;
+      saveAppState();
+      updateSheetsBadge();
+      pushToGoogleSheets('Test_Ping', { status: 'OK', cashier: appState.cashier });
+      showToast('Test payload dispatched to Google Apps Script!');
+    }
+
+    // =========================================================================
+    // 5. MODULE 1: RESTAURANT POS LOGIC
+    // =========================================================================
+    function renderCategoryPills() {
+      const container = document.getElementById('category-pills');
+      container.innerHTML = CATEGORIES.map(cat => {
+        const isActive = activeCategory === cat;
+        return `
+          <button onclick="selectCategory('${cat}')" class="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+            isActive
+              ? 'bg-emerald-900 text-white shadow-xs'
+              : 'bg-stone-100 text-slate-600 hover:bg-stone-200'
+          }">
+            ${cat}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectCategory(cat) {
+      activeCategory = cat;
+      renderCategoryPills();
+      renderMenuGrid();
+    }
+
+    function renderMenuGrid() {
+      const query = (document.getElementById('menu-search').value || '').toLowerCase().trim();
+      const filtered = MENU_ITEMS.filter(item => {
+        const matchCat = activeCategory === 'All' || item.category === activeCategory;
+        const matchSearch = !query || item.name.toLowerCase().includes(query) || item.desc.toLowerCase().includes(query);
+        return matchCat && matchSearch;
+      });
+
+      const grid = document.getElementById('menu-grid');
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full bg-white rounded-2xl p-8 text-center border border-stone-200">
+            <i class="fa-solid fa-utensils text-3xl text-slate-300 mb-2"></i>
+            <p class="text-sm font-semibold text-slate-600">No menu items match "${query}"</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(item => `
+        <button onclick="addItemToCart('${item.id}')" class="group text-left bg-white hover:bg-emerald-50/40 p-3.5 rounded-2xl border border-stone-200 hover:border-emerald-700 shadow-xs hover:shadow-md transition flex flex-col justify-between h-full active:scale-[0.98]">
+          <div>
+            <div class="flex items-center justify-between gap-1 mb-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60 truncate">
+                ${item.category}
+              </span>
+              <span class="w-6 h-6 rounded-lg bg-stone-100 group-hover:bg-emerald-900 group-hover:text-white text-slate-600 flex items-center justify-center text-xs transition shrink-0">
+                <i class="fa-solid fa-plus"></i>
+              </span>
+            </div>
+            <h3 class="font-bold text-slate-900 text-xs sm:text-sm leading-snug mt-1.5 group-hover:text-emerald-950">
+              ${item.name}
+            </h3>
+            <p class="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+              ${item.desc}
+            </p>
+          </div>
+          <div class="pt-3 mt-2 border-t border-stone-100 flex items-center justify-between">
+            <span class="font-mono font-extrabold text-sm text-emerald-900">${formatPHP(item.price)}</span>
+            <span class="text-[10px] font-semibold text-slate-400 group-hover:text-emerald-700">+ Add</span>
+          </div>
+        </button>
+      `).join('');
+    }
+
+    function setOrderType(type) {
+      currentOrder.orderType = type;
+      document.querySelectorAll('.otype-btn').forEach(btn => {
+        btn.classList.remove('bg-white', 'text-emerald-950', 'shadow-xs');
+        btn.classList.add('text-slate-600');
+      });
+      const activeBtn = document.getElementById(`otype-${type}`);
+      activeBtn.classList.remove('text-slate-600');
+      activeBtn.classList.add('bg-white', 'text-emerald-950', 'shadow-xs');
+
+      renderOrderTypeDetail();
+
+      const paymentSec = document.getElementById('payment-section');
+      const roomNotice = document.getElementById('room-charge-notice');
+      const finalizeBtnText = document.getElementById('finalize-btn-text');
+
+      if (type === 'Room Charge') {
+        paymentSec.classList.add('hidden');
+        roomNotice.classList.remove('hidden');
+        finalizeBtnText.textContent = 'Post to Room Folio & Print Slip';
+      } else {
+        paymentSec.classList.remove('hidden');
+        roomNotice.classList.add('hidden');
+        finalizeBtnText.textContent = 'Finalize & Print Order Slip';
+      }
+    }
+
+    function renderOrderTypeDetail() {
+      const container = document.getElementById('order-type-detail-container');
+      if (currentOrder.orderType === 'Dine-In') {
+        let options = '';
+        for (let i = 1; i <= 12; i++) {
+          const val = `Table #${i}`;
+          options += `<option value="${val}" ${currentOrder.tableNumber === val ? 'selected' : ''}>${val}</option>`;
+        }
+        container.innerHTML = `
+          <div class="flex items-center justify-between gap-2 bg-white px-3 py-2 rounded-xl border border-stone-200">
+            <label class="text-xs font-bold text-slate-600">Select Table:</label>
+            <select onchange="currentOrder.tableNumber = this.value" class="text-xs font-bold text-emerald-950 bg-stone-100 px-2.5 py-1 rounded-lg border border-stone-200 focus:outline-none">
+              ${options}
+            </select>
+          </div>
+        `;
+      } else if (currentOrder.orderType === 'Take-Out') {
+        container.innerHTML = `
+          <div class="bg-white px-3 py-2 rounded-xl border border-stone-200">
+            <input type="text" id="takeout-customer-name" placeholder="Take-Out Customer Name / Order Note (Optional)" class="w-full text-xs focus:outline-none" />
+          </div>
+        `;
+      } else if (currentOrder.orderType === 'Room Charge') {
+        const occupiedRooms = appState.rooms.filter(r => r.status === 'Occupied');
+        if (occupiedRooms.length === 0) {
+          container.innerHTML = `
+            <div class="bg-rose-50 border border-rose-200 text-rose-800 px-3 py-2 rounded-xl text-xs font-semibold">
+              No Occupied rooms currently checked in. Check in a guest on the Hotel Rack first.
+            </div>
+          `;
+          currentOrder.roomNumber = '';
+        } else {
+          if (!currentOrder.roomNumber || !occupiedRooms.some(r => r.number === currentOrder.roomNumber)) {
+            currentOrder.roomNumber = occupiedRooms[0].number;
+          }
+          const opts = occupiedRooms
+            .map(r => `<option value="${r.number}" ${currentOrder.roomNumber === r.number ? 'selected' : ''}>Room ${r.number} — ${r.guest.name}</option>`)
+            .join('');
+          container.innerHTML = `
+            <div class="bg-white px-3 py-2 rounded-xl border border-amber-300">
+              <label class="block text-[10px] font-bold uppercase text-amber-800 mb-1">Charge to Occupied Room Folio:</label>
+              <select onchange="currentOrder.roomNumber = this.value" class="w-full text-xs font-bold text-slate-900 bg-amber-50/60 px-2.5 py-1.5 rounded-lg border border-amber-200 focus:outline-none">
+                ${opts}
+              </select>
+            </div>
+          `;
+        }
+      }
+    }
+
+    function addItemToCart(itemId) {
+      const menuItem = MENU_ITEMS.find(m => m.id === itemId);
+      if (!menuItem) return;
+
+      const existing = currentOrder.items.find(i => i.id === itemId);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        currentOrder.items.push({
+          id: menuItem.id,
+          name: menuItem.name,
+          price: menuItem.price,
+          qty: 1,
+          note: ''
+        });
+      }
+      renderCart();
+    }
+
+    function updateCartQty(itemId, delta) {
+      const idx = currentOrder.items.findIndex(i => i.id === itemId);
+      if (idx === -1) return;
+      currentOrder.items[idx].qty += delta;
+      if (currentOrder.items[idx].qty <= 0) {
+        currentOrder.items.splice(idx, 1);
+      }
+      renderCart();
+    }
+
+    function updateCartItemNote(itemId, noteVal) {
+      const item = currentOrder.items.find(i => i.id === itemId);
+      if (item) item.note = noteVal;
+    }
+
+    function clearCurrentOrder() {
+      currentOrder.items = [];
+      currentOrder.isScPwd = false;
+      document.getElementById('sc-pwd-toggle').checked = false;
+      document.getElementById('cash-tendered').value = '';
+      document.getElementById('payment-ref-input').value = '';
+      document.getElementById('ar-account-input').value = '';
+      renderCart();
+    }
+
+    function renderCart() {
+      document.getElementById('active-os-number').textContent = `#OS-${appState.nextOsNumber}`;
+      const container = document.getElementById('cart-items-container');
+
+      if (currentOrder.items.length === 0) {
+        container.innerHTML = `
+          <div class="py-10 text-center text-slate-400">
+            <i class="fa-solid fa-basket-shopping text-2xl mb-2 opacity-60"></i>
+            <p class="text-xs font-medium">Order slip is empty.<br/>Tap dishes from the menu to add.</p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = currentOrder.items.map(item => `
+          <div class="py-2.5 flex flex-col gap-1.5">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex-1">
+                <p class="text-xs font-bold text-slate-900 leading-tight">${item.name}</p>
+                <span class="font-mono text-[11px] text-slate-500">${formatPHP(item.price)} each</span>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button onclick="updateCartQty('${item.id}', -1)" class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-rose-100 text-slate-700 hover:text-rose-700 font-bold text-xs flex items-center justify-center transition">
+                  <i class="fa-solid fa-minus text-[10px]"></i>
+                </button>
+                <span class="font-mono text-xs font-extrabold w-6 text-center">${item.qty}</span>
+                <button onclick="updateCartQty('${item.id}', 1)" class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-800 font-bold text-xs flex items-center justify-center transition">
+                  <i class="fa-solid fa-plus text-[10px]"></i>
+                </button>
+              </div>
+              <div class="w-20 text-right font-mono text-xs font-bold text-slate-900">
+                ${formatPHP(item.price * item.qty)}
+              </div>
+            </div>
+            <input type="text" value="${item.note || ''}" oninput="updateCartItemNote('${item.id}', this.value)" placeholder="Add kitchen note (e.g., no chili, extra sauce)..." class="text-[11px] px-2 py-1 rounded bg-stone-50 border border-stone-200/80 text-slate-600 focus:bg-white focus:border-emerald-600 focus:outline-none" />
+          </div>
+        `).join('');
+      }
+
+      recalculateCart();
+    }
+
+    function getCartTotals() {
+      const gross = currentOrder.items.reduce((sum, i) => sum + i.price * i.qty, 0);
+      const isScPwd = document.getElementById('sc-pwd-toggle').checked;
+      currentOrder.isScPwd = isScPwd;
+
+      let vatLess = 0;
+      let scDiscount = 0;
+      let totalDue = gross;
+
+      if (isScPwd && gross > 0) {
+        // Philippine BIR SC/PWD Formula: Remove 12% VAT (Gross / 1.12), then apply 20% discount
+        const vatExemptSales = gross / 1.12;
+        vatLess = gross - vatExemptSales;
+        scDiscount = vatExemptSales * 0.20;
+        totalDue = vatExemptSales - scDiscount;
+      }
+
+      return {
+        gross,
+        vatLess,
+        scDiscount,
+        totalDiscount: vatLess + scDiscount,
+        totalDue
+      };
+    }
+
+    function recalculateCart() {
+      const { gross, vatLess, scDiscount, totalDue } = getCartTotals();
+
+      const idBox = document.getElementById('sc-pwd-id-box');
+      const vatRow = document.getElementById('vat-exempt-row');
+      const scRow = document.getElementById('sc-discount-row');
+
+      if (currentOrder.isScPwd) {
+        idBox.classList.remove('hidden');
+        idBox.classList.add('grid');
+        vatRow.classList.remove('hidden');
+        vatRow.classList.add('flex');
+        scRow.classList.remove('hidden');
+        scRow.classList.add('flex');
+      } else {
+        idBox.classList.add('hidden');
+        idBox.classList.remove('grid');
+        vatRow.classList.add('hidden');
+        vatRow.classList.remove('flex');
+        scRow.classList.add('hidden');
+        scRow.classList.remove('flex');
+      }
+
+      document.getElementById('cart-subtotal').textContent = formatPHP(gross);
+      document.getElementById('cart-vat-less').textContent = `-${formatPHP(vatLess)}`;
+      document.getElementById('cart-discount').textContent = `-${formatPHP(scDiscount)}`;
+      document.getElementById('cart-total').textContent = formatPHP(totalDue);
+
+      calculateChange();
+    }
+
+    function setPaymentMethod(method) {
+      currentOrder.paymentMethod = method;
+      document.querySelectorAll('.pm-btn').forEach(btn => {
+        btn.classList.remove('bg-emerald-900', 'text-white', 'border-emerald-900');
+        btn.classList.add('bg-white', 'text-slate-700', 'border-stone-300');
+      });
+      const activeBtn = document.getElementById(`pm-${method}`);
+      activeBtn.classList.remove('bg-white', 'text-slate-700', 'border-stone-300');
+      activeBtn.classList.add('bg-emerald-900', 'text-white', 'border-emerald-900');
+
+      const cashBox = document.getElementById('cash-tender-box');
+      const refBox = document.getElementById('ref-number-box');
+      const arBox = document.getElementById('ar-account-box');
+
+      cashBox.classList.add('hidden');
+      refBox.classList.add('hidden');
+      arBox.classList.add('hidden');
+
+      if (method === 'Cash') {
+        cashBox.classList.remove('hidden');
+      } else if (method === 'GCash' || method === 'Card') {
+        refBox.classList.remove('hidden');
+      } else if (method === 'Charge / A/R') {
+        arBox.classList.remove('hidden');
+      }
+    }
+
+    function calculateChange() {
+      const { totalDue } = getCartTotals();
+      const tendered = parseFloat(document.getElementById('cash-tendered').value) || 0;
+      const change = Math.max(0, tendered - totalDue);
+      document.getElementById('cash-change').textContent = formatPHP(change);
+    }
+
+    function finalizeOrderSlip() {
+      if (currentOrder.items.length === 0) {
+        showToast('Please add at least one item to the order slip.', 'warning');
+        return;
+      }
+
+      const totals = getCartTotals();
+      const osId = `OS-${appState.nextOsNumber}`;
+      const today = getTodayDateStr();
+      const timeNow = getCurrentTimeStr();
+
+      // Case A: Room Charge -> Attaches to Occupied Room Folio
+      if (currentOrder.orderType === 'Room Charge') {
+        if (!currentOrder.roomNumber) {
+          showToast('Please select an Occupied Room to charge.', 'error');
+          return;
+        }
+        const room = appState.rooms.find(r => r.number === currentOrder.roomNumber);
+        if (!room || room.status !== 'Occupied' || !room.guest) {
+          showToast('Selected room is no longer occupied.', 'error');
+          return;
+        }
+
+        const itemsSummary = currentOrder.items.map(i => `${i.qty}x ${i.name}`).join(', ');
+        room.guest.roomCharges.push({
+          osNumber: osId,
+          time: timeNow,
+          itemsSummary,
+          amount: totals.totalDue
+        });
+
+        appState.nextOsNumber += 1;
+        saveAppState();
+
+        const slipRecord = {
+          id: osId,
+          date: today,
+          time: timeNow,
+          source: 'Restaurant',
+          subType: 'Room Charge',
+          detail: `Room ${room.number} (${room.guest.name})`,
+          items: [...currentOrder.items],
+          grossAmount: totals.gross,
+          discountAmount: totals.totalDiscount,
+          netAmount: totals.totalDue,
+          paymentMethod: 'Posted to Room Folio',
+          cashier: appState.cashier
+        };
+
+        clearCurrentOrder();
+        renderRoomRack();
+        openOrderSlipReceipt(slipRecord);
+        showToast(`Order ${osId} posted to Room ${room.number} Folio!`);
+        return;
+      }
+
+      // Case B: Direct Settlement (Dine-In or Take-Out)
+      let detailLabel = currentOrder.tableNumber;
+      if (currentOrder.orderType === 'Take-Out') {
+        const custName = (document.getElementById('takeout-customer-name')?.value || '').trim();
+        detailLabel = custName ? `Take-Out (${custName})` : 'Walk-in Take-Out';
+      }
+
+      let arAccount = '';
+      let refNumber = '';
+      let cashTendered = 0;
+      let cashChange = 0;
+
+      if (currentOrder.paymentMethod === 'Cash') {
+        cashTendered = parseFloat(document.getElementById('cash-tendered').value) || totals.totalDue;
+        if (cashTendered < totals.totalDue - 0.01) {
+          showToast('Cash tendered is less than Total Due.', 'error');
+          return;
+        }
+        cashChange = Math.max(0, cashTendered - totals.totalDue);
+      } else if (currentOrder.paymentMethod === 'GCash' || currentOrder.paymentMethod === 'Card') {
+        refNumber = (document.getElementById('payment-ref-input').value || '').trim();
+      } else if (currentOrder.paymentMethod === 'Charge / A/R') {
+        arAccount = (document.getElementById('ar-account-input').value || '').trim();
+        if (!arAccount) {
+          showToast('Please enter the Charge / A/R Account Name.', 'warning');
+          return;
+        }
+      }
+
+      const txRecord = {
+        id: osId,
+        date: today,
+        time: timeNow,
+        source: 'Restaurant',
+        subType: currentOrder.orderType,
+        detail: detailLabel,
+        items: [...currentOrder.items],
+        grossAmount: totals.gross,
+        discountAmount: totals.totalDiscount,
+        netAmount: totals.totalDue,
+        paymentMethod: currentOrder.paymentMethod,
+        cashTendered,
+        cashChange,
+        refNumber,
+        arAccount,
+        arStatus: currentOrder.paymentMethod === 'Charge / A/R' ? 'Unpaid' : 'Paid',
+        cashier: appState.cashier
+      };
+
+      appState.transactions.push(txRecord);
+      appState.nextOsNumber += 1;
+      saveAppState();
+      pushToGoogleSheets('POS_Transactions', txRecord);
+
+      clearCurrentOrder();
+      openOrderSlipReceipt(txRecord);
+      showToast(`Order ${osId} finalized (${formatPHP(txRecord.netAmount)})!`);
+    }
+
+    // =========================================================================
+    // 6. MODULE 2: HOTEL ROOM RACK & FOLIO LOGIC
+    // =========================================================================
+    function renderRoomRack() {
+      const rooms = appState.rooms;
+      const availCount = rooms.filter(r => r.status === 'Available').length;
+      const occCount = rooms.filter(r => r.status === 'Occupied').length;
+      const dirtyCount = rooms.filter(r => r.status === 'Dirty').length;
+
+      const today = getTodayDateStr();
+      const todayRoomRev = appState.transactions
+        .filter(t => t.date === today && t.source === 'Hotel')
+        .reduce((sum, t) => sum + (t.roomRevenue || t.netAmount), 0);
+
+      document.getElementById('kpi-total-rooms').textContent = rooms.length;
+      document.getElementById('kpi-avail-rooms').textContent = availCount;
+      document.getElementById('kpi-occ-rooms').textContent = occCount;
+      document.getElementById('kpi-dirty-rooms').textContent = dirtyCount;
+      document.getElementById('kpi-room-rev').textContent = formatPHP(todayRoomRev);
+      document.getElementById('badge-occupied-rooms').textContent = `${occCount}/${rooms.length}`;
+
+      const statusConfig = {
+        Available: {
+          border: 'border-emerald-300 hover:border-emerald-600',
+          headerBg: 'bg-emerald-800 text-white',
+          badgeBg: 'bg-emerald-100 text-emerald-900',
+          icon: 'fa-door-open',
+          actionText: 'Tap to Check-In'
+        },
+        Occupied: {
+          border: 'border-amber-400 hover:border-amber-600',
+          headerBg: 'bg-amber-600 text-white',
+          badgeBg: 'bg-amber-100 text-amber-900',
+          icon: 'fa-bed',
+          actionText: 'View Folio & Check-Out'
+        },
+        Reserved: {
+          border: 'border-sky-300 hover:border-sky-600',
+          headerBg: 'bg-sky-700 text-white',
+          badgeBg: 'bg-sky-100 text-sky-900',
+          icon: 'fa-calendar-check',
+          actionText: 'Check-In Reserved Guest'
+        },
+        Dirty: {
+          border: 'border-rose-300 hover:border-rose-600',
+          headerBg: 'bg-rose-700 text-white',
+          badgeBg: 'bg-rose-100 text-rose-900',
+          icon: 'fa-broom',
+          actionText: 'Mark Clean & Available'
+        }
+      };
+
+      const grid = document.getElementById('room-rack-grid');
+      grid.innerHTML = rooms.map(room => {
+        const cfg = statusConfig[room.status] || statusConfig.Available;
+        let bodyHtml = '';
+
+        if (room.status === 'Occupied' && room.guest) {
+          const foodTotal = (room.guest.roomCharges || []).reduce((s, c) => s + c.amount, 0);
+          const roomTotal = (room.rate + (room.guest.extraBeds || 0) * 400) * room.guest.nights;
+          const balance = roomTotal + foodTotal - (room.guest.deposit || 0);
+          bodyHtml = `
+            <div class="space-y-1.5">
+              <p class="font-bold text-slate-900 text-xs truncate">${room.guest.name}</p>
+              <p class="text-[11px] text-slate-500">${room.guest.nights} Night(s) • ${room.guest.pax} Pax</p>
+              <div class="pt-1.5 border-t border-stone-100 flex justify-between text-[11px]">
+                <span class="text-slate-500">Folio Bal:</span>
+                <span class="font-mono font-extrabold text-amber-800">${formatPHP(balance)}</span>
+              </div>
+            </div>
+          `;
+        } else if (room.status === 'Reserved' && room.guest) {
+          bodyHtml = `
+            <div class="space-y-1">
+              <p class="font-bold text-sky-900 text-xs truncate">${room.guest.name}</p>
+              <p class="text-[11px] text-slate-500">${room.type}</p>
+            </div>
+          `;
+        } else {
+          bodyHtml = `
+            <div class="space-y-1">
+              <p class="font-semibold text-slate-700 text-xs">${room.type}</p>
+              <p class="font-mono text-xs font-bold text-emerald-800">${formatPHP(room.rate)} / night</p>
+            </div>
+          `;
+        }
+
+        return `
+          <div onclick="handleRoomCardClick('${room.number}')" class="cursor-pointer bg-white rounded-2xl border-2 ${cfg.border} shadow-xs hover:shadow-md transition overflow-hidden flex flex-col justify-between active:scale-[0.98]">
+            <div class="${cfg.headerBg} px-3.5 py-2.5 flex items-center justify-between">
+              <span class="font-mono font-extrabold text-base">RM ${room.number}</span>
+              <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${cfg.badgeBg}">
+                <i class="fa-solid ${cfg.icon} mr-1"></i>${room.status}
+              </span>
+            </div>
+            <div class="p-3.5 flex-1 flex flex-col justify-between gap-3">
+              ${bodyHtml}
+              <div class="pt-2 border-t border-stone-100 flex items-center justify-between text-[11px] font-bold text-slate-600">
+                <span>${cfg.actionText}</span>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function handleRoomCardClick(roomNumber) {
+      const room = appState.rooms.find(r => r.number === roomNumber);
+      if (!room) return;
+
+      if (room.status === 'Available' || room.status === 'Reserved') {
+        openCheckInModal(room);
+      } else if (room.status === 'Occupied') {
+        openFolioModal(room);
+      } else if (room.status === 'Dirty') {
+        showConfirmDialog(
+          `Mark Room ${room.number} Clean?`,
+          `Confirm housekeeping inspection is complete and set Room ${room.number} (${room.type}) to Available.`,
+          () => {
+            room.status = 'Available';
+            room.guest = null;
+            saveAppState();
+            renderRoomRack();
+            showToast(`Room ${room.number} is now Clean & Available!`);
+          }
+        );
+      }
+    }
+
+    function openCheckInModal(room) {
+      document.getElementById('ci-room-number').value = room.number;
+      document.getElementById('ci-modal-title').textContent = `Check-In: Room ${room.number}`;
+      document.getElementById('ci-room-type').textContent = `${room.type} (${room.floor})`;
+      document.getElementById('ci-room-rate').textContent = formatPHP(room.rate);
+
+      document.getElementById('ci-guest-name').value = room.guest?.name || '';
+      document.getElementById('ci-contact').value = room.guest?.contact || '';
+      document.getElementById('ci-pax').value = 2;
+      document.getElementById('ci-nights').value = 1;
+      document.getElementById('ci-extra-beds').value = 0;
+      document.getElementById('ci-deposit').value = 0;
+
+      updateCheckInEstimate();
+      openModal('checkin-modal');
+    }
+
+    function updateCheckInEstimate() {
+      const roomNum = document.getElementById('ci-room-number').value;
+      const room = appState.rooms.find(r => r.number === roomNum);
+      if (!room) return;
+
+      const nights = Math.max(1, parseInt(document.getElementById('ci-nights').value) || 1);
+      const extraBeds = Math.max(0, parseInt(document.getElementById('ci-extra-beds').value) || 0);
+      const total = (room.rate + extraBeds * 400) * nights;
+      document.getElementById('ci-est-total').textContent = formatPHP(total);
+    }
+
+    function confirmHotelCheckIn(event) {
+      event.preventDefault();
+      const roomNum = document.getElementById('ci-room-number').value;
+      const room = appState.rooms.find(r => r.number === roomNum);
+      if (!room) return;
+
+      const guestName = document.getElementById('ci-guest-name').value.trim();
+      const contact = document.getElementById('ci-contact').value.trim();
+      const pax = Math.max(1, parseInt(document.getElementById('ci-pax').value) || 1);
+      const nights = Math.max(1, parseInt(document.getElementById('ci-nights').value) || 1);
+      const extraBeds = Math.max(0, parseInt(document.getElementById('ci-extra-beds').value) || 0);
+      const deposit = Math.max(0, parseFloat(document.getElementById('ci-deposit').value) || 0);
+      const depositMethod = document.getElementById('ci-deposit-method').value;
+
+      room.status = 'Occupied';
+      room.guest = {
+        name: guestName,
+        contact,
+        pax,
+        nights,
+        extraBeds,
+        checkInDate: getTodayDateStr(),
+        deposit,
+        depositMethod,
+        roomCharges: []
+      };
+
+      saveAppState();
+      closeModal('checkin-modal');
+      renderRoomRack();
+      showToast(`Checked in ${guestName} to Room ${room.number}!`);
+    }
+
+    function openFolioModal(room) {
+      if (!room || !room.guest) return;
+      const g = room.guest;
+
+      document.getElementById('folio-room-number').value = room.number;
+      document.getElementById('folio-modal-title').textContent = `Room ${room.number} — ${g.name}`;
+      document.getElementById('folio-checkin-date').textContent = g.checkInDate;
+      document.getElementById('folio-nights-pax').textContent = `${g.nights} Night(s), ${g.pax} Pax`;
+      document.getElementById('folio-contact').textContent = g.contact || 'N/A';
+      document.getElementById('folio-rate-display').textContent = `${formatPHP(room.rate)}/nt`;
+
+      const roomBaseTotal = room.rate * g.nights;
+      const extraBedTotal = (g.extraBeds || 0) * 400 * g.nights;
+      const foodCharges = g.roomCharges || [];
+      const foodTotal = foodCharges.reduce((sum, c) => sum + c.amount, 0);
+
+      let rowsHtml = `
+        <tr>
+          <td class="py-2 px-3 font-semibold text-slate-900">${room.type} (${g.nights} night/s)</td>
+          <td class="py-2 px-3 font-mono text-slate-500">${formatPHP(room.rate)} × ${g.nights}</td>
+          <td class="py-2 px-3 text-right font-mono font-bold text-slate-900">${formatPHP(roomBaseTotal)}</td>
+        </tr>
+      `;
+
+      if (extraBedTotal > 0) {
+        rowsHtml += `
+          <tr>
+            <td class="py-2 px-3 font-semibold text-slate-900">Extra Bed / Pax Charge</td>
+            <td class="py-2 px-3 font-mono text-slate-500">${g.extraBeds} bed × ₱400 × ${g.nights} nt</td>
+            <td class="py-2 px-3 text-right font-mono font-bold text-slate-900">${formatPHP(extraBedTotal)}</td>
+          </tr>
+        `;
+      }
+
+      if (foodCharges.length === 0) {
+        rowsHtml += `
+          <tr>
+            <td colspan="3" class="py-2.5 px-3 text-center text-slate-400 italic">No restaurant room charges posted</td>
+          </tr>
+        `;
+      } else {
+        foodCharges.forEach(fc => {
+          rowsHtml += `
+            <tr class="bg-amber-50/40">
+              <td class="py-2 px-3 font-medium text-slate-800">Restaurant Room Charge (${fc.osNumber})<br/><span class="text-[10px] text-slate-500">${fc.itemsSummary}</span></td>
+              <td class="py-2 px-3 font-mono text-slate-500">${fc.time}</td>
+              <td class="py-2 px-3 text-right font-mono font-bold text-amber-900">${formatPHP(fc.amount)}</td>
+            </tr>
+          `;
+        });
+      }
+
+      document.getElementById('folio-items-tbody').innerHTML = rowsHtml;
+
+      const grossTotal = roomBaseTotal + extraBedTotal + foodTotal;
+      const deposit = g.deposit || 0;
+      const balanceDue = Math.max(0, grossTotal - deposit);
+
+      document.getElementById('folio-gross-total').textContent = formatPHP(grossTotal);
+      document.getElementById('folio-deposit-less').textContent = `-${formatPHP(deposit)} (${g.depositMethod || 'Cash'})`;
+      document.getElementById('folio-balance-due').textContent = formatPHP(balanceDue);
+
+      document.getElementById('folio-payment-method').value = 'Cash';
+      document.getElementById('folio-ar-box').classList.add('hidden');
+      document.getElementById('folio-ar-name').value = '';
+
+      openModal('folio-modal');
+    }
+
+    function toggleFolioArInput() {
+      const pm = document.getElementById('folio-payment-method').value;
+      const box = document.getElementById('folio-ar-box');
+      if (pm === 'Charge / A/R') {
+        box.classList.remove('hidden');
+      } else {
+        box.classList.add('hidden');
+      }
+    }
+
+    function quickPostRoomFood() {
+      const roomNum = document.getElementById('folio-room-number').value;
+      closeModal('folio-modal');
+      switchTab('pos');
+      setOrderType('Room Charge');
+      currentOrder.roomNumber = roomNum;
+      renderOrderTypeDetail();
+      showToast(`POS ready to charge items to Room ${roomNum}`);
+    }
+
+    function settleFolioAndCheckOut() {
+      const roomNum = document.getElementById('folio-room-number').value;
+      const room = appState.rooms.find(r => r.number === roomNum);
+      if (!room || !room.guest) return;
+
+      const pm = document.getElementById('folio-payment-method').value;
+      const arAccount = (document.getElementById('folio-ar-name').value || '').trim();
+      if (pm === 'Charge / A/R' && !arAccount) {
+        showToast('Enter the Corporate / A/R Account Name for Charge check-out.', 'warning');
+        return;
+      }
+
+      const g = room.guest;
+      const roomRevenue = (room.rate + (g.extraBeds || 0) * 400) * g.nights;
+      const roomFoodRevenue = (g.roomCharges || []).reduce((sum, c) => sum + c.amount, 0);
+      const grandTotal = roomRevenue + roomFoodRevenue;
+
+      const siId = `SI-${String(appState.nextFolioReceiptNumber).padStart(4, '0')}`;
+      const today = getTodayDateStr();
+      const timeNow = getCurrentTimeStr();
+
+      const folioItems = [
+        { name: `${room.type} (${g.nights} Night/s)`, qty: g.nights, price: room.rate }
+      ];
+      if (g.extraBeds > 0) {
+        folioItems.push({ name: 'Extra Bed Add-on', qty: g.extraBeds * g.nights, price: 400 });
+      }
+      (g.roomCharges || []).forEach(rc => {
+        folioItems.push({ name: `Resto Charge (${rc.osNumber}): ${rc.itemsSummary}`, qty: 1, price: rc.amount });
+      });
+
+      const txRecord = {
+        id: siId,
+        date: today,
+        time: timeNow,
+        source: 'Hotel',
+        subType: 'Room Check-Out',
+        detail: `Room ${room.number} — ${g.name} (${g.nights}nt)`,
+        items: folioItems,
+        roomRevenue,
+        roomFoodRevenue,
+        depositPaid: g.deposit || 0,
+        grossAmount: grandTotal,
+        discountAmount: 0,
+        netAmount: grandTotal,
+        paymentMethod: pm,
+        refNumber: '',
+        arAccount,
+        arStatus: pm === 'Charge / A/R' ? 'Unpaid' : 'Paid',
+        cashier: appState.cashier
+      };
+
+      appState.transactions.push(txRecord);
+      appState.nextFolioReceiptNumber += 1;
+
+      // Mark room as Dirty for Housekeeping
+      room.status = 'Dirty';
+      room.guest = null;
+
+      saveAppState();
+      pushToGoogleSheets('POS_Transactions', txRecord);
+
+      closeModal('folio-modal');
+      renderRoomRack();
+      openGuestFolioReceipt(txRecord);
+      showToast(`Room ${room.number} Checked Out! Invoice ${siId} recorded.`);
+    }
+
+    // =========================================================================
+    // 7. MODULE 3: CASHIER CASH-OUT & EXPENSES LOGIC
+    // =========================================================================
+    function submitCashOut(event) {
+      event.preventDefault();
+      const category = document.getElementById('co-category').value;
+      const payee = document.getElementById('co-payee').value.trim();
+      const ref = document.getElementById('co-ref').value.trim() || `CV-${appState.cashOuts.length + 101}`;
+      const amount = parseFloat(document.getElementById('co-amount').value) || 0;
+      const source = document.getElementById('co-source').value;
+      const notes = document.getElementById('co-notes').value.trim();
+
+      if (amount <= 0) {
+        showToast('Enter a valid amount greater than zero.', 'warning');
+        return;
+      }
+
+      const entry = {
+        id: `CO-${String(appState.cashOuts.length + 1).padStart(3, '0')}`,
+        date: getTodayDateStr(),
+        time: getCurrentTimeStr(),
+        category,
+        payee,
+        ref,
+        amount,
+        source,
+        notes,
+        cashier: appState.cashier
+      };
+
+      appState.cashOuts.push(entry);
+      saveAppState();
+      pushToGoogleSheets('Cash_Out_Log', entry);
+
+      document.getElementById('cashout-form').reset();
+      renderCashOutTable();
+      showToast(`Cash-Out ${formatPHP(amount)} recorded under ${category}`);
+    }
+
+    function deleteCashOut(id) {
+      showConfirmDialog(
+        'Void Cash-Out Entry?',
+        'Remove this expense record from the cashier log? This will adjust expected cash in drawer.',
+        () => {
+          appState.cashOuts = appState.cashOuts.filter(c => c.id !== id);
+          saveAppState();
+          renderCashOutTable();
+          showToast('Cash-Out entry removed.', 'warning');
+        }
+      );
+    }
+
+    function renderCashOutTable() {
+      const today = getTodayDateStr();
+      const todayEntries = appState.cashOuts.filter(c => c.date === today);
+
+      const drawerSum = todayEntries
+        .filter(c => c.source === 'Cash Drawer')
+        .reduce((s, c) => s + c.amount, 0);
+      const nonCashSum = todayEntries
+        .filter(c => c.source !== 'Cash Drawer')
+        .reduce((s, c) => s + c.amount, 0);
+
+      document.getElementById('co-drawer-total').textContent = formatPHP(drawerSum);
+      document.getElementById('co-noncash-total').textContent = formatPHP(nonCashSum);
+
+      const tbody = document.getElementById('cashout-table-body');
+      if (todayEntries.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="py-8 text-center text-slate-400">No cash-out entries recorded today.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = todayEntries
+        .slice()
+        .reverse()
+        .map(c => `
+          <tr class="hover:bg-stone-50">
+            <td class="py-3 px-4 align-top">
+              <span class="font-mono font-bold text-slate-800 block">${c.ref}</span>
+              <span class="text-[11px] text-slate-400">${c.time}</span>
+            </td>
+            <td class="py-3 px-4 align-top">
+              <span class="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200/70 mb-1">
+                ${c.category}
+              </span>
+              <p class="font-bold text-slate-900">${c.payee}</p>
+              ${c.notes ? `<p class="text-[11px] text-slate-500 mt-0.5">${c.notes}</p>` : ''}
+            </td>
+            <td class="py-3 px-4 align-top">
+              <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                c.source === 'Cash Drawer' ? 'bg-rose-100 text-rose-800' : 'bg-sky-100 text-sky-800'
+              }">
+                ${c.source}
+              </span>
+            </td>
+            <td class="py-3 px-4 align-top text-right font-mono font-extrabold text-slate-900">
+              ${formatPHP(c.amount)}
+            </td>
+            <td class="py-3 px-4 align-top text-center">
+              <button onclick="deleteCashOut('${c.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition" title="Void Entry">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+    }
+
+    // =========================================================================
+    // 8. MODULE 4: END-OF-DAY SALES SUMMARY (6-SECTION RECONCILIATION)
+    // =========================================================================
+    function updateOpeningFloat(val) {
+      appState.openingFloat = Math.max(0, parseFloat(val) || 0);
+      saveAppState();
+      renderSalesSummary();
+    }
+
+    function renderSalesSummary() {
+      const dateInput = document.getElementById('summary-date-filter');
+      if (!dateInput.value) {
+        dateInput.value = getTodayDateStr();
+      }
+      const targetDate = dateInput.value;
+
+      document.getElementById('opening-float-input').value = appState.openingFloat;
+
+      const dayTx = appState.transactions.filter(t => t.date === targetDate);
+      const dayCashOuts = appState.cashOuts.filter(c => c.date === targetDate);
+
+      // Section 1: Gross Sales Breakdown
+      let dineInGross = 0;
+      let takeOutGross = 0;
+      let roomFoodGross = 0;
+      let hotelRoomGross = 0;
+      let totalDiscounts = 0;
+
+      dayTx.forEach(t => {
+        if (t.source === 'Restaurant') {
+          if (t.subType === 'Dine-In') dineInGross += t.grossAmount;
+          else if (t.subType === 'Take-Out') takeOutGross += t.grossAmount;
+          totalDiscounts += t.discountAmount || 0;
+        } else if (t.source === 'Hotel') {
+          hotelRoomGross += t.roomRevenue !== undefined ? t.roomRevenue : t.grossAmount;
+          roomFoodGross += t.roomFoodRevenue || 0;
+          totalDiscounts += t.discountAmount || 0;
+        }
+      });
+
+      const totalGross = dineInGross + takeOutGross + roomFoodGross + hotelRoomGross;
+      const netSales = totalGross - totalDiscounts;
+
+      document.getElementById('sum-dinein').textContent = formatPHP(dineInGross);
+      document.getElementById('sum-takeout').textContent = formatPHP(takeOutGross);
+      document.getElementById('sum-room-food').textContent = formatPHP(roomFoodGross);
+      document.getElementById('sum-hotel-room').textContent = formatPHP(hotelRoomGross);
+      document.getElementById('sum-gross-total').textContent = formatPHP(totalGross);
+      document.getElementById('sum-discounts').textContent = `-${formatPHP(totalDiscounts)}`;
+      document.getElementById('sum-net-sales').textContent = formatPHP(netSales);
+
+      // Section 2: Tender & Payment Mix
+      let cashSales = 0;
+      let gcashSales = 0;
+      let cardSales = 0;
+      let arSales = 0;
+      let arCashCollections = 0;
+      let arGcashCollections = 0;
+
+      dayTx.forEach(t => {
+        if (t.source === 'A/R Collection') {
+          if (t.paymentMethod === 'Cash') arCashCollections += t.netAmount;
+          else arGcashCollections += t.netAmount;
+        } else {
+          if (t.paymentMethod === 'Cash') cashSales += t.netAmount;
+          else if (t.paymentMethod === 'GCash') gcashSales += t.netAmount;
+          else if (t.paymentMethod === 'Card') cardSales += t.netAmount;
+          else if (t.paymentMethod === 'Charge / A/R') arSales += t.netAmount;
+        }
+      });
+
+      const totalArCollections = arCashCollections + arGcashCollections;
+      const totalAccountedTender = cashSales + gcashSales + cardSales + arSales + totalArCollections;
+
+      document.getElementById('sum-tender-cash').textContent = formatPHP(cashSales);
+      document.getElementById('sum-tender-gcash').textContent = formatPHP(gcashSales);
+      document.getElementById('sum-tender-card').textContent = formatPHP(cardSales);
+      document.getElementById('sum-tender-ar').textContent = formatPHP(arSales);
+      document.getElementById('sum-ar-collections').textContent = formatPHP(totalArCollections);
+      document.getElementById('sum-tender-total').textContent = formatPHP(totalAccountedTender);
+
+      // Section 3: Cash Box Reconciliation
+      const drawerCashOuts = dayCashOuts
+        .filter(c => c.source === 'Cash Drawer')
+        .reduce((s, c) => s + c.amount, 0);
+
+      const expectedCash = appState.openingFloat + cashSales + arCashCollections - drawerCashOuts;
+
+      document.getElementById('box-cash-sales').textContent = `+${formatPHP(cashSales)}`;
+      document.getElementById('box-cash-collections').textContent = `+${formatPHP(arCashCollections)}`;
+      document.getElementById('box-cash-outs').textContent = `-${formatPHP(drawerCashOuts)}`;
+      document.getElementById('box-expected-cash').textContent = formatPHP(expectedCash);
+      document.getElementById('box-expected-cash').dataset.expected = expectedCash;
+
+      calculateDrawerVariance();
+
+      // Section 4: Cash-Out Grouped by Category
+      const catMap = {};
+      let totalAllCashOuts = 0;
+      dayCashOuts.forEach(c => {
+        catMap[c.category] = (catMap[c.category] || 0) + c.amount;
+        totalAllCashOuts += c.amount;
+      });
+
+      document.getElementById('sec4-total-badge').textContent = formatPHP(totalAllCashOuts);
+      const sec4List = document.getElementById('sec4-category-list');
+      const catEntries = Object.entries(catMap);
+      if (catEntries.length === 0) {
+        sec4List.innerHTML = `<p class="text-slate-400 text-center py-6">No cash-out expenses logged for ${targetDate}.</p>`;
+      } else {
+        sec4List.innerHTML = catEntries
+          .map(([cat, amt]) => `
+            <div class="flex justify-between items-center py-1.5 px-2.5 rounded-lg bg-stone-50 border border-stone-100">
+              <span class="font-medium text-slate-700">${cat}</span>
+              <span class="font-mono font-bold text-slate-900">${formatPHP(amt)}</span>
+            </div>
+          `)
+          .join('');
+      }
+
+      // Section 5: Accounts Receivable (A/R) & Charge Log (Across all dates so unpaid balances stay visible)
+      const arTxs = appState.transactions.filter(t => t.paymentMethod === 'Charge / A/R');
+      const openArTotal = arTxs
+        .filter(t => t.arStatus === 'Unpaid')
+        .reduce((s, t) => s + t.netAmount, 0);
+
+      document.getElementById('sec5-open-ar-badge').textContent = `Open: ${formatPHP(openArTotal)}`;
+      const arTbody = document.getElementById('sec5-ar-tbody');
+      if (arTxs.length === 0) {
+        arTbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">No Charge / A/R accounts recorded.</td></tr>`;
+      } else {
+        arTbody.innerHTML = arTxs
+          .slice()
+          .reverse()
+          .map(t => `
+            <tr class="hover:bg-stone-50">
+              <td class="py-2.5 px-3 font-mono font-bold text-slate-800">${t.id}</td>
+              <td class="py-2.5 px-3 font-semibold text-slate-900">${t.arAccount || t.detail}</td>
+              <td class="py-2.5 px-3 font-mono text-slate-500">${t.date}</td>
+              <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">${formatPHP(t.netAmount)}</td>
+              <td class="py-2.5 px-3 text-center">
+                ${
+                  t.arStatus === 'Unpaid'
+                    ? `<button onclick="collectArAccount('${t.id}')" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-emerald-950 font-bold text-[11px] shadow-xs transition">
+                        Record Collection
+                      </button>`
+                    : `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Collected (${t.collectedMethod || 'Cash'})</span>`
+                }
+              </td>
+            </tr>
+          `).join('');
+      }
+
+      // Section 6: Transaction Audit Log
+      document.getElementById('sec6-count-badge').textContent = `${dayTx.length} Transaction(s)`;
+      const auditTbody = document.getElementById('sec6-audit-tbody');
+      if (dayTx.length === 0) {
+        auditTbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400">No transactions recorded on ${targetDate}.</td></tr>`;
+      } else {
+        auditTbody.innerHTML = dayTx
+          .slice()
+          .reverse()
+          .map(t => `
+            <tr class="hover:bg-stone-50">
+              <td class="py-2.5 px-4 font-mono font-bold text-emerald-900">${t.id}</td>
+              <td class="py-2.5 px-4 font-mono text-slate-500">${t.time}</td>
+              <td class="py-2.5 px-4">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                  t.source === 'Hotel'
+                    ? 'bg-amber-100 text-amber-900'
+                    : t.source === 'A/R Collection'
+                    ? 'bg-sky-100 text-sky-900'
+                    : 'bg-emerald-100 text-emerald-900'
+                }">
+                  ${t.source} • ${t.subType}
+                </span>
+              </td>
+              <td class="py-2.5 px-4 font-medium text-slate-800">${t.detail}</td>
+              <td class="py-2.5 px-4 font-semibold text-slate-700">${t.paymentMethod}</td>
+              <td class="py-2.5 px-4 text-right font-mono text-slate-500">${t.discountAmount > 0 ? formatPHP(t.discountAmount) : '-'}</td>
+              <td class="py-2.5 px-4 text-right font-mono font-extrabold text-slate-900">${formatPHP(t.netAmount)}</td>
+              <td class="py-2.5 px-4 text-center">
+                <button onclick="reprintTransaction('${t.id}')" class="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-emerald-900 text-slate-700 hover:text-white text-[11px] font-bold transition">
+                  <i class="fa-solid fa-print"></i>
+                </button>
+              </td>
+            </tr>
+          `).join('');
+      }
+    }
+
+    function calculateDrawerVariance() {
+      const expected = parseFloat(document.getElementById('box-expected-cash').dataset.expected) || 0;
+      const actualRaw = document.getElementById('actual-cash-input').value;
+      const badge = document.getElementById('box-variance');
+
+      if (actualRaw === '') {
+        badge.textContent = '₱0.00 (Unverified)';
+        badge.className = 'font-mono text-xs font-extrabold px-2 py-0.5 rounded bg-stone-100 text-slate-600';
+        return;
+      }
+
+      const actual = parseFloat(actualRaw) || 0;
+      const diff = actual - expected;
+
+      if (Math.abs(diff) < 0.01) {
+        badge.textContent = '₱0.00 (BALANCED)';
+        badge.className = 'font-mono text-xs font-extrabold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800';
+      } else if (diff > 0) {
+        badge.textContent = `+${formatPHP(diff)} (OVER)`;
+        badge.className = 'font-mono text-xs font-extrabold px-2 py-0.5 rounded bg-sky-100 text-sky-800';
+      } else {
+        badge.textContent = `-${formatPHP(Math.abs(diff))} (SHORT)`;
+        badge.className = 'font-mono text-xs font-extrabold px-2 py-0.5 rounded bg-rose-100 text-rose-800';
+      }
+    }
+
+    function collectArAccount(txId) {
+      const tx = appState.transactions.find(t => t.id === txId);
+      if (!tx || tx.arStatus === 'Paid') return;
+
+      showConfirmDialog(
+        `Collect A/R Account (${tx.id})`,
+        `Mark ${formatPHP(tx.netAmount)} for "${tx.arAccount || tx.detail}" as Collected in Cash today?`,
+        () => {
+          tx.arStatus = 'Paid';
+          tx.collectedMethod = 'Cash';
+          tx.collectedDate = getTodayDateStr();
+
+          const colRecord = {
+            id: `CR-${tx.id}`,
+            date: getTodayDateStr(),
+            time: getCurrentTimeStr(),
+            source: 'A/R Collection',
+            subType: 'Cash Collection',
+            detail: `Collection for ${tx.id} (${tx.arAccount || tx.detail})`,
+            items: [{ name: `A/R Settlement (${tx.id})`, qty: 1, price: tx.netAmount }],
+            grossAmount: tx.netAmount,
+            discountAmount: 0,
+            netAmount: tx.netAmount,
+            paymentMethod: 'Cash',
+            cashier: appState.cashier
+          };
+
+          appState.transactions.push(colRecord);
+          saveAppState();
+          pushToGoogleSheets('POS_Transactions', colRecord);
+          renderSalesSummary();
+          showToast(`Collected ${formatPHP(tx.netAmount)} into Cash Drawer!`);
+        }
+      );
+    }
+
+    // =========================================================================
+    // 9. RECEIPT, FOLIO INVOICE & A4 DAILY SUMMARY PRINT ENGINE
+    // =========================================================================
+    function openOrderSlipReceipt(tx) {
+      const itemsHtml = (tx.items || [])
+        .map(
+          i => `
+          <div class="flex justify-between text-[11px] py-0.5">
+            <span>${i.qty}x ${i.name}</span>
+            <span class="font-mono">${formatPHP(i.price * i.qty)}</span>
+          </div>
+          ${i.note ? `<div class="text-[10px] text-slate-500 pl-3 italic">* ${i.note}</div>` : ''}
+        `
+        )
+        .join('');
+
+      const html = `
+        <div class="font-mono text-xs text-slate-900 space-y-2.5">
+          <div class="text-center border-b border-dashed border-slate-400 pb-2.5">
+            <p class="font-extrabold text-sm tracking-tight">EYNS' HOTEL & RESTAURANT</p>
+            <p class="text-[10px]">Brgy. Poblacion, Catanauan, Quezon</p>
+            <p class="text-[10px]">Est. 1988 • Official Order Slip</p>
+          </div>
+          <div class="text-[11px] space-y-0.5 border-b border-dashed border-slate-400 pb-2">
+            <div class="flex justify-between"><span>Slip #:</span><span class="font-bold">${tx.id}</span></div>
+            <div class="flex justify-between"><span>Date/Time:</span><span>${tx.date} ${tx.time}</span></div>
+            <div class="flex justify-between"><span>Type:</span><span class="font-bold">${tx.subType} (${tx.detail})</span></div>
+            <div class="flex justify-between"><span>Cashier:</span><span>${tx.cashier}</span></div>
+          </div>
+          <div class="border-b border-dashed border-slate-400 pb-2">
+            ${itemsHtml}
+          </div>
+          <div class="space-y-1 text-[11px]">
+            <div class="flex justify-between"><span>Gross Subtotal:</span><span>${formatPHP(tx.grossAmount)}</span></div>
+            ${
+              tx.discountAmount > 0
+                ? `<div class="flex justify-between"><span>Less SC/PWD Disc & VAT Ex.:</span><span>-${formatPHP(tx.discountAmount)}</span></div>`
+                : ''
+            }
+            <div class="flex justify-between font-extrabold text-sm pt-1 border-t border-slate-300">
+              <span>TOTAL DUE:</span>
+              <span>${formatPHP(tx.netAmount)}</span>
+            </div>
+            <div class="flex justify-between pt-1"><span>Payment:</span><span class="font-bold">${tx.paymentMethod}</span></div>
+            ${tx.cashTendered ? `<div class="flex justify-between"><span>Cash Tendered:</span><span>${formatPHP(tx.cashTendered)}</span></div>` : ''}
+            ${tx.cashChange ? `<div class="flex justify-between"><span>Change:</span><span>${formatPHP(tx.cashChange)}</span></div>` : ''}
+            ${tx.arAccount ? `<div class="flex justify-between"><span>Charge Account:</span><span>${tx.arAccount}</span></div>` : ''}
+          </div>
+          <div class="text-center text-[10px] pt-3 border-t border-dashed border-slate-400">
+            <p>Maraming Salamat po!</p>
+            <p>Thank you for dining at Eyns'!</p>
+          </div>
+        </div>
+      `;
+
+      showPrintPreviewModal(`Order Slip — ${tx.id}`, html, 'max-w-[360px]');
+    }
+
+    function openGuestFolioReceipt(tx) {
+      const itemsHtml = (tx.items || [])
+        .map(
+          i => `
+          <tr class="border-b border-slate-200">
+            <td class="py-1.5">${i.name}</td>
+            <td class="py-1.5 text-right font-mono">${formatPHP(i.price * i.qty)}</td>
+          </tr>
+        `
+        )
+        .join('');
+
+      const balanceCollected = Math.max(0, tx.netAmount - (tx.depositPaid || 0));
+
+      const html = `
+        <div class="text-xs text-slate-900 space-y-3">
+          <div class="text-center border-b-2 border-slate-800 pb-3">
+            <h2 class="font-extrabold text-base tracking-tight">EYNS' HOTEL & RESTAURANT</h2>
+            <p class="text-[11px] text-slate-600">Catanauan, Quezon • Front-Desk Service Invoice</p>
+            <p class="font-mono font-bold text-xs mt-1">INVOICE #: ${tx.id}</p>
+          </div>
+          <div class="grid grid-cols-2 gap-1 text-[11px] bg-slate-50 p-2.5 rounded border border-slate-200">
+            <div><span class="text-slate-500">Guest / Room:</span><br/><strong>${tx.detail}</strong></div>
+            <div class="text-right"><span class="text-slate-500">Check-Out Date:</span><br/><strong>${tx.date} ${tx.time}</strong></div>
+          </div>
+          <table class="w-full text-left border-collapse text-[11px]">
+            <thead>
+              <tr class="border-b border-slate-400 text-slate-600">
+                <th class="py-1">Description</th>
+                <th class="py-1 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>${itemsHtml}</tbody>
+          </table>
+          <div class="space-y-1 text-xs pt-2 border-t border-slate-300">
+            <div class="flex justify-between"><span>Total Folio Charges:</span><span class="font-mono font-bold">${formatPHP(tx.netAmount)}</span></div>
+            <div class="flex justify-between text-slate-600"><span>Less Advance Deposit:</span><span class="font-mono">-${formatPHP(tx.depositPaid || 0)}</span></div>
+            <div class="flex justify-between font-extrabold text-sm pt-1 border-t border-slate-800">
+              <span>BALANCE SETTLED (${tx.paymentMethod}):</span>
+              <span class="font-mono">${formatPHP(balanceCollected)}</span>
+            </div>
+          </div>
+          <div class="pt-4 text-[10px] text-center text-slate-500 border-t border-dashed border-slate-300">
+            <p>Prepared by: ${tx.cashier}</p>
+            <p class="mt-1">We hope you enjoyed your stay in Catanauan!</p>
+          </div>
+        </div>
+      `;
+
+      showPrintPreviewModal(`Guest Folio Statement — ${tx.id}`, html, 'max-w-[440px]');
+    }
+
+    function printGuestFolioPreview() {
+      const roomNum = document.getElementById('folio-room-number').value;
+      const room = appState.rooms.find(r => r.number === roomNum);
+      if (!room || !room.guest) return;
+
+      const g = room.guest;
+      const roomRevenue = (room.rate + (g.extraBeds || 0) * 400) * g.nights;
+      const roomFoodRevenue = (g.roomCharges || []).reduce((sum, c) => sum + c.amount, 0);
+      const grandTotal = roomRevenue + roomFoodRevenue;
+
+      const items = [{ name: `${room.type} (${g.nights} Night/s)`, qty: g.nights, price: room.rate }];
+      if (g.extraBeds > 0) items.push({ name: 'Extra Bed Add-on', qty: g.extraBeds * g.nights, price: 400 });
+      (g.roomCharges || []).forEach(rc => items.push({ name: `Resto Charge (${rc.osNumber})`, qty: 1, price: rc.amount }));
+
+      openGuestFolioReceipt({
+        id: 'INTERIM-BILL',
+        date: getTodayDateStr(),
+        time: getCurrentTimeStr(),
+        detail: `Room ${room.number} — ${g.name}`,
+        items,
+        netAmount: grandTotal,
+        depositPaid: g.deposit || 0,
+        paymentMethod: 'Unsettled / Interim',
+        cashier: appState.cashier
+      });
+    }
+
+    function reprintTransaction(txId) {
+      const tx = appState.transactions.find(t => t.id === txId);
+      if (!tx) return;
+      if (tx.source === 'Hotel') {
+        openGuestFolioReceipt(tx);
+      } else {
+        openOrderSlipReceipt(tx);
+      }
+    }
+
+    function printDailySummary() {
+      const targetDate = document.getElementById('summary-date-filter').value || getTodayDateStr();
+      const dineIn = document.getElementById('sum-dinein').textContent;
+      const takeOut = document.getElementById('sum-takeout').textContent;
+      const roomFood = document.getElementById('sum-room-food').textContent;
+      const hotelRoom = document.getElementById('sum-hotel-room').textContent;
+      const grossTotal = document.getElementById('sum-gross-total').textContent;
+      const discounts = document.getElementById('sum-discounts').textContent;
+      const netSales = document.getElementById('sum-net-sales').textContent;
+
+      const tCash = document.getElementById('sum-tender-cash').textContent;
+      const tGcash = document.getElementById('sum-tender-gcash').textContent;
+      const tCard = document.getElementById('sum-tender-card').textContent;
+      const tAr = document.getElementById('sum-tender-ar').textContent;
+      const tArCol = document.getElementById('sum-ar-collections').textContent;
+
+      const openFloat = formatPHP(appState.openingFloat);
+      const boxCashOuts = document.getElementById('box-cash-outs').textContent;
+      const boxExpected = document.getElementById('box-expected-cash').textContent;
+      const variance = document.getElementById('box-variance').textContent;
+      const catListHtml = document.getElementById('sec4-category-list').innerHTML;
+
+      const html = `
+        <div class="text-xs text-slate-900 space-y-4">
+          <div class="flex justify-between items-end border-b-2 border-slate-900 pb-3">
+            <div>
+              <h1 class="text-lg font-extrabold tracking-tight">EYNS' HOTEL & RESTAURANT</h1>
+              <p class="text-[11px] text-slate-600">Catanauan, Quezon • Daily Sales & Cash Reconciliation Sheet</p>
+            </div>
+            <div class="text-right font-mono text-[11px]">
+              <p><strong>Date:</strong> ${targetDate}</p>
+              <p><strong>Shift:</strong> ${appState.cashier}</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="border border-slate-300 p-3 rounded">
+              <h3 class="font-bold uppercase text-[11px] bg-slate-100 px-2 py-1 mb-2">1. Gross Sales Breakdown</h3>
+              <div class="space-y-1 text-[11px]">
+                <div class="flex justify-between"><span>Restaurant Dine-In:</span><span class="font-mono">${dineIn}</span></div>
+                <div class="flex justify-between"><span>Restaurant Take-Out:</span><span class="font-mono">${takeOut}</span></div>
+                <div class="flex justify-between"><span>Room Food Charges:</span><span class="font-mono">${roomFood}</span></div>
+                <div class="flex justify-between"><span>Hotel Rooms:</span><span class="font-mono">${hotelRoom}</span></div>
+                <div class="flex justify-between font-bold border-t pt-1"><span>Gross Total:</span><span class="font-mono">${grossTotal}</span></div>
+                <div class="flex justify-between"><span>Less SC/PWD Disc:</span><span class="font-mono">${discounts}</span></div>
+                <div class="flex justify-between font-extrabold text-xs border-t border-slate-800 pt-1"><span>NET SALES:</span><span class="font-mono">${netSales}</span></div>
+              </div>
+            </div>
+
+            <div class="border border-slate-300 p-3 rounded">
+              <h3 class="font-bold uppercase text-[11px] bg-slate-100 px-2 py-1 mb-2">2. Tender & Cash Box</h3>
+              <div class="space-y-1 text-[11px]">
+                <div class="flex justify-between"><span>Cash Sales:</span><span class="font-mono">${tCash}</span></div>
+                <div class="flex justify-between"><span>GCash / Card:</span><span class="font-mono">${tGcash} / ${tCard}</span></div>
+                <div class="flex justify-between"><span>Charge / A/R:</span><span class="font-mono">${tAr}</span></div>
+                <div class="flex justify-between"><span>A/R Collections:</span><span class="font-mono">${tArCol}</span></div>
+                <div class="flex justify-between border-t pt-1"><span>Opening Float:</span><span class="font-mono">${openFloat}</span></div>
+                <div class="flex justify-between"><span>Drawer Cash-Outs:</span><span class="font-mono">${boxCashOuts}</span></div>
+                <div class="flex justify-between font-extrabold text-xs border-t border-slate-800 pt-1"><span>EXPECTED BOX CASH:</span><span class="font-mono">${boxExpected}</span></div>
+                <div class="flex justify-between text-[10px] pt-0.5"><span>Count Variance:</span><span class="font-mono font-bold">${variance}</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="border border-slate-300 p-3 rounded">
+            <h3 class="font-bold uppercase text-[11px] bg-slate-100 px-2 py-1 mb-2">3. Cash-Out & Purchases by Category</h3>
+            <div class="space-y-1">${catListHtml}</div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-6 pt-8 text-center text-[11px]">
+            <div class="border-t border-slate-800 pt-1">Prepared By (Cashier)</div>
+            <div class="border-t border-slate-800 pt-1">Checked By (Supervisor)</div>
+            <div class="border-t border-slate-800 pt-1">Approved By (Management)</div>
+          </div>
+        </div>
+      `;
+
+      showPrintPreviewModal(`Daily Sales Summary — ${targetDate}`, html, 'max-w-[680px]');
+    }
+
+    function showPrintPreviewModal(title, innerHtml, widthClass = 'max-w-[380px]') {
+      document.getElementById('receipt-modal-title').textContent = title;
+      const paper = document.getElementById('receipt-preview-paper');
+      paper.className = `bg-white shadow-lg border border-stone-300 p-6 text-slate-900 w-full ${widthClass}`;
+      paper.innerHTML = innerHtml;
+      document.getElementById('print-area').innerHTML = innerHtml;
+      openModal('receipt-modal');
+    }
+
+    function triggerBrowserPrint() {
+      window.print();
+    }
+
+    // =========================================================================
+    // 10. INITIALIZATION ON WINDOW LOAD
+    // =========================================================================
+    function refreshAllViews() {
+      document.getElementById('cashier-select').value = appState.cashier || 'Maria Clara (AM)';
+      document.getElementById('summary-date-filter').value = getTodayDateStr();
+      updateSheetsBadge();
+      renderCategoryPills();
+      renderMenuGrid();
+      setOrderType('Dine-In');
+      setPaymentMethod('Cash');
+      renderCart();
+      renderRoomRack();
+      renderCashOutTable();
+      renderSalesSummary();
+    }
+
+    window.onload = function () {
+      startLiveClock();
+      refreshAllViews();
+    };
+  </script>
+</body>
+</html>
