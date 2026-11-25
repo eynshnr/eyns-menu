@@ -1289,12 +1289,12 @@
         const map = { client: num++ };
         if (showPackageStep) map.package = num++;
         if (showMenuStep) map.menu = num++;
-        map.services = num++;
+        if (bookingCategory !== 'seminar') map.services = num++;
         if (showRoomsStep) map.rooms = num++;
         map.payments = num++;
         map.terms = num++;
         return map;
-      }, [showPackageStep, showMenuStep, showRoomsStep]);
+      }, [showPackageStep, showMenuStep, showRoomsStep, bookingCategory]);
 
       const rentalDurationDays = useMemo(
         () => computeDaysBetweenDates(eventDate, rentalReturnDate),
@@ -1623,6 +1623,38 @@
         selectedBuffetMenuId === 'custom_menu';
 
       const effectiveDayForBuilder = bookingCategory === 'seminar' ? activeScheduleDay : 1;
+      const isMultiDay = bookingCategory === 'seminar' || bookingCategory === 'packed_meals';
+      const serviceDay = bookingCategory === 'seminar' ? activeScheduleDay : bookingCategory === 'packed_meals' ? activePackedDay : 1;
+      const serviceTotalDays = bookingCategory === 'seminar' ? Math.max(1, eventDays) : bookingCategory === 'packed_meals' ? Math.max(1, packedTotalDays) : 1;
+      const dateObjOf = iso => {
+        const p = String(iso || '').split('-');
+        const dt = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+        return isNaN(dt.getTime()) ? null : dt;
+      };
+      const weekdayShort = iso => dateObjOf(iso)?.toLocaleDateString('en-US', { weekday: 'short' }) || '';
+      const monthDayShort = iso => dateObjOf(iso)?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) || 'TBD';
+      const fullDateLabel = iso => dateObjOf(iso)?.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) || 'Date TBD';
+      const getEventStartIso = () =>
+        bookingCategory === 'seminar' ? getSeminarDateForDay(1) : bookingCategory === 'packed_meals' ? getPackedDateForDay(1) : eventDate;
+      const getEventEndIso = () =>
+        bookingCategory === 'seminar'
+          ? getSeminarDateForDay(Math.max(1, eventDays))
+          : bookingCategory === 'packed_meals'
+          ? getPackedDateForDay(Math.max(1, packedTotalDays))
+          : eventDate;
+      const handleMoveServiceLine = (lineKey, newDay) =>
+        setSelectedServiceLines(prev => {
+          const line = prev.find(l => l.key === lineKey);
+          if (!line || line.day === newDay) return prev;
+          const newKey = `${newDay}__${String(lineKey).split('__').slice(1).join('__')}`;
+          if (prev.some(l => l.key === newKey)) return prev.filter(l => l.key !== lineKey);
+          return prev.map(l => (l.key === lineKey ? { ...l, day: newDay, key: newKey } : l));
+        });
+      const setServiceDay = d => (bookingCategory === 'seminar' ? setActiveScheduleDay(d) : setActivePackedDay(d));
+      const serviceDateForDay = d =>
+        bookingCategory === 'seminar'
+          ? getSeminarDateForDay(d)
+          : getPackedDateForDay(d);
       const getPaxForDay = dayNum =>
         bookingCategory === 'seminar'
           ? Math.max(1, Number(dayPaxOverrides[dayNum]) || 50)
@@ -1634,7 +1666,7 @@
       }, [seminarDayMealsMap, activeScheduleDay]);
 
       useEffect(() => {
-        if (bookingCategory === 'seminar' && !activeDaySeminarMeals.includes(activeSeminarMealSlot)) {
+        if (bookingCategory === 'seminar' && activeSeminarMealSlot !== 'Services' && !activeDaySeminarMeals.includes(activeSeminarMealSlot)) {
           setActiveSeminarMealSlot(activeDaySeminarMeals[0]);
         }
       }, [bookingCategory, activeDaySeminarMeals, activeSeminarMealSlot]);
@@ -2054,14 +2086,14 @@
 
       // Event Services & Rentals Handlers
       const handleToggleServiceItem = srv => {
-        const lineKey = `${effectiveDayForBuilder}__${srv.id}`;
+        const lineKey = `${serviceDay}__${srv.id}`;
         setSelectedServiceLines(prev => {
           if (prev.some(i => i.key === lineKey)) return prev.filter(i => i.key !== lineKey);
           return [
             ...prev,
             {
               key: lineKey,
-              day: effectiveDayForBuilder,
+              day: serviceDay,
               allDays: false,
               id: srv.id,
               name: srv.name,
@@ -2095,8 +2127,8 @@
         setSelectedServiceLines(prev => [
           ...prev,
           {
-            key: `${effectiveDayForBuilder}__${uniqueId}`,
-            day: effectiveDayForBuilder,
+            key: `${serviceDay}__${uniqueId}`,
+            day: serviceDay,
             allDays: false,
             id: uniqueId,
             name: customServiceName.trim(),
@@ -2116,7 +2148,7 @@
       // Hotel Room Booking Handlers (with Check-In & Check-Out Dates)
       const handleUpdateRoomBooking = (roomId, patch) => {
         setRoomBookingsMap(prev => {
-          const defaultCheckIn = eventDate || new Date().toISOString().split('T')[0];
+          const defaultCheckIn = getEventStartIso() || eventDate || new Date().toISOString().split('T')[0];
           const existing = prev[roomId] || {
             nights: 0,
             checkIn: defaultCheckIn,
@@ -2215,14 +2247,14 @@
       }, [bookingCategory, packedMealBatches, packedTotalDays]);
 
       const computedServiceLines = useMemo(() => {
-        const maxDay = bookingCategory === 'seminar' ? Math.max(1, eventDays) : 1;
+        const maxDay = isMultiDay ? serviceTotalDays : 1;
         const pool = (bookingCategory === 'rental'
           ? selectedServiceLines.filter(l => l.subcategory === 'Rental')
           : selectedServiceLines
-        ).filter(l => bookingCategory !== 'seminar' || (Number(l.day) || 1) <= maxDay);
+        ).filter(l => !isMultiDay || (Number(l.day) || 1) <= maxDay);
 
         return pool.map(line => {
-          const activeDays = bookingCategory === 'seminar' && line.allDays ? Math.max(1, eventDays) : 1;
+          const activeDays = isMultiDay && line.allDays ? serviceTotalDays : 1;
           const dayPax = getPaxForDay(line.day);
           let lineTotal = 0;
           if (line.billingType === 'per_pax') {
@@ -2230,7 +2262,7 @@
           } else if (line.billingType === 'per_day') {
             const multDays = bookingCategory === 'rental'
               ? rentalDurationDays * line.qty
-              : (bookingCategory === 'seminar' && line.allDays ? Math.max(1, eventDays) * line.qty : line.qty);
+              : (isMultiDay && line.allDays ? serviceTotalDays * line.qty : line.qty);
             lineTotal = line.price * multDays;
           } else if (line.billingType === 'fixed') {
             lineTotal = line.price * line.qty;
@@ -2239,7 +2271,7 @@
           }
           return { ...line, dayPax, activeDays, lineTotal };
         });
-      }, [selectedServiceLines, bookingCategory, eventDays, rentalDurationDays, dayPaxOverrides, paxCount]);
+      }, [selectedServiceLines, bookingCategory, eventDays, packedTotalDays, rentalDurationDays, dayPaxOverrides, paxCount]);
 
       const servicesSubtotal = useMemo(
         () => computedServiceLines.reduce((s, l) => s + l.lineTotal, 0),
@@ -2258,9 +2290,11 @@
               nights,
               checkIn: booking.checkIn || eventDate,
               checkOut: booking.checkOut || addDaysToIsoDate(eventDate, nights),
+              notes: booking.notes || '',
               total: r.rate * nights
             };
-          });
+          })
+          .sort((x, y) => String(x.checkIn).localeCompare(String(y.checkIn)) || String(x.roomNo).localeCompare(String(y.roomNo)));
       }, [showRoomsStep, roomCatalog, roomBookingsMap, eventDate]);
 
       const roomsSubtotal = useMemo(
@@ -2709,6 +2743,237 @@
       // =======================================================================
       // 11. RENDER
       // =======================================================================
+      const copyServicesFromPreviousDay = () =>
+        setSelectedServiceLines(prev => {
+          const have = new Set(prev.map(l => l.key));
+          const copies = prev
+            .filter(l => l.day === serviceDay - 1 && !l.allDays)
+            .map(l => ({ ...l, day: serviceDay, key: `${serviceDay}__${String(l.key).split('__').slice(1).join('__')}` }))
+            .filter(l => !have.has(l.key));
+          return [...prev, ...copies];
+        });
+
+      const renderServicesBody = () => (
+        <>
+{showCustomServiceForm && (
+                    <form onSubmit={handleAddCustomServiceLine} className="bg-cream-50 p-3 rounded-xl border border-gold-400/60 grid grid-cols-1 sm:grid-cols-12 gap-2">
+                      <input
+                        type="text"
+                        required
+                        value={customServiceName}
+                        onChange={e => setCustomServiceName(e.target.value)}
+                        placeholder={bookingCategory === 'rental' ? 'Rental Item Name' : 'Service / Delivery Name'}
+                        className={bookingCategory === 'rental' ? 'sm:col-span-6 px-2.5 py-1.5 rounded-lg border border-cream-200 bg-white text-xs' : 'sm:col-span-4 px-2.5 py-1.5 rounded-lg border border-cream-200 bg-white text-xs'}
+                      />
+                      {bookingCategory !== 'rental' && (
+                        <select value={customServiceCategory} onChange={e => setCustomServiceCategory(e.target.value)} className="sm:col-span-2 px-2 py-1.5 rounded-lg border border-cream-200 bg-white text-xs">
+                          <option value="Catering">Catering</option>
+                          <option value="Rental">Rental</option>
+                          <option value="Suppliers">Suppliers</option>
+                        </select>
+                      )}
+                      <select value={customServiceBilling} onChange={e => setCustomServiceBilling(e.target.value)} className="sm:col-span-2 px-2 py-1.5 rounded-lg border border-cream-200 bg-white text-xs">
+                        <option value="fixed">Fixed</option>
+                        <option value="per_piece">Per Piece</option>
+                        <option value="per_pax">Per Pax</option>
+                        <option value="per_day">Per Day</option>
+                      </select>
+                      <input type="number" required min="0" value={customServicePrice} onChange={e => setCustomServicePrice(e.target.value)} placeholder="₱ Rate" className="sm:col-span-2 px-2 py-1.5 rounded-lg border border-cream-200 bg-white font-mono text-xs text-right" />
+                      <button type="submit" className="sm:col-span-2 py-1.5 rounded-lg bg-espresso-950 text-gold-300 text-xs font-extrabold">Add</button>
+                    </form>
+                  )}
+
+                  {bookingCategory === 'packed_meals' && (
+                    <div className="sticky top-20 z-30 px-3 py-2 rounded-2xl bg-white/95 backdrop-blur border border-gold-400/70 shadow-md space-y-1.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-xs font-extrabold text-espresso-950">
+                          Adding to <span className="px-2 py-0.5 rounded-lg bg-espresso-950 text-gold-300">Day {serviceDay}</span>
+                          <span className="ml-1.5 font-semibold text-espresso-800/80">{formatPrettyDate(serviceDateForDay(serviceDay))}</span>
+                        </div>
+                        {serviceDay > 1 && (
+                          <button type="button"
+                            onClick={() => setSelectedServiceLines(prev => {
+                              const have = new Set(prev.map(l => l.key));
+                              const copies = prev
+                                .filter(l => l.day === serviceDay - 1 && !l.allDays)
+                                .map(l => ({ ...l, day: serviceDay, key: `${serviceDay}__${String(l.key).split('__').slice(1).join('__')}` }))
+                                .filter(l => !have.has(l.key));
+                              return [...prev, ...copies];
+                            })}
+                            className="px-2.5 py-1 rounded-lg bg-cream-100 hover:bg-gold-400/30 text-[11px] font-bold text-espresso-900">
+                            ⧉ Copy Day {serviceDay - 1} services here
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {Array.from({ length: serviceTotalDays }, (_, i) => i + 1).map(d => {
+                          const n = selectedServiceLines.filter(l => l.allDays || l.day === d).length;
+                          return (
+                            <button key={d} type="button" onClick={() => setServiceDay(d)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition ${serviceDay === d ? 'bg-espresso-950 text-gold-300 border-gold-500 shadow' : 'bg-white border-cream-200 text-espresso-800 hover:border-gold-400'}`}>
+                              Day {d}
+                              <span className={`ml-1.5 px-1.5 py-0.5 rounded-full font-mono text-[10px] ${serviceDay === d ? 'bg-gold-500 text-espresso-950' : 'bg-cream-100'}`}>{n}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {serviceItems.length === 0 ? (
+                    <div className="bg-cream-50 p-5 rounded-2xl border border-dashed border-gold-500/60 text-center space-y-2.5">
+                      <p className="text-xs font-bold text-espresso-950">
+                        Syncing Event Services Google Sheet (#4)... or click below to check sheet status.
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        <button type="button" onClick={() => setIsSyncModalOpen(true)} className="px-4 py-2 rounded-xl bg-espresso-950 text-gold-300 text-xs font-extrabold">
+                          Check Sheets Sync
+                        </button>
+                        <button type="button" onClick={() => setShowCustomServiceForm(true)} className="px-3.5 py-2 rounded-xl bg-white border border-cream-200 text-espresso-950 text-xs font-bold">
+                          + Add One-Off Item
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {bookingCategory !== 'rental' ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {serviceCategoryStats.map(cat => (
+                            <button
+                              key={cat.name}
+                              type="button"
+                              onClick={() => setServiceSubcategoryFilter(cat.name)}
+                              className={`px-3 py-1 rounded-xl text-[11px] font-bold ${
+                                serviceSubcategoryFilter === cat.name ? 'bg-espresso-950 text-gold-300' : 'bg-cream-100 text-espresso-800'
+                              }`}
+                            >
+                              {cat.name} ({cat.count})
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-espresso-950 text-gold-300 text-[11px] font-extrabold">
+                          <i className="fa-solid fa-truck-ramp-box"></i>
+                          <span>Showing Rental Items Only ({filteredServiceItems.length})</span>
+                        </span>
+                      )}
+
+                      <input
+                        type="text"
+                        value={serviceSearchQuery}
+                        onChange={e => setServiceSearchQuery(e.target.value)}
+                        placeholder={bookingCategory === 'rental' ? 'Search rental items...' : 'Search Event Services...'}
+                        className="w-full px-3 py-2 rounded-xl border border-cream-200 bg-cream-50/60 focus:bg-white text-xs"
+                      />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto custom-scroll pr-1">
+                        {filteredServiceItems.map(srv => {
+                          const existing = selectedServiceLines.find(l => l.key === `${serviceDay}__${srv.id}`);
+                          const badge = getServiceSubcategoryBadgeStyle(srv.subcategory);
+                          return (
+                            <button
+                              key={srv.id}
+                              type="button"
+                              onClick={() => handleToggleServiceItem(srv)}
+                              className={`p-3 rounded-xl border text-left transition flex items-start justify-between gap-2 ${
+                                existing ? 'bg-espresso-950 text-cream-50 border-gold-500' : 'bg-cream-50 hover:bg-white text-espresso-950 border-cream-200'
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${existing ? 'bg-espresso-800 text-gold-300 border-gold-500/40' : badge.pill}`}>
+                                  {srv.subcategory}
+                                </span>
+                                <span className="ml-1.5 text-[10px] opacity-75">{billingBadgeLabel(srv.billingType)}</span>
+                                <div className="font-bold text-xs mt-1">{srv.name}</div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="font-mono font-extrabold text-xs">{formatWholeCurrency(srv.price)}</div>
+                                <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${existing ? 'bg-gold-500 text-espresso-950' : 'bg-white border border-cream-200 text-espresso-800'}`}>
+                                  {existing ? (isMultiDay ? `✔ ${monthDayShort(serviceDateForDay(serviceDay))}` : 'Selected') : (isMultiDay ? `+ ${monthDayShort(serviceDateForDay(serviceDay))}` : '+ Add')}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  {computedServiceLines.length > 0 && (
+                    <div className="bg-cream-50 p-3.5 rounded-2xl border border-gold-400/60 space-y-2">
+                      <div className="flex items-center justify-between border-b border-cream-200 pb-2">
+                        <span className="text-xs font-extrabold uppercase text-espresso-950">
+                          Selected {bookingCategory === 'rental' ? 'Rentals' : 'Services'} ({computedServiceLines.length})
+                        </span>
+                        <button type="button" onClick={() => setSelectedServiceLines([])} className="text-[11px] font-bold text-red-600 hover:underline">
+                          Clear
+                        </button>
+                      </div>
+                      {(isMultiDay ? [...computedServiceLines].sort((a, b) => a.day - b.day) : computedServiceLines).map((line, li, arr) => (
+                        <React.Fragment key={line.key}>
+                        {isMultiDay && (li === 0 || arr[li - 1].day !== line.day) && (
+                          <div className="flex items-center justify-between pt-1.5 text-[11px] font-extrabold uppercase tracking-wider text-espresso-950">
+                            <span>{weekdayShort(serviceDateForDay(line.day))}, {monthDayShort(serviceDateForDay(line.day))} &middot; Day {line.day}</span>
+                            <span className="font-mono">{formatWholeCurrency(arr.filter(x => x.day === line.day).reduce((t, x) => t + x.lineTotal, 0))}</span>
+                          </div>
+                        )}
+                        <div className="bg-white p-2.5 rounded-xl border border-cream-200 flex flex-wrap items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-espresso-950">{line.name}</div>
+                            <div className="text-[11px] text-espresso-800/75 font-mono">
+                              {formatWholeCurrency(line.price)} ({billingBadgeLabel(line.billingType)}) × {line.qty}
+                              {line.billingType === 'per_pax' ? ` × ${line.dayPax}p` : ''}
+                              {bookingCategory === 'rental' && line.billingType === 'per_day' ? ` × ${rentalDurationDays}d` : ''}
+                              {isMultiDay && line.activeDays > 1 && line.billingType !== 'fixed' ? ` × ${line.activeDays}d` : ''} ={' '}
+                              <strong className="text-espresso-950">{formatWholeCurrency(line.lineTotal)}</strong>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {isMultiDay && serviceTotalDays > 1 && !line.allDays && (
+                              <select
+                                value={line.day}
+                                onChange={e => handleMoveServiceLine(line.key, Number(e.target.value))}
+                                title="Move this service to another date"
+                                className="px-1.5 py-1 rounded-lg border border-cream-200 bg-white text-[10px] font-bold"
+                              >
+                                {Array.from({ length: serviceTotalDays }, (_, i) => i + 1).map(d => (
+                                  <option key={d} value={d}>{weekdayShort(serviceDateForDay(d))} {monthDayShort(serviceDateForDay(d))} · Day {d}</option>
+                                ))}
+                              </select>
+                            )}
+                            {isMultiDay && serviceTotalDays > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleServiceLineAllDays(line.key)}
+                                className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+                                  line.allDays ? 'bg-espresso-950 text-gold-300' : 'bg-cream-100'
+                                }`}
+                              >
+                                {line.allDays ? `All ${serviceTotalDays}d` : '1 Day'}
+                              </button>
+                            )}
+                            <button type="button" onClick={() => handleUpdateServiceLineQty(line.key, line.qty - 1)} className="w-7 h-7 rounded-lg bg-cream-100 font-bold text-xs">
+                              −
+                            </button>
+                            <SmoothNumberInput
+                              value={line.qty}
+                              min={1}
+                              onValueChange={val => handleUpdateServiceLineQty(line.key, val)}
+                              className="w-12 text-center font-mono text-xs font-extrabold border border-cream-200 rounded-lg py-1"
+                            />
+                            <button type="button" onClick={() => handleUpdateServiceLineQty(line.key, line.qty + 1)} className="w-7 h-7 rounded-lg bg-cream-100 font-bold text-xs">
+                              +
+                            </button>
+                          </div>
+                        </div>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  )}
+
+        </>
+      );
+
       return (
         <div className="min-h-screen flex flex-col">
           {/* Toast Notification */}
@@ -3500,141 +3765,94 @@
                       </span>
                     </div>
 
-                    {/* STAGE 1 & 2: GLOBAL PAX + NUMBER OF DAYS */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-cream-50 p-3.5 rounded-2xl border border-cream-200">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <label className="text-xs font-extrabold text-espresso-950">1. Default Pax (Packs / Meal)</label>
-                          {packedMealBatches.some(b => b.hasCustomPacks) && (
-                            <button
-                              type="button"
-                              onClick={handleApplyDefaultPaxToAllMeals}
-                              className="text-[10px] font-extrabold text-gold-600 hover:underline"
-                            >
-                              Apply to All
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {[20, 30, 50, 100].map(q => (
-                            <button
-                              key={q}
-                              type="button"
-                              onClick={() => handleUpdatePackedDefaultPax(q)}
-                              className={`px-2 py-1 rounded-lg font-mono text-[11px] font-bold ${
-                                packedDefaultPax === q ? 'bg-espresso-950 text-gold-300' : 'bg-white border border-cream-200 text-espresso-900'
-                              }`}
-                            >
-                              {q}
-                            </button>
-                          ))}
-                          <SmoothNumberInput
-                            value={packedDefaultPax}
-                            min={1}
-                            onValueChange={handleUpdatePackedDefaultPax}
-                            className="w-16 px-2 py-1 rounded-lg border border-cream-200 bg-white font-mono text-xs font-extrabold text-center"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="block text-xs font-extrabold text-espresso-950">2. Number of Days</label>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {[1, 2, 3, 4, 5].map(d => (
-                            <button
-                              key={d}
-                              type="button"
-                              onClick={() => handleSetPackedTotalDaysCount(d)}
-                              className={`w-7 h-7 rounded-lg font-mono text-xs font-extrabold ${
-                                packedTotalDays === d ? 'bg-espresso-950 text-gold-300' : 'bg-white border border-cream-200 text-espresso-900'
-                              }`}
-                            >
-                              {d}
-                            </button>
-                          ))}
-                          <SmoothNumberInput
-                            value={packedTotalDays}
-                            min={1}
-                            max={30}
-                            onValueChange={handleSetPackedTotalDaysCount}
-                            className="w-14 px-2 py-1 rounded-lg border border-cream-200 bg-white font-mono text-xs font-bold text-center"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* STAGE 3: DAY TABS, DAY DATE & CHECKBOX MEAL TYPES */}
-                    <div className="bg-cream-50 p-3.5 rounded-2xl border border-gold-400/50 space-y-3">
-                      {packedTotalDays > 1 && (
-                        <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-cream-200">
-                          <div className="flex flex-wrap gap-1.5">
-                            {Array.from({ length: packedTotalDays }, (_, i) => i + 1).map(dayNum => {
-                              const dayCount = packedMealBatches.filter(b => (Number(b.day) || 1) === dayNum).length;
-                              return (
-                                <button
-                                  key={dayNum}
-                                  type="button"
-                                  onClick={() => setActivePackedDay(dayNum)}
-                                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition ${
-                                    activePackedDay === dayNum
-                                      ? 'bg-espresso-950 text-gold-300 shadow'
-                                      : 'bg-white border border-cream-200 text-espresso-800 hover:bg-cream-100'
-                                  }`}
-                                >
-                                  Day {dayNum} ({formatPrettyDate(getPackedDateForDay(dayNum))} • {dayCount})
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleCopyPackedDayToAllDays(activePackedDay)}
-                            className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-gold-400/25 border border-gold-500/40 text-espresso-950 text-[11px] font-bold flex items-center gap-1"
-                            title="Copies this day's meal types, dishes, times & packaging to all days while keeping each day's date"
-                          >
-                            <i className="fa-regular fa-copy text-gold-600"></i>
-                            <span>Copy Day {activePackedDay} to All Days</span>
-                          </button>
-                        </div>
-                      )}
-
-                      <div className="flex flex-wrap items-center justify-between gap-3">
+                    {/* DELIVERY SCHEDULE (date-first) */}
+                    <div className="bg-cream-50 p-4 rounded-2xl border border-gold-400/50 space-y-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <label className="block text-[11px] font-extrabold uppercase tracking-wider text-espresso-950 mb-1.5">
-                            3. Check Meal Types for {packedTotalDays > 1 ? `Day ${activePackedDay}` : 'This Order'}:
-                          </label>
+                          <div className="font-serif text-base font-bold text-espresso-950">Delivery Schedule</div>
+                          <div className="text-[11px] text-espresso-800/75 mt-0.5">
+                            {packedTotalDays} {packedTotalDays === 1 ? 'day' : 'days'} &middot; {monthDayShort(getPackedDateForDay(1))}{packedTotalDays > 1 ? ` – ${monthDayShort(getPackedDateForDay(packedTotalDays))}` : ''} &middot; {computedPackedMealsSummary.totalPacks} total packs
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-4">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold text-espresso-800">Days</span>
+                            <button type="button" onClick={() => handleSetPackedTotalDaysCount(Math.max(1, packedTotalDays - 1))} className="w-7 h-7 rounded-lg bg-white border border-cream-200 font-bold">−</button>
+                            <SmoothNumberInput value={packedTotalDays} min={1} max={30} onValueChange={handleSetPackedTotalDaysCount} className="w-12 px-1 py-1 rounded-lg border border-cream-200 bg-white font-mono text-xs font-bold text-center" />
+                            <button type="button" onClick={() => handleSetPackedTotalDaysCount(Math.min(30, packedTotalDays + 1))} className="w-7 h-7 rounded-lg bg-white border border-cream-200 font-bold">+</button>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="text-[11px] font-bold text-espresso-800">Packs per meal</span>
+                            {[20, 30, 50, 100].map(q => (
+                              <button key={q} type="button" onClick={() => handleUpdatePackedDefaultPax(q)}
+                                className={`px-2 py-1 rounded-lg font-mono text-[11px] font-bold ${packedDefaultPax === q ? 'bg-espresso-950 text-gold-300' : 'bg-white border border-cream-200 text-espresso-900'}`}>{q}</button>
+                            ))}
+                            <SmoothNumberInput value={packedDefaultPax} min={1} onValueChange={handleUpdatePackedDefaultPax} className="w-16 px-2 py-1 rounded-lg border border-cream-200 bg-white font-mono text-xs font-extrabold text-center" />
+                            {packedMealBatches.some(b => b.hasCustomPacks) && (
+                              <button type="button" onClick={handleApplyDefaultPaxToAllMeals} className="text-[10px] font-extrabold text-gold-600 hover:underline">Apply to all</button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 overflow-x-auto pb-1 custom-scroll">
+                        {Array.from({ length: packedTotalDays }, (_, i) => i + 1).map(dayNum => {
+                          const iso = getPackedDateForDay(dayNum);
+                          const dayB = packedMealBatches.filter(b => (Number(b.day) || 1) === dayNum);
+                          const packs = dayB.reduce((t, b) => t + (Number(b.packs) || 0), 0);
+                          const types = Array.from(new Set(dayB.map(b => b.mealType || 'Lunch')));
+                          const on = activePackedDay === dayNum;
+                          return (
+                            <button key={dayNum} type="button" onClick={() => setActivePackedDay(dayNum)}
+                              className={`shrink-0 w-36 text-left rounded-2xl border p-3 transition ${on ? 'bg-espresso-950 text-gold-300 border-gold-500 shadow-md ring-2 ring-gold-400/40' : 'bg-white border-cream-200 text-espresso-900 hover:border-gold-400'}`}>
+                              <div className="text-[10px] font-extrabold uppercase tracking-widest opacity-70">Day {dayNum}</div>
+                              <div className="text-sm font-extrabold leading-tight">{weekdayShort(iso)}, {monthDayShort(iso)}</div>
+                              <div className="text-[10px] font-mono opacity-80 mt-0.5">{packs} packs</div>
+                              <div className="flex flex-wrap gap-1 mt-1.5">
+                                {types.length === 0 ? <span className="text-[10px] opacity-60">No meals yet</span> : types.map(t => (
+                                  <span key={t} className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold ${on ? 'bg-gold-500 text-espresso-950' : 'bg-cream-100 text-espresso-800'}`}>{t}</span>
+                                ))}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="bg-white rounded-xl border border-cream-200 p-3 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-sm font-extrabold text-espresso-950">
+                            {fullDateLabel(getPackedDateForDay(activePackedDay))}
+                            {packedTotalDays > 1 && <span className="ml-1.5 text-xs font-semibold text-espresso-800/70">&middot; Day {activePackedDay}</span>}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <input type="date" value={getPackedDateForDay(activePackedDay)} onChange={e => handleUpdatePackedDayDate(activePackedDay, e.target.value)} className="px-2.5 py-1.5 rounded-xl border border-cream-200 bg-white text-xs font-bold" />
+                            {packedTotalDays > 1 && (
+                              <button type="button" onClick={() => handleCopyPackedDayToAllDays(activePackedDay)} title="Copies this day's meals, dishes, times & packaging to all days while keeping each day's date" className="px-2.5 py-1.5 rounded-xl bg-cream-100 hover:bg-gold-400/30 text-[11px] font-bold text-espresso-950">⧉ Copy to all days</button>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-extrabold uppercase tracking-widest text-espresso-800/70 mb-1.5">Meals delivered this day &mdash; tap to add, tap again to edit</div>
                           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                             {MEAL_PERIOD_OPTIONS.map(mp => {
-                              const isChecked = activeDayPackedBatches.some(b => (b.mealType || 'Lunch') === mp.id);
+                              const ofType = activeDayPackedBatches.filter(b => (b.mealType || 'Lunch') === mp.id);
+                              const inc = ofType.length > 0;
+                              const on = inc && activePackedBatch && (activePackedBatch.mealType || 'Lunch') === mp.id;
+                              const packs = ofType.reduce((t, b) => t + (Number(b.packs) || 0), 0);
+                              const dishes = ofType.reduce((t, b) => t + (b.dishes || []).length, 0);
                               return (
-                                <button
-                                  key={mp.id}
-                                  type="button"
-                                  onClick={() => handleTogglePackedMealType(activePackedDay, mp.id)}
-                                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition ${
-                                    isChecked
-                                      ? 'bg-emerald-700 text-white border-emerald-800 shadow-sm'
-                                      : 'bg-white text-espresso-800/75 border-cream-200 hover:bg-cream-100'
-                                  }`}
-                                >
-                                  <i className={`fa-solid ${isChecked ? 'fa-square-check' : 'fa-square'} text-xs`}></i>
-                                  <span>{mp.id}</span>
+                                <button key={mp.id} type="button"
+                                  onClick={() => (inc ? setActivePackedBatchId(ofType[0].id) : handleTogglePackedMealType(activePackedDay, mp.id))}
+                                  className={`relative px-2.5 py-2.5 rounded-xl text-xs font-bold flex flex-col items-center gap-0.5 border-2 transition ${on ? 'bg-gold-400/25 text-espresso-950 border-gold-500 shadow' : inc ? 'bg-emerald-50 text-emerald-900 border-emerald-600' : 'bg-white text-espresso-800/60 border-dashed border-cream-200 hover:border-gold-400'}`}>
+                                  {inc && (
+                                    <span role="button" title={`Remove ${mp.id}`} onClick={e => { e.stopPropagation(); handleTogglePackedMealType(activePackedDay, mp.id); }} className="absolute top-1 right-1.5 text-[11px] text-espresso-800/50 hover:text-red-600">✕</span>
+                                  )}
+                                  <span>{inc ? mp.id : `+ ${mp.id}`}</span>
+                                  <span className="text-[9px] font-mono font-semibold opacity-75">{inc ? `${packs} packs · ${dishes} dish${dishes === 1 ? '' : 'es'}` : 'not scheduled'}</span>
                                 </button>
                               );
                             })}
                           </div>
-                        </div>
-
-                        <div className="shrink-0">
-                          <label className="block text-[11px] font-bold text-espresso-900 mb-1">
-                            {packedTotalDays > 1 ? `Day ${activePackedDay} Delivery Date` : 'Delivery Date'}
-                          </label>
-                          <input
-                            type="date"
-                            value={getPackedDateForDay(activePackedDay)}
-                            onChange={e => handleUpdatePackedDayDate(activePackedDay, e.target.value)}
-                            className="px-2.5 py-1.5 rounded-xl border border-cream-200 bg-white text-xs font-bold"
-                          />
                         </div>
                       </div>
                     </div>
@@ -3643,7 +3861,7 @@
                     <div className="space-y-2.5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-wrap gap-1.5">
-                          {activeDayPackedBatches.map(b => {
+                          {(activeDayPackedBatches.length > new Set(activeDayPackedBatches.map(x => x.mealType || 'Lunch')).size ? activeDayPackedBatches : []).map(b => {
                             const isAct = activePackedBatch?.id === b.id;
                             const mp = MEAL_PERIOD_OPTIONS.find(m => m.id === (b.mealType || 'Lunch')) || MEAL_PERIOD_OPTIONS[2];
                             const dishCount = (b.dishes || []).length;
@@ -3947,7 +4165,7 @@
                             </span>
                             <span>
                               {bookingCategory === 'seminar'
-                                ? 'Seminar Meals & Menu per Day'
+                                ? 'Seminar Program — Meals & Services per Day'
                                 : 'A La Carte Menu & VIP Add-On Dishes'}
                             </span>
                           </h2>
@@ -3957,7 +4175,7 @@
                         </div>
                         <p className="text-[11px] text-espresso-800/75 mt-0.5">
                           {bookingCategory === 'seminar'
-                            ? 'Pick the Day, check which meals they need (Breakfast, AM Snack, Lunch, PM Snack, Dinner), then customize the dishes per meal.'
+                            ? 'Choose a day, tap the meals served that day to add dishes, then tap Services & Rentals for that same day.'
                             : 'Add dishes below and customize the Pax per dish (great for VIP tables or partial guest counts).'}
                         </p>
                       </div>
@@ -3966,7 +4184,7 @@
                           + Custom Dish
                         </button>
                         <span className="font-mono text-sm font-extrabold text-espresso-950 bg-cream-100 px-2.5 py-1 rounded-xl">
-                          {formatCurrency(computedMenuSummary.netMenuTotal)}
+                          {formatCurrency(computedMenuSummary.netMenuTotal + (bookingCategory === 'seminar' ? servicesSubtotal : 0))}
                         </span>
                       </div>
                     </div>
@@ -4031,90 +4249,6 @@
                             />
                           </div>
                         </div>
-
-                        <div>
-                          <label className="block text-[11px] font-extrabold uppercase tracking-wider text-espresso-950 mb-1.5">
-                            1. Check Meals Included on Day {activeScheduleDay}:
-                          </label>
-                          <div className="flex flex-wrap gap-1.5">
-                            {MEAL_PERIOD_OPTIONS.map(mp => {
-                              const isIncluded = activeDaySeminarMeals.includes(mp.id);
-                              return (
-                                <button
-                                  key={mp.id}
-                                  type="button"
-                                  onClick={() => handleToggleSeminarMealPeriod(activeScheduleDay, mp.id)}
-                                  className={`px-2.5 py-2.5 rounded-xl text-xs font-bold flex flex-col items-center gap-1 border-2 transition ${
-                                    isIncluded
-                                      ? 'bg-emerald-50 text-emerald-900 border-emerald-600 shadow-sm'
-                                      : 'bg-white text-espresso-800/60 border-dashed border-cream-200 hover:border-gold-400'
-                                  }`}
-                                >
-                                  <i className={`fa-solid ${mp.icon} text-sm`}></i>
-                                  <span>{mp.id}</span>
-                                  <span className="text-[9px] font-mono font-semibold opacity-70">{isIncluded ? '✔ included' : '+ add'}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        <div className="pt-2 border-t border-cream-200 space-y-2">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="text-[11px] font-extrabold uppercase tracking-wider text-espresso-950">
-                              2. Customize Menu for:
-                            </span>
-                            <div className="flex items-center gap-1.5 text-xs">
-                              <span className="text-[11px] font-bold text-espresso-800">Serving Time:</span>
-                              <input
-                                type="text"
-                                value={
-                                  seminarSlotTimes[`${activeScheduleDay}__${activeSeminarMealSlot}`] ??
-                                  (MEAL_PERIOD_OPTIONS.find(m => m.id === activeSeminarMealSlot)?.defaultTime || '12:00 PM')
-                                }
-                                onChange={e =>
-                                  setSeminarSlotTimes(prev => ({
-                                    ...prev,
-                                    [`${activeScheduleDay}__${activeSeminarMealSlot}`]: e.target.value
-                                  }))
-                                }
-                                className="w-24 px-2 py-1 rounded-lg border border-cream-200 bg-white font-mono text-xs font-bold text-center"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap gap-1.5">
-                            {activeDaySeminarMeals.map(mealName => {
-                              const mp = MEAL_PERIOD_OPTIONS.find(m => m.id === mealName) || MEAL_PERIOD_OPTIONS[2];
-                              const isCustomizing = activeSeminarMealSlot === mealName;
-                              const slotDishCount = selectedMenuLines.filter(
-                                l => l.day === activeScheduleDay && (l.mealSlot || 'Lunch') === mealName
-                              ).length;
-                              return (
-                                <button
-                                  key={mealName}
-                                  type="button"
-                                  onClick={() => setActiveSeminarMealSlot(mealName)}
-                                  className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 border transition ${
-                                    isCustomizing
-                                      ? 'bg-espresso-950 text-gold-300 border-gold-500 shadow'
-                                      : 'bg-white text-espresso-950 border-cream-200 hover:bg-cream-100'
-                                  }`}
-                                >
-                                  <i className={`fa-solid ${mp.icon} text-[11px] ${isCustomizing ? 'text-gold-400' : 'text-gold-600'}`}></i>
-                                  <span>{mealName}</span>
-                                  <span
-                                    className={`ml-1 px-1.5 py-0.5 rounded-full font-mono text-[10px] ${
-                                      isCustomizing ? 'bg-gold-500 text-espresso-950' : 'bg-cream-100 text-espresso-800'
-                                    }`}
-                                  >
-                                    {slotDishCount} {slotDishCount === 1 ? 'dish' : 'dishes'}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
                       </div>
                     )}
 
@@ -4129,6 +4263,77 @@
                       </form>
                     )}
 
+                    {bookingCategory === 'seminar' && (
+                      <>
+                        <div className="sticky top-20 z-30 px-3 py-2.5 rounded-2xl bg-white/95 backdrop-blur border border-gold-400/70 shadow-md space-y-2">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="w-14 text-[10px] font-extrabold uppercase tracking-widest text-espresso-800/70">Day</span>
+                            {Array.from({ length: eventDays }, (_, i) => i + 1).map(d => (
+                              <button key={d} type="button" onClick={() => setActiveScheduleDay(d)}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition ${activeScheduleDay === d ? 'bg-espresso-950 text-gold-300 border-gold-500 shadow' : 'bg-white border-cream-200 text-espresso-800 hover:border-gold-400'}`}>
+                                {weekdayShort(getSeminarDateForDay(d))} {monthDayShort(getSeminarDateForDay(d))} <span className="opacity-60 font-semibold">· D{d}</span>
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="w-14 text-[10px] font-extrabold uppercase tracking-widest text-espresso-800/70">Day {activeScheduleDay}</span>
+                            {MEAL_PERIOD_OPTIONS.map(mp => {
+                              const inc = activeDaySeminarMeals.includes(mp.id);
+                              const on = activeSeminarMealSlot === mp.id;
+                              const n = selectedMenuLines.filter(l => l.day === activeScheduleDay && (l.mealSlot || 'Lunch') === mp.id).length;
+                              return (
+                                <button key={mp.id} type="button"
+                                  onClick={() => (inc ? setActiveSeminarMealSlot(mp.id) : handleToggleSeminarMealPeriod(activeScheduleDay, mp.id))}
+                                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition ${on ? 'bg-gold-500 text-espresso-950 border-gold-600 shadow' : inc ? 'bg-white border-emerald-500 text-espresso-950 hover:bg-emerald-50' : 'bg-transparent border-dashed border-cream-200 text-espresso-800/55 hover:border-gold-400'}`}>
+                                  {inc ? mp.id : `+ ${mp.id}`}
+                                  {inc && <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-black/10 font-mono text-[10px]">{n}</span>}
+                                </button>
+                              );
+                            })}
+                            <span className="w-px h-5 bg-cream-200 mx-1"></span>
+                            <button type="button" onClick={() => setActiveSeminarMealSlot('Services')}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition ${activeSeminarMealSlot === 'Services' ? 'bg-gold-500 text-espresso-950 border-gold-600 shadow' : 'bg-white border-espresso-950/30 text-espresso-950 hover:bg-cream-100'}`}>
+                              Services &amp; Rentals
+                              <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-black/10 font-mono text-[10px]">{selectedServiceLines.filter(l => l.allDays || l.day === activeScheduleDay).length}</span>
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-espresso-800/70">Tap a meal to add its dishes. A dashed &ldquo;+&rdquo; meal isn&rsquo;t served this day yet &mdash; tap it to include it.</p>
+                        </div>
+
+                        {activeSeminarMealSlot !== 'Services' ? (
+                          <div className="flex flex-wrap items-center justify-between gap-2 bg-cream-50 border border-cream-200 rounded-xl px-3 py-2">
+                            <div className="text-sm font-extrabold text-espresso-950">
+                              {activeSeminarMealSlot} <span className="text-xs font-semibold text-espresso-800/70">&middot; Day {activeScheduleDay}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-bold text-espresso-800">Serving time</span>
+                              <input type="text"
+                                value={seminarSlotTimes[`${activeScheduleDay}__${activeSeminarMealSlot}`] ?? (MEAL_PERIOD_OPTIONS.find(m => m.id === activeSeminarMealSlot)?.defaultTime || '12:00 PM')}
+                                onChange={e => setSeminarSlotTimes(prev => ({ ...prev, [`${activeScheduleDay}__${activeSeminarMealSlot}`]: e.target.value }))}
+                                className="w-24 px-2 py-1 rounded-lg border border-cream-200 bg-white font-mono text-xs font-bold text-center" />
+                              <button type="button" onClick={() => handleToggleSeminarMealPeriod(activeScheduleDay, activeSeminarMealSlot)}
+                                className="px-2 py-1 rounded-lg text-[11px] font-bold text-red-600 hover:bg-red-50">Remove meal</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap items-center justify-between gap-2 bg-cream-50 border border-cream-200 rounded-xl px-3 py-2">
+                            <div className="text-sm font-extrabold text-espresso-950">
+                              Services &amp; Rentals <span className="text-xs font-semibold text-espresso-800/70">&middot; {weekdayShort(getSeminarDateForDay(activeScheduleDay))}, {monthDayShort(getSeminarDateForDay(activeScheduleDay))}</span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {activeScheduleDay > 1 && (
+                                <button type="button" onClick={copyServicesFromPreviousDay} className="px-2.5 py-1 rounded-lg bg-white border border-cream-200 hover:border-gold-400 text-[11px] font-bold">⧉ Copy Day {activeScheduleDay - 1} services</button>
+                              )}
+                              <button type="button" onClick={() => setShowCustomServiceForm(v => !v)} className="px-2.5 py-1 rounded-lg bg-white border border-cream-200 hover:border-gold-400 text-[11px] font-bold">+ Custom line</button>
+                              <span className="font-mono text-xs font-extrabold bg-white border border-cream-200 px-2 py-1 rounded-lg">{formatCurrency(servicesSubtotal)}</span>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {(bookingCategory !== 'seminar' || activeSeminarMealSlot !== 'Services') && (
+                    <>
                     <div className="space-y-2">
                       <div className="flex flex-wrap gap-1.5">
                         {menuCategoryStats.map(cat => (
@@ -4237,7 +4442,7 @@
                                     line.allDays ? 'bg-espresso-950 text-gold-300' : 'bg-cream-100'
                                   }`}
                                 >
-                                  {line.allDays ? `All ${eventDays}d` : '1 Day'}
+                                  {line.allDays ? `All ${serviceTotalDays}d` : '1 Day'}
                                 </button>
                               )}
                               <div className="flex items-center bg-cream-100 rounded-xl p-0.5 border border-cream-200">
@@ -4277,11 +4482,16 @@
                         ))}
                       </div>
                     )}
+                  </>
+                    )}
+
+                    {bookingCategory === 'seminar' && activeSeminarMealSlot === 'Services' && renderServicesBody()}
                   </section>
                 )}
 
                 {/* STEP 4: EVENT SERVICES / RENTALS */}
-                <section className="bg-white rounded-2xl p-5 border border-cream-200 shadow-sm space-y-4">
+                {bookingCategory !== 'seminar' && (
+<section className="bg-white rounded-2xl p-5 border border-cream-200 shadow-sm space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cream-200 pb-3">
                     <div>
                       <h2 className="font-serif text-lg font-bold text-espresso-950 flex items-center gap-2">
@@ -4307,206 +4517,9 @@
                     </div>
                   </div>
 
-                  {showCustomServiceForm && (
-                    <form onSubmit={handleAddCustomServiceLine} className="bg-cream-50 p-3 rounded-xl border border-gold-400/60 grid grid-cols-1 sm:grid-cols-12 gap-2">
-                      <input
-                        type="text"
-                        required
-                        value={customServiceName}
-                        onChange={e => setCustomServiceName(e.target.value)}
-                        placeholder={bookingCategory === 'rental' ? 'Rental Item Name' : 'Service / Delivery Name'}
-                        className={bookingCategory === 'rental' ? 'sm:col-span-6 px-2.5 py-1.5 rounded-lg border border-cream-200 bg-white text-xs' : 'sm:col-span-4 px-2.5 py-1.5 rounded-lg border border-cream-200 bg-white text-xs'}
-                      />
-                      {bookingCategory !== 'rental' && (
-                        <select value={customServiceCategory} onChange={e => setCustomServiceCategory(e.target.value)} className="sm:col-span-2 px-2 py-1.5 rounded-lg border border-cream-200 bg-white text-xs">
-                          <option value="Catering">Catering</option>
-                          <option value="Rental">Rental</option>
-                          <option value="Suppliers">Suppliers</option>
-                        </select>
-                      )}
-                      <select value={customServiceBilling} onChange={e => setCustomServiceBilling(e.target.value)} className="sm:col-span-2 px-2 py-1.5 rounded-lg border border-cream-200 bg-white text-xs">
-                        <option value="fixed">Fixed</option>
-                        <option value="per_piece">Per Piece</option>
-                        <option value="per_pax">Per Pax</option>
-                        <option value="per_day">Per Day</option>
-                      </select>
-                      <input type="number" required min="0" value={customServicePrice} onChange={e => setCustomServicePrice(e.target.value)} placeholder="₱ Rate" className="sm:col-span-2 px-2 py-1.5 rounded-lg border border-cream-200 bg-white font-mono text-xs text-right" />
-                      <button type="submit" className="sm:col-span-2 py-1.5 rounded-lg bg-espresso-950 text-gold-300 text-xs font-extrabold">Add</button>
-                    </form>
-                  )}
-
-                  {bookingCategory === 'seminar' && (
-                    <div className="bg-cream-50 p-3 rounded-2xl border border-gold-400/60 space-y-2">
-                      <div className="text-[10px] font-extrabold uppercase tracking-widest text-espresso-800/70">Services &amp; Rentals per Day &mdash; pick a day, then add what that day needs</div>
-                      <div className="flex flex-wrap gap-2">
-                        {Array.from({ length: eventDays }, (_, i) => i + 1).map(d => {
-                          const n = selectedServiceLines.filter(l => l.allDays || l.day === d).length;
-                          return (
-                            <button key={d} type="button" onClick={() => setActiveScheduleDay(d)}
-                              className={`min-w-[104px] text-left px-3 py-2 rounded-xl border transition ${activeScheduleDay === d ? 'bg-espresso-950 text-gold-300 border-gold-500 shadow-md ring-2 ring-gold-400/40' : 'bg-white border-cream-200 text-espresso-800 hover:border-gold-400'}`}>
-                              <div className="text-[10px] font-extrabold uppercase tracking-wider opacity-70">Day {d}</div>
-                              <div className="text-xs font-extrabold">{formatPrettyDate(getSeminarDateForDay(d))}</div>
-                              <div className="text-[10px] font-mono opacity-80">{n} service{n === 1 ? '' : 's'}</div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {activeScheduleDay > 1 && (
-                        <button type="button"
-                          onClick={() => setSelectedServiceLines(prev => {
-                            const have = new Set(prev.map(l => l.key));
-                            const copies = prev
-                              .filter(l => l.day === activeScheduleDay - 1 && !l.allDays)
-                              .map(l => ({ ...l, day: activeScheduleDay, key: `${activeScheduleDay}__${String(l.key).split('__').slice(1).join('__')}` }))
-                              .filter(l => !have.has(l.key));
-                            return [...prev, ...copies];
-                          })}
-                          className="px-2.5 py-1 rounded-lg bg-white border border-cream-200 hover:border-gold-400 text-[11px] font-bold text-espresso-900">
-                          ⧉ Copy Day {activeScheduleDay - 1} services to Day {activeScheduleDay}
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {serviceItems.length === 0 ? (
-                    <div className="bg-cream-50 p-5 rounded-2xl border border-dashed border-gold-500/60 text-center space-y-2.5">
-                      <p className="text-xs font-bold text-espresso-950">
-                        Syncing Event Services Google Sheet (#4)... or click below to check sheet status.
-                      </p>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        <button type="button" onClick={() => setIsSyncModalOpen(true)} className="px-4 py-2 rounded-xl bg-espresso-950 text-gold-300 text-xs font-extrabold">
-                          Check Sheets Sync
-                        </button>
-                        <button type="button" onClick={() => setShowCustomServiceForm(true)} className="px-3.5 py-2 rounded-xl bg-white border border-cream-200 text-espresso-950 text-xs font-bold">
-                          + Add One-Off Item
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {bookingCategory !== 'rental' ? (
-                        <div className="flex flex-wrap gap-1.5">
-                          {serviceCategoryStats.map(cat => (
-                            <button
-                              key={cat.name}
-                              type="button"
-                              onClick={() => setServiceSubcategoryFilter(cat.name)}
-                              className={`px-3 py-1 rounded-xl text-[11px] font-bold ${
-                                serviceSubcategoryFilter === cat.name ? 'bg-espresso-950 text-gold-300' : 'bg-cream-100 text-espresso-800'
-                              }`}
-                            >
-                              {cat.name} ({cat.count})
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-espresso-950 text-gold-300 text-[11px] font-extrabold">
-                          <i className="fa-solid fa-truck-ramp-box"></i>
-                          <span>Showing Rental Items Only ({filteredServiceItems.length})</span>
-                        </span>
-                      )}
-
-                      <input
-                        type="text"
-                        value={serviceSearchQuery}
-                        onChange={e => setServiceSearchQuery(e.target.value)}
-                        placeholder={bookingCategory === 'rental' ? 'Search rental items...' : 'Search Event Services...'}
-                        className="w-full px-3 py-2 rounded-xl border border-cream-200 bg-cream-50/60 focus:bg-white text-xs"
-                      />
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto custom-scroll pr-1">
-                        {filteredServiceItems.map(srv => {
-                          const existing = selectedServiceLines.find(l => l.key === `${effectiveDayForBuilder}__${srv.id}`);
-                          const badge = getServiceSubcategoryBadgeStyle(srv.subcategory);
-                          return (
-                            <button
-                              key={srv.id}
-                              type="button"
-                              onClick={() => handleToggleServiceItem(srv)}
-                              className={`p-3 rounded-xl border text-left transition flex items-start justify-between gap-2 ${
-                                existing ? 'bg-espresso-950 text-cream-50 border-gold-500' : 'bg-cream-50 hover:bg-white text-espresso-950 border-cream-200'
-                              }`}
-                            >
-                              <div className="min-w-0">
-                                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${existing ? 'bg-espresso-800 text-gold-300 border-gold-500/40' : badge.pill}`}>
-                                  {srv.subcategory}
-                                </span>
-                                <span className="ml-1.5 text-[10px] opacity-75">{billingBadgeLabel(srv.billingType)}</span>
-                                <div className="font-bold text-xs mt-1">{srv.name}</div>
-                              </div>
-                              <div className="text-right shrink-0">
-                                <div className="font-mono font-extrabold text-xs">{formatWholeCurrency(srv.price)}</div>
-                                <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${existing ? 'bg-gold-500 text-espresso-950' : 'bg-white border border-cream-200 text-espresso-800'}`}>
-                                  {existing ? 'Selected' : '+ Add'}
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-
-                  {computedServiceLines.length > 0 && (
-                    <div className="bg-cream-50 p-3.5 rounded-2xl border border-gold-400/60 space-y-2">
-                      <div className="flex items-center justify-between border-b border-cream-200 pb-2">
-                        <span className="text-xs font-extrabold uppercase text-espresso-950">
-                          Selected {bookingCategory === 'rental' ? 'Rentals' : 'Services'} ({computedServiceLines.length})
-                        </span>
-                        <button type="button" onClick={() => setSelectedServiceLines([])} className="text-[11px] font-bold text-red-600 hover:underline">
-                          Clear
-                        </button>
-                      </div>
-                      {(bookingCategory === 'seminar' ? [...computedServiceLines].sort((a, b) => a.day - b.day) : computedServiceLines).map((line, li, arr) => (
-                        <React.Fragment key={line.key}>
-                        {bookingCategory === 'seminar' && (li === 0 || arr[li - 1].day !== line.day) && (
-                          <div className="flex items-center justify-between pt-1.5 text-[11px] font-extrabold uppercase tracking-wider text-espresso-950">
-                            <span>Day {line.day} &middot; {formatPrettyDate(getSeminarDateForDay(line.day))}</span>
-                            <span className="font-mono">{formatWholeCurrency(arr.filter(x => x.day === line.day).reduce((t, x) => t + x.lineTotal, 0))}</span>
-                          </div>
-                        )}
-                        <div className="bg-white p-2.5 rounded-xl border border-cream-200 flex flex-wrap items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold text-espresso-950">{line.name}</div>
-                            <div className="text-[11px] text-espresso-800/75 font-mono">
-                              {formatWholeCurrency(line.price)} ({billingBadgeLabel(line.billingType)}) × {line.qty}
-                              {line.billingType === 'per_pax' ? ` × ${line.dayPax}p` : ''}
-                              {bookingCategory === 'rental' && line.billingType === 'per_day' ? ` × ${rentalDurationDays}d` : ''}
-                              {bookingCategory === 'seminar' && line.activeDays > 1 && line.billingType !== 'fixed' ? ` × ${line.activeDays}d` : ''} ={' '}
-                              <strong className="text-espresso-950">{formatWholeCurrency(line.lineTotal)}</strong>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            {bookingCategory === 'seminar' && eventDays > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => handleToggleServiceLineAllDays(line.key)}
-                                className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
-                                  line.allDays ? 'bg-espresso-950 text-gold-300' : 'bg-cream-100'
-                                }`}
-                              >
-                                {line.allDays ? `All ${eventDays}d` : '1 Day'}
-                              </button>
-                            )}
-                            <button type="button" onClick={() => handleUpdateServiceLineQty(line.key, line.qty - 1)} className="w-7 h-7 rounded-lg bg-cream-100 font-bold text-xs">
-                              −
-                            </button>
-                            <SmoothNumberInput
-                              value={line.qty}
-                              min={1}
-                              onValueChange={val => handleUpdateServiceLineQty(line.key, val)}
-                              className="w-12 text-center font-mono text-xs font-extrabold border border-cream-200 rounded-lg py-1"
-                            />
-                            <button type="button" onClick={() => handleUpdateServiceLineQty(line.key, line.qty + 1)} className="w-7 h-7 rounded-lg bg-cream-100 font-bold text-xs">
-                              +
-                            </button>
-                          </div>
-                        </div>
-                        </React.Fragment>
-                      ))}
-                    </div>
-                  )}
+                  {renderServicesBody()}
                 </section>
+                )}
 
                 {/* STEP 5: HOTEL ROOMS (WITH BOOKED CHECK-IN & CHECK-OUT DATES) */}
                 {showRoomsStep && (
@@ -4520,7 +4533,7 @@
                           <span>Hotel Rooms ({roomCatalog.length} Rooms)</span>
                         </h2>
                         <p className="text-[11px] text-espresso-800/75 mt-0.5">
-                          Select room nights and set Check-In / Check-Out dates for each booked room.
+                          Each room has its own Check-In and Check-Out dates — guests can arrive earlier or leave later than the event.
                         </p>
                       </div>
                       <span className="font-mono text-sm font-extrabold text-espresso-950 bg-cream-100 px-2.5 py-1 rounded-xl">
@@ -4568,43 +4581,57 @@
                             Clear Rooms
                           </button>
                         </div>
-                        {selectedRoomsList.map(room => (
-                          <div key={room.id} className="bg-white p-2.5 rounded-xl border border-cream-200 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center text-xs">
-                            <div className="sm:col-span-5">
-                              <div className="font-bold text-espresso-950">
-                                {room.roomNo} — {room.type}
+                        {selectedRoomsList.map((room, ri, arr) => {
+                          const evS = dateObjOf(getEventStartIso());
+                          const evE = dateObjOf(getEventEndIso());
+                          const ci = dateObjOf(room.checkIn);
+                          const co = dateObjOf(room.checkOut);
+                          const before = evS && ci ? Math.round((evS - ci) / 864e5) : 0;
+                          const after = evE && co ? Math.round((co - evE) / 864e5) : 0;
+                          const flags = [];
+                          if (before > 0) flags.push(`Arrives ${before} day${before === 1 ? '' : 's'} before the event`);
+                          if (before < 0) flags.push(`Arrives ${-before} day${before === -1 ? '' : 's'} after the event starts`);
+                          if (after > 0) flags.push(`Leaves ${after} day${after === 1 ? '' : 's'} after the event`);
+                          if (after < 0) flags.push(`Leaves ${-after} day${after === -1 ? '' : 's'} before the event ends`);
+                          return (
+                            <React.Fragment key={room.id}>
+                              {(ri === 0 || arr[ri - 1].checkIn !== room.checkIn) && (
+                                <div className="pt-1.5 text-[10px] font-extrabold uppercase tracking-widest text-espresso-800/70">
+                                  Check-in &middot; {fullDateLabel(room.checkIn)}
+                                </div>
+                              )}
+                              <div className="bg-white p-3 rounded-xl border border-cream-200 grid grid-cols-1 sm:grid-cols-12 gap-2 items-end text-xs">
+                                <div className="sm:col-span-4">
+                                  <div className="font-bold text-espresso-950">{room.roomNo} — {room.type}</div>
+                                  <div className="text-[10px] font-mono text-espresso-800/75">
+                                    {room.nights} {room.nights === 1 ? 'night' : 'nights'} × {formatWholeCurrency(room.rate)} = <strong className="text-espresso-950">{formatWholeCurrency(room.total)}</strong>
+                                  </div>
+                                </div>
+                                <div className="sm:col-span-3">
+                                  <label className="block text-[9px] font-bold uppercase text-espresso-800/70">Check-In</label>
+                                  <input type="date" value={room.checkIn} onChange={e => handleUpdateRoomBooking(room.id, { checkIn: e.target.value })} className="w-full px-2 py-1 rounded-lg border border-cream-200 text-[11px]" />
+                                </div>
+                                <div className="sm:col-span-3">
+                                  <label className="block text-[9px] font-bold uppercase text-espresso-800/70">Check-Out</label>
+                                  <input type="date" value={room.checkOut} min={addDaysToIsoDate(room.checkIn, 1)} onChange={e => handleUpdateRoomBooking(room.id, { checkOut: e.target.value })} className="w-full px-2 py-1 rounded-lg border border-cream-200 text-[11px]" />
+                                </div>
+                                <div className="sm:col-span-2 flex items-center justify-end gap-1">
+                                  <button type="button" onClick={() => handleUpdateRoomBooking(room.id, { nights: Math.max(0, room.nights - 1) })} className="w-6 h-6 rounded-lg bg-cream-100 font-bold">−</button>
+                                  <span className="w-5 text-center font-mono font-bold">{room.nights}</span>
+                                  <button type="button" onClick={() => handleUpdateRoomBooking(room.id, { nights: room.nights + 1 })} className="w-6 h-6 rounded-lg bg-gold-500 text-espresso-950 font-bold">+</button>
+                                  <button type="button" onClick={() => handleUpdateRoomBooking(room.id, { nights: 0 })} className="ml-1 w-6 h-6 rounded-lg bg-red-50 text-red-600 font-bold" title="Remove booking">×</button>
+                                </div>
+                                <div className="sm:col-span-12 flex flex-wrap items-center gap-2">
+                                  <input type="text" value={room.notes || ''} onChange={e => handleUpdateRoomBooking(room.id, { notes: e.target.value })} placeholder="Guest name / remarks for this booking (optional)" className="flex-1 min-w-[200px] px-2 py-1 rounded-lg border border-cream-200 text-[11px]" />
+                                  {flags.map(f => (
+                                    <span key={f} className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold">{f}</span>
+                                  ))}
+                                  {flags.length === 0 && <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">Within event dates</span>}
+                                </div>
                               </div>
-                              <div className="text-[10px] font-mono text-espresso-800/75">
-                                {room.nights} {room.nights === 1 ? 'night' : 'nights'} × {formatWholeCurrency(room.rate)} ={' '}
-                                <strong className="text-espresso-950">{formatWholeCurrency(room.total)}</strong>
-                              </div>
-                            </div>
-                            <div className="sm:col-span-3">
-                              <label className="block text-[9px] font-bold uppercase text-espresso-800/70">Check-In</label>
-                              <input
-                                type="date"
-                                value={room.checkIn}
-                                onChange={e => handleUpdateRoomBooking(room.id, { checkIn: e.target.value })}
-                                className="w-full px-2 py-1 rounded-lg border border-cream-200 text-[11px]"
-                              />
-                            </div>
-                            <div className="sm:col-span-3">
-                              <label className="block text-[9px] font-bold uppercase text-espresso-800/70">Check-Out</label>
-                              <input
-                                type="date"
-                                value={room.checkOut}
-                                min={addDaysToIsoDate(room.checkIn, 1)}
-                                onChange={e => handleUpdateRoomBooking(room.id, { checkOut: e.target.value })}
-                                className="w-full px-2 py-1 rounded-lg border border-cream-200 text-[11px]"
-                              />
-                            </div>
-                            <div className="sm:col-span-1 flex justify-end">
-                              <button type="button" onClick={() => handleUpdateRoomBooking(room.id, { nights: 0 })} className="w-7 h-7 rounded-lg bg-red-50 text-red-600 font-bold text-xs">
-                                ×
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                            </React.Fragment>
+                          );
+                        })}
                       </div>
                     )}
                   </section>
@@ -5025,12 +5052,20 @@
                           )}
 
                           {bookingCategory === 'packed_meals' &&
-                            computedPackedMealsSummary.batches.map(batch => (
-                              <tr key={batch.id}>
+                            [...computedPackedMealsSummary.batches].sort((x, y) => String(x.date).localeCompare(String(y.date)) || (Number(x.day) || 1) - (Number(y.day) || 1)).map((batch, bi, arr) => (
+                              <React.Fragment key={batch.id}>
+                              {(bi === 0 || arr[bi - 1].date !== batch.date) && (
+                                <tr style={{ breakInside: 'avoid' }}>
+                                  <td colSpan={4} className="py-1.5 px-3 bg-espresso-950 text-gold-300 text-[11px] font-extrabold uppercase tracking-widest">
+                                    {fullDateLabel(batch.date)}{packedTotalDays > 1 && batch.day ? ` · Day ${batch.day}` : ''}
+                                  </td>
+                                </tr>
+                              )}
+                              <tr style={{ breakInside: 'avoid' }}>
                                 <td className="py-2.5 px-3">
-                                  <div className="font-bold text-espresso-950">{batch.displayTitle}</div>
+                                  <div className="font-bold text-espresso-950">{String(batch.displayTitle || '').replace(/^Day \d+\s*[—-]\s*/, '')}</div>
                                   <div className="text-[10px] text-espresso-800">
-                                    Delivery: <strong>{formatPrettyDate(batch.date)}</strong> at <strong>{batch.time || 'TBD'}</strong>
+                                    Delivery time: <strong>{batch.time || 'TBD'}</strong>
                                   </div>
                                   {batch.dishes && batch.dishes.length > 0 && (
                                     <ul className="mt-1 text-[10px] text-espresso-900 list-disc pl-4 space-y-0.5">
@@ -5056,56 +5091,83 @@
                                 <td className="py-2.5 px-3 text-right font-mono align-top">{formatCurrency(batch.effectiveRatePerPack)}</td>
                                 <td className="py-2.5 px-3 text-right font-mono font-bold align-top">{formatCurrency(batch.batchTotal)}</td>
                               </tr>
+                              </React.Fragment>
                             ))}
 
                           {bookingCategory === 'seminar' &&
                             (() => {
                               const order = id => MEAL_PERIOD_OPTIONS.findIndex(m => m.id === id);
-                              const sorted = [...computedMenuSummary.lines].sort(
-                                (x, y) => x.day - y.day || order(x.mealSlot || 'Lunch') - order(y.mealSlot || 'Lunch')
-                              );
+                              const dayNums = Array.from(new Set([...computedMenuSummary.lines.map(l => l.day), ...computedServiceLines.map(l => l.day)])).sort((x, y) => x - y);
                               const rows = [];
-                              let lastDay = null;
-                              let lastSlot = null;
-                              sorted.forEach(line => {
-                                const slot = line.mealSlot || 'Lunch';
-                                if (line.day !== lastDay) {
-                                  rows.push(
-                                    <tr key={`d${line.day}`} style={{ breakInside: 'avoid' }}>
-                                      <td colSpan={4} className="py-1.5 px-3 bg-espresso-950 text-gold-300 text-[11px] font-extrabold uppercase tracking-widest">
-                                        Day {line.day} &mdash; {formatPrettyDate(getSeminarDateForDay(line.day))} &middot; {getPaxForDay(line.day)} pax
-                                      </td>
-                                    </tr>
-                                  );
-                                  lastDay = line.day;
-                                  lastSlot = null;
-                                }
-                                if (slot !== lastSlot) {
-                                  const t = seminarSlotTimes[`${line.day}__${slot}`] || MEAL_PERIOD_OPTIONS.find(m => m.id === slot)?.defaultTime || '';
-                                  rows.push(
-                                    <tr key={`m${line.day}${slot}`} style={{ breakInside: 'avoid' }}>
-                                      <td colSpan={4} className="py-1 px-3 bg-cream-100 text-espresso-900 text-[10px] font-extrabold uppercase tracking-wider border-b border-cream-200">
-                                        {slot}{t ? ` · ${t}` : ''}
-                                      </td>
-                                    </tr>
-                                  );
-                                  lastSlot = slot;
-                                }
+                              dayNums.forEach(d => {
+                                const dayLines = computedMenuSummary.lines.filter(l => l.day === d).sort((x, y) => order(x.mealSlot || 'Lunch') - order(y.mealSlot || 'Lunch'));
+                                const dayServices = computedServiceLines.filter(l => l.day === d);
                                 rows.push(
-                                  <tr key={line.key} style={{ breakInside: 'avoid' }} className="border-b border-cream-100">
-                                    <td className="py-1.5 pl-6 pr-3">
-                                      <div className="font-semibold text-espresso-950">{line.name}</div>
-                                      <div className="text-[10px] text-espresso-800/70">
-                                        {line.category}
-                                        {line.isCustomVipPax ? ` • Custom VIP Allocation (${line.effectivePax} pax)` : ''}
-                                        {line.activeDays > 1 ? ` • Repeats All ${line.activeDays} Days` : ''}
-                                      </div>
+                                  <tr key={`d${d}`} style={{ breakInside: 'avoid' }}>
+                                    <td colSpan={4} className="py-1.5 px-3 bg-espresso-950 text-gold-300 text-[11px] font-extrabold uppercase tracking-widest">
+                                      {fullDateLabel(getSeminarDateForDay(d))} &middot; Day {d} &middot; {getPaxForDay(d)} pax
                                     </td>
-                                    <td className="py-1.5 px-3 text-right font-mono">{line.effectivePax} pax{line.activeDays > 1 ? ` × ${line.activeDays}d` : ''}</td>
-                                    <td className="py-1.5 px-3 text-right font-mono">{formatCurrency(line.price)}</td>
-                                    <td className="py-1.5 px-3 text-right font-mono font-bold">{formatCurrency(line.lineTotal)}</td>
                                   </tr>
                                 );
+                                let lastSlot = null;
+                                dayLines.forEach(line => {
+                                  const slot = line.mealSlot || 'Lunch';
+                                  if (slot !== lastSlot) {
+                                    const t = seminarSlotTimes[`${d}__${slot}`] || MEAL_PERIOD_OPTIONS.find(m => m.id === slot)?.defaultTime || '';
+                                    rows.push(
+                                      <tr key={`m${d}${slot}`} style={{ breakInside: 'avoid' }}>
+                                        <td colSpan={4} className="py-1 px-3 bg-cream-100 text-espresso-900 text-[10px] font-extrabold uppercase tracking-wider border-b border-cream-200">
+                                          {slot}{t ? ` · ${t}` : ''}
+                                        </td>
+                                      </tr>
+                                    );
+                                    lastSlot = slot;
+                                  }
+                                  rows.push(
+                                    <tr key={line.key} style={{ breakInside: 'avoid' }} className="border-b border-cream-100">
+                                      <td className="py-1.5 pl-6 pr-3">
+                                        <div className="font-semibold text-espresso-950">{line.name}</div>
+                                        <div className="text-[10px] text-espresso-800/70">
+                                          {line.category}
+                                          {line.isCustomVipPax ? ` • Custom VIP Allocation (${line.effectivePax} pax)` : ''}
+                                          {line.activeDays > 1 ? ` • Repeats All ${line.activeDays} Days` : ''}
+                                        </div>
+                                      </td>
+                                      <td className="py-1.5 px-3 text-right font-mono">{line.effectivePax} pax{line.activeDays > 1 ? ` × ${line.activeDays}d` : ''}</td>
+                                      <td className="py-1.5 px-3 text-right font-mono">{formatCurrency(line.price)}</td>
+                                      <td className="py-1.5 px-3 text-right font-mono font-bold">{formatCurrency(line.lineTotal)}</td>
+                                    </tr>
+                                  );
+                                });
+                                if (dayServices.length > 0) {
+                                  rows.push(
+                                    <tr key={`sv${d}`} style={{ breakInside: 'avoid' }}>
+                                      <td colSpan={4} className="py-1 px-3 bg-cream-100 text-espresso-900 text-[10px] font-extrabold uppercase tracking-wider border-b border-cream-200">Services &amp; Rentals</td>
+                                    </tr>
+                                  );
+                                  dayServices.forEach(line => {
+                                    rows.push(
+                                      <tr key={line.key} style={{ breakInside: 'avoid' }} className="border-b border-cream-100">
+                                        <td className="py-1.5 pl-6 pr-3">
+                                          <div className="font-semibold text-espresso-950">{line.name}</div>
+                                          <div className="text-[10px] text-espresso-800/70">
+                                            {line.subcategory} • {billingBadgeLabel(line.billingType)}
+                                            {line.activeDays > 1 && line.billingType !== 'fixed' ? ` × ${line.activeDays} days` : ''}
+                                          </div>
+                                        </td>
+                                        <td className="py-1.5 px-3 text-right font-mono">
+                                          {line.billingType === 'per_pax'
+                                            ? `${line.dayPax} × ${line.qty}${line.activeDays > 1 ? ` × ${line.activeDays}d` : ''}`
+                                            : line.activeDays > 1 && line.billingType !== 'fixed'
+                                            ? `${line.qty} × ${line.activeDays}d`
+                                            : line.qty}
+                                        </td>
+                                        <td className="py-1.5 px-3 text-right font-mono">{formatCurrency(line.price)}</td>
+                                        <td className="py-1.5 px-3 text-right font-mono font-bold">{formatCurrency(line.lineTotal)}</td>
+                                      </tr>
+                                    );
+                                  });
+                                }
                               });
                               return rows;
                             })()}
@@ -5133,24 +5195,24 @@
                               );
                             })}
 
-                          {(bookingCategory === 'seminar' ? [...computedServiceLines].sort((a, b) => a.day - b.day) : computedServiceLines).map((line, li, arr) => (
+                          {(bookingCategory === 'seminar' ? [] : isMultiDay ? [...computedServiceLines].sort((a, b) => a.day - b.day) : computedServiceLines).map((line, li, arr) => (
                             <React.Fragment key={line.key}>
-                            {bookingCategory === 'seminar' && (li === 0 || arr[li - 1].day !== line.day) && (
+                            {isMultiDay && (li === 0 || arr[li - 1].day !== line.day) && (
                               <tr style={{ breakInside: 'avoid' }}>
                                 <td colSpan={4} className="py-1.5 px-3 bg-espresso-950 text-gold-300 text-[11px] font-extrabold uppercase tracking-widest">
-                                  Services &mdash; Day {line.day} &middot; {formatPrettyDate(getSeminarDateForDay(line.day))}
+                                  {fullDateLabel(serviceDateForDay(line.day))}{serviceTotalDays > 1 ? ` · Day ${line.day}` : ''} &mdash; Add-Ons &amp; Services
                                 </td>
                               </tr>
                             )}
                             <tr style={{ breakInside: 'avoid' }} className="border-b border-cream-100">
-                              <td className={bookingCategory === 'seminar' ? 'py-1.5 pl-6 pr-3' : 'py-2 px-3'}>
+                              <td className={isMultiDay ? 'py-1.5 pl-6 pr-3' : 'py-2 px-3'}>
                                 <div className="font-bold text-espresso-950">
                                   {line.name}
                                 </div>
                                 <div className="text-[10px] text-espresso-800/75">
                                   {line.subcategory} • {billingBadgeLabel(line.billingType)}
                                   {bookingCategory === 'rental' && line.billingType === 'per_day' ? ` × ${rentalDurationDays} rental day(s)` : ''}
-                                  {bookingCategory === 'seminar' && line.activeDays > 1 && line.billingType !== 'fixed' ? ` × ${line.activeDays} days` : ''}
+                                  {isMultiDay && line.activeDays > 1 && line.billingType !== 'fixed' ? ` × ${line.activeDays} days` : ''}
                                 </div>
                               </td>
                               <td className="py-2 px-3 text-right font-mono">
@@ -5158,7 +5220,7 @@
                                   ? `${line.dayPax} × ${line.qty}${line.activeDays > 1 ? ` × ${line.activeDays}d` : ''}`
                                   : bookingCategory === 'rental' && line.billingType === 'per_day'
                                   ? `${line.qty} × ${rentalDurationDays}d`
-                                  : bookingCategory === 'seminar' && line.activeDays > 1 && line.billingType !== 'fixed'
+                                  : isMultiDay && line.activeDays > 1 && line.billingType !== 'fixed'
                                   ? `${line.qty} × ${line.activeDays}d`
                                   : line.qty}
                               </td>
@@ -5168,21 +5230,31 @@
                             </React.Fragment>
                           ))}
 
-                          {selectedRoomsList.map(room => (
-                            <tr key={room.id}>
-                              <td className="py-2 px-3">
-                                <div className="font-bold text-espresso-950">{room.roomNo} — {room.type}</div>
-                                <div className="text-[10px] text-espresso-800">
-                                  Booked Dates: <strong>{formatPrettyDate(room.checkIn)}</strong> to <strong>{formatPrettyDate(room.checkOut)}</strong> ({room.capacity})
-                                </div>
-                                {room.inclusions && (
-                                  <div className="text-[10px] text-espresso-800/75">Inclusions: {room.inclusions}</div>
-                                )}
-                              </td>
-                              <td className="py-2 px-3 text-right font-mono align-top">{room.nights} nt(s)</td>
-                              <td className="py-2 px-3 text-right font-mono align-top">{formatCurrency(room.rate)}</td>
-                              <td className="py-2 px-3 text-right font-mono font-bold align-top">{formatCurrency(room.total)}</td>
-                            </tr>
+                          {selectedRoomsList.map((room, ri, arr) => (
+                            <React.Fragment key={room.id}>
+                              {(ri === 0 || arr[ri - 1].checkIn !== room.checkIn) && (
+                                <tr style={{ breakInside: 'avoid' }}>
+                                  <td colSpan={4} className="py-1.5 px-3 bg-espresso-950 text-gold-300 text-[11px] font-extrabold uppercase tracking-widest">
+                                    Hotel Check-In &middot; {fullDateLabel(room.checkIn)}
+                                  </td>
+                                </tr>
+                              )}
+                              <tr style={{ breakInside: 'avoid' }} className="border-b border-cream-100">
+                                <td className="py-2 pl-6 pr-3">
+                                  <div className="font-bold text-espresso-950">{room.roomNo} — {room.type}</div>
+                                  <div className="text-[10px] text-espresso-800">
+                                    Check-in: <strong>{weekdayShort(room.checkIn)}, {formatPrettyDate(room.checkIn)}</strong> &middot; Check-out: <strong>{weekdayShort(room.checkOut)}, {formatPrettyDate(room.checkOut)}</strong> ({room.capacity})
+                                  </div>
+                                  {room.notes && <div className="text-[10px] text-amber-900 font-semibold">Guest / Remarks: {room.notes}</div>}
+                                  {room.inclusions && (
+                                    <div className="text-[10px] text-espresso-800/75">Inclusions: {room.inclusions}</div>
+                                  )}
+                                </td>
+                                <td className="py-2 px-3 text-right font-mono align-top">{room.nights} nt(s)</td>
+                                <td className="py-2 px-3 text-right font-mono align-top">{formatCurrency(room.rate)}</td>
+                                <td className="py-2 px-3 text-right font-mono font-bold align-top">{formatCurrency(room.total)}</td>
+                              </tr>
+                            </React.Fragment>
                           ))}
                         </tbody>
                       </table>
@@ -5825,7 +5897,7 @@
                                   <div key={r.id} className="bg-cream-50 px-2.5 py-1.5 rounded-lg border border-cream-200 flex justify-between items-center">
                                     <div>
                                       <div className="font-bold">☐ {r.roomNo} — {r.type}</div>
-                                      <div className="text-[10px] text-espresso-800">{formatPrettyDate(r.checkIn)} → {formatPrettyDate(r.checkOut)}</div>
+                                      <div className="text-[10px] text-espresso-800">{weekdayShort(r.checkIn)}, {formatPrettyDate(r.checkIn)} → {weekdayShort(r.checkOut)}, {formatPrettyDate(r.checkOut)}</div>{r.notes && <div className="text-[10px] text-amber-900 font-semibold">{r.notes}</div>}
                                     </div>
                                     <span className="font-mono font-bold">{r.nights} nt(s)</span>
                                   </div>
