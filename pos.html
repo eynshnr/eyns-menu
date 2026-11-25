@@ -158,7 +158,7 @@
   <main class="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-5 no-print">
 
     <!-- ===================================================================== -->
-    <!-- MODULE 1: RESTAURANT POS (TAKEOUTS VS SALES + CLIENT A/R & STAFF CHG) -->
+    <!-- MODULE 1: RESTAURANT POS (PARK TABS, 2-TIER SALES, BILL OUT)          -->
     <!-- ===================================================================== -->
     <section id="view-pos" class="module-view grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
       <!-- Left Pane: Menu Categories & Item Grid -->
@@ -196,12 +196,36 @@
             <div class="flex items-center gap-2">
               <span class="text-xs uppercase tracking-wider text-emerald-300 font-semibold">Order Slip</span>
               <span id="active-os-number" class="font-mono text-sm font-bold text-amber-400">#OS-1001</span>
+              <span id="active-tab-badge" class="hidden text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-500 text-emerald-950"></span>
             </div>
             <p class="text-[11px] text-emerald-200/80" id="order-timestamp-preview">Ready for order</p>
           </div>
-          <button onclick="clearCurrentOrder()" class="text-xs px-2.5 py-1.5 rounded-lg bg-emerald-900 hover:bg-rose-800 text-emerald-100 hover:text-white transition flex items-center gap-1">
-            <i class="fa-solid fa-trash-can text-[11px]"></i> Clear
-          </button>
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="openParkedTabsModal()" class="text-xs px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-emerald-950 font-bold transition flex items-center gap-1.5 shadow-xs" title="View Open / Parked Tables & Tabs">
+              <i class="fa-solid fa-layer-group text-[11px]"></i>
+              <span>Open Tabs</span>
+              <span id="parked-tabs-count-pill" class="px-1.5 py-0.2 rounded-full bg-emerald-950 text-amber-300 font-mono text-[10px]">0</span>
+            </button>
+            <button onclick="clearCurrentOrder()" class="text-xs px-2.5 py-1.5 rounded-lg bg-emerald-900 hover:bg-rose-800 text-emerald-100 hover:text-white transition flex items-center gap-1">
+              <i class="fa-solid fa-trash-can text-[11px]"></i> Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- Parked Tab Consolidated Banner -->
+        <div id="loaded-tab-banner" class="hidden bg-amber-100 border-b border-amber-300 px-3.5 py-2 flex items-center justify-between gap-2 text-xs text-amber-950">
+          <div>
+            <span class="font-extrabold" id="loaded-tab-title">Tab #TAB-001 (Table #1)</span>
+            <span class="block text-[10px] text-amber-800" id="loaded-tab-slips">Consolidated slips: OS-1001</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="previewActiveTabRunningBill()" class="px-2 py-1 rounded-lg bg-white hover:bg-stone-100 border border-amber-400 text-amber-950 font-bold text-[10px]">
+              <i class="fa-solid fa-receipt mr-1"></i>Pre-Bill
+            </button>
+            <button type="button" onclick="detachLoadedTab()" class="px-2 py-1 rounded-lg bg-amber-200/80 hover:bg-amber-300 text-amber-950 font-bold text-[10px]">
+              New Slip
+            </button>
+          </div>
         </div>
 
         <!-- Order Channel & 2-Tier Sales Classification -->
@@ -277,9 +301,9 @@
             </div>
           </div>
 
-          <!-- Settlement / Charge Method -->
+          <!-- Final Bill Out / Charge Method (No Card Option; Room Charge Included) -->
           <div id="payment-section" class="flex flex-col gap-2 pt-1">
-            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Settlement / Charge Method</label>
+            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Final Bill Out / Charge Method</label>
             <div class="grid grid-cols-5 gap-1">
               <button type="button" onclick="setPaymentMethod('Cash')" id="pm-Cash" class="pm-btn py-2 px-1 rounded-xl border text-[11px] font-bold transition bg-emerald-900 text-white border-emerald-900">
                 Cash
@@ -287,8 +311,8 @@
               <button type="button" onclick="setPaymentMethod('GCash')" id="pm-GCash" class="pm-btn py-2 px-1 rounded-xl border text-[11px] font-bold transition bg-white text-slate-700 border-stone-300 hover:bg-stone-100">
                 GCash
               </button>
-              <button type="button" onclick="setPaymentMethod('Card')" id="pm-Card" class="pm-btn py-2 px-1 rounded-xl border text-[11px] font-bold transition bg-white text-slate-700 border-stone-300 hover:bg-stone-100">
-                Card
+              <button type="button" onclick="setPaymentMethod('Room Charge')" id="pm-Room Charge" class="pm-btn py-2 px-1 rounded-xl border text-[11px] font-bold transition bg-white text-slate-700 border-stone-300 hover:bg-stone-100">
+                Chg Room
               </button>
               <button type="button" onclick="setPaymentMethod('Charge / A/R')" id="pm-Charge / A/R" class="pm-btn py-2 px-1 rounded-xl border text-[11px] font-bold transition bg-white text-slate-700 border-stone-300 hover:bg-stone-100">
                 Client A/R
@@ -310,7 +334,14 @@
             </div>
 
             <div id="ref-number-box" class="hidden">
-              <input type="text" id="payment-ref-input" placeholder="GCash / Bank Transfer Reference # (Optional)" class="w-full text-xs px-3 py-2 rounded-xl border border-stone-300 bg-white font-mono focus:outline-none focus:border-emerald-700" />
+              <input type="text" id="payment-ref-input" placeholder="GCash Reference # (Optional)" class="w-full text-xs px-3 py-2 rounded-xl border border-stone-300 bg-white font-mono focus:outline-none focus:border-emerald-700" />
+            </div>
+
+            <!-- Room Charge Selector (Decided at Bill Out) -->
+            <div id="billout-room-box" class="hidden space-y-1.5 bg-amber-50/80 p-2.5 rounded-xl border border-amber-300">
+              <label class="block text-[10px] font-bold uppercase text-amber-900">Charge Consolidated Bill to Occupied Room *</label>
+              <select id="billout-room-select" onchange="currentOrder.roomNumber = this.value" class="w-full text-xs px-2.5 py-2 rounded-lg border border-amber-400 bg-white font-bold text-slate-900 focus:outline-none"></select>
+              <p class="text-[10px] text-amber-800">Posts directly to the guest's Room Folio and settles at Hotel Check-Out.</p>
             </div>
 
             <!-- Client Account Dropdown for A/R -->
@@ -330,22 +361,27 @@
 
           <div id="room-charge-notice" class="hidden bg-amber-50 border border-amber-300 rounded-xl p-2.5 text-xs text-amber-900">
             <i class="fa-solid fa-circle-info mr-1 text-amber-600"></i>
-            This order will be posted directly to the selected guest's <strong>Room Folio</strong> and recognized as Sales upon Hotel Check-Out.
+            Park this room guest's tab while ordering, or click <strong>Post to Room Folio</strong> when ready to bill out to their room.
           </div>
 
-          <button onclick="finalizeOrderSlip()" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-900 to-emerald-800 hover:from-emerald-800 hover:to-emerald-700 text-white font-bold text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 mt-1">
-            <i class="fa-solid fa-print"></i>
-            <span id="finalize-btn-text">Finalize & Print Order Slip</span>
-          </button>
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 mt-1">
+            <button type="button" id="park-order-btn" onclick="parkCurrentOrderToTab()" class="sm:col-span-5 py-3 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-emerald-950 font-extrabold text-xs shadow-sm transition flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-pause-circle"></i>
+              <span id="park-btn-text">Park / Add to Tab</span>
+            </button>
+            <button type="button" onclick="finalizeOrderSlip()" class="sm:col-span-7 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-900 to-emerald-800 hover:from-emerald-800 hover:to-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-file-invoice-dollar"></i>
+              <span id="finalize-btn-text">Bill Out & Settle</span>
+            </button>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- ===================================================================== -->
-    <!-- MODULE 2: HOTEL ROOM RACK & COLLECTIONS (DOWNPAYMENTS & RESERVATIONS) -->
+    <!-- MODULE 2: HOTEL ROOM RACK & COLLECTIONS (DOWNPAYMENTS / RESERVATIONS) -->
     <!-- ===================================================================== -->
     <section id="view-hotel" class="module-view hidden flex-col gap-5">
-      <!-- KPI Strip -->
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs">
           <span class="text-xs font-semibold text-slate-500">Total Rooms</span>
@@ -369,10 +405,10 @@
           </div>
         </div>
         <div class="bg-white p-4 rounded-2xl border border-sky-200 shadow-xs">
-          <span class="text-xs font-semibold text-sky-700">Active Collections (Deposits)</span>
+          <span class="text-xs font-semibold text-sky-700">Held Collections (Deposits)</span>
           <div class="flex items-end justify-between mt-1">
             <span id="kpi-active-collections" class="text-xl font-extrabold text-sky-700 font-mono">₱0.00</span>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-semibold">Held</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-semibold">Unbilled</span>
           </div>
         </div>
         <div class="col-span-2 sm:col-span-1 bg-emerald-950 text-white p-4 rounded-2xl shadow-sm">
@@ -383,11 +419,10 @@
         </div>
       </div>
 
-      <!-- Room Rack Header -->
       <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-base font-bold text-slate-900">Front-Desk Room Rack</h2>
-          <p class="text-xs text-slate-500">Synced with <code class="font-mono text-emerald-800">Rooms_Master</code>. Tap a room to Check-In, view Folio & Check-Out, or mark clean.</p>
+          <p class="text-xs text-slate-500">Tap Available/Reserved to Check-In, Occupied to view Folio & Issue Service Invoice on Check-Out, or Dirty to mark clean.</p>
         </div>
         <div class="flex flex-wrap items-center gap-3 text-xs font-semibold">
           <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Available</span>
@@ -397,92 +432,85 @@
         </div>
       </div>
 
-      <!-- Room Cards Grid -->
       <div id="room-rack-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"></div>
 
-      <!-- COLLECTIONS MODULE (Downpayments & Reservations before full payment/SI) -->
+      <!-- COLLECTIONS SECTION: Downpayments & Reservations -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start pt-2">
-        <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-sky-200 shadow-sm">
+        <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-sky-200 shadow-xs">
           <div class="flex items-center gap-2.5 mb-4 pb-3 border-b border-stone-100">
             <div class="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
               <i class="fa-solid fa-hand-holding-dollar"></i>
             </div>
             <div>
               <h3 class="text-base font-bold text-slate-900">Record Collection (Downpayment / Reservation)</h3>
-              <p class="text-xs text-slate-500">Held in Cash Box; Sales recognize only upon full payment & SI</p>
+              <p class="text-xs text-slate-500">Held in Cash Box until full payment & Service Invoice is issued</p>
             </div>
           </div>
-
-          <form id="collection-form" onsubmit="submitCollectionEntry(event)" class="flex flex-col gap-3">
+          <form id="collection-form" onsubmit="submitCollectionEntry(event)" class="space-y-3 text-xs">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Client / Guest Name *</label>
-                <input type="text" id="col-client-name" required placeholder="e.g., Weddings by Ana / Mr. Cruz" class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:border-sky-600 focus:outline-none" />
+                <label class="block font-bold text-slate-700 mb-1">Client / Guest Name *</label>
+                <input type="text" id="col-client-name" required placeholder="e.g., Santos Wedding / Room 201" class="w-full px-3 py-2 rounded-xl border border-stone-300 focus:border-emerald-700 focus:outline-none" />
               </div>
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Reservation Type *</label>
-                <select id="col-type" class="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-stone-300 bg-stone-50 focus:outline-none">
-                  <option value="Event / Catering Downpayment">Event / Catering Downpayment</option>
+                <label class="block font-bold text-slate-700 mb-1">Reservation / Event Type *</label>
+                <select id="col-type" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-stone-50 focus:outline-none">
                   <option value="Hotel Room Reservation">Hotel Room Reservation</option>
-                  <option value="Group Dining Advance">Group Dining Advance</option>
+                  <option value="Event / Catering Downpayment">Event / Catering Downpayment</option>
+                  <option value="Function Hall Booking">Function Hall Booking</option>
                 </select>
               </div>
             </div>
-
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Amount Collected (₱) *</label>
-                <input type="number" step="0.01" min="1" id="col-amount" required placeholder="0.00" class="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-stone-300 focus:border-sky-600 focus:outline-none" />
+                <label class="block font-bold text-slate-700 mb-1">Downpayment Collected (₱) *</label>
+                <input type="number" step="0.01" min="1" id="col-amount" required placeholder="0.00" class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono font-bold focus:outline-none" />
               </div>
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Total Contract Price (₱)</label>
-                <input type="number" step="0.01" min="0" id="col-contract-total" placeholder="Optional" class="w-full px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 focus:border-sky-600 focus:outline-none" />
+                <label class="block font-bold text-slate-700 mb-1">Total Contract / Bill (₱)</label>
+                <input type="number" step="0.01" min="0" id="col-contract-total" placeholder="0.00" class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono focus:outline-none" />
               </div>
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Payment Mode *</label>
-                <select id="col-method" class="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-stone-300 bg-stone-50 focus:outline-none">
-                  <option value="Cash">Cash (Enters Cash Box)</option>
+                <label class="block font-bold text-slate-700 mb-1">Payment Method *</label>
+                <select id="col-method" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-stone-50 focus:outline-none">
+                  <option value="Cash">Cash</option>
                   <option value="GCash">GCash</option>
-                  <option value="Card">Card / Bank Transfer</option>
                 </select>
               </div>
             </div>
-
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Event / Check-In Target Date</label>
-                <input type="date" id="col-target-date" class="w-full px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 focus:outline-none" />
+                <label class="block font-bold text-slate-700 mb-1">Event / Check-In Date</label>
+                <input type="date" id="col-target-date" class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono focus:outline-none" />
               </div>
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Notes / Ref #</label>
-                <input type="text" id="col-notes" placeholder="e.g., Ack Receipt #012" class="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 focus:outline-none" />
+                <label class="block font-bold text-slate-700 mb-1">Notes / Ref #</label>
+                <input type="text" id="col-notes" placeholder="e.g., 50% DP for 80 pax catering" class="w-full px-3 py-2 rounded-xl border border-stone-300 focus:outline-none" />
               </div>
             </div>
-
-            <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-sky-700 hover:bg-sky-800 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-2 mt-1">
-              <i class="fa-solid fa-plus-circle"></i>
-              <span>Record Downpayment / Reservation Collection</span>
+            <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-sky-700 hover:bg-sky-800 text-white font-bold text-xs shadow-sm transition">
+              + Record Downpayment Collection
             </button>
           </form>
         </div>
 
-        <div class="lg:col-span-7 bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-          <div class="p-4 border-b border-stone-200 flex items-center justify-between bg-stone-50">
+        <div class="lg:col-span-7 bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
+          <div class="p-4 bg-stone-50 border-b border-stone-200 flex items-center justify-between">
             <div>
-              <h3 class="text-base font-bold text-slate-900">Collections Ledger (Held Deposits & Reservations)</h3>
-              <p class="text-xs text-slate-500">Click <strong>Issue SI & Recognize Sale</strong> once full payment is received</p>
+              <h3 class="text-sm font-bold text-slate-900">Active Collections Ledger (Unbilled Deposits)</h3>
+              <p class="text-[11px] text-slate-500">Click "Issue SI & Recognize Sale" once full balance is paid</p>
             </div>
-            <span id="collections-count-badge" class="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-100 text-sky-800">0 Open</span>
+            <span id="collections-count-badge" class="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-100 text-sky-900">0 Held</span>
           </div>
-          <div class="overflow-x-auto">
+          <div class="overflow-x-auto max-h-72">
             <table class="w-full text-left border-collapse text-xs">
               <thead>
                 <tr class="bg-stone-100 text-[10px] uppercase text-slate-600 border-b border-stone-200">
                   <th class="py-2.5 px-3">Col # / Date</th>
                   <th class="py-2.5 px-3">Client & Event/Room</th>
-                  <th class="py-2.5 px-3">Mode</th>
+                  <th class="py-2.5 px-3">Method</th>
                   <th class="py-2.5 px-3 text-right">Collected / Total</th>
-                  <th class="py-2.5 px-3 text-center">Status / Action</th>
+                  <th class="py-2.5 px-3 text-center">Action</th>
                 </tr>
               </thead>
               <tbody id="collections-table-body" class="divide-y divide-stone-100"></tbody>
@@ -496,7 +524,6 @@
     <!-- MODULE 3: CASH BOX, PURCHASES, CASH OUT TO MGMT & EMPLOYEE ADVANCES   -->
     <!-- ===================================================================== -->
     <section id="view-cashout" class="module-view hidden grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-      <!-- Left: Multi-Mode Drawer & Expense Entry Form -->
       <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-4">
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-stone-200/70 p-1 rounded-xl">
           <button type="button" onclick="setDrawerFormMode('purchase')" id="dmode-purchase" class="dmode-btn py-2 px-2 rounded-lg text-[11px] font-bold transition bg-white text-emerald-950 shadow-xs">
@@ -805,7 +832,7 @@
                 <span id="sum-tender-cash" class="font-mono font-bold text-slate-900">₱0.00</span>
               </div>
               <div class="flex justify-between py-1 border-b border-stone-100">
-                <span class="text-slate-700">GCash / Card / Bank Sales</span>
+                <span class="text-slate-700">GCash / Digital Sales</span>
                 <span id="sum-tender-digital" class="font-mono font-bold text-slate-900">₱0.00</span>
               </div>
               <div class="flex justify-between py-1 border-b border-stone-100 text-amber-800">
@@ -1015,7 +1042,6 @@
             <select id="ci-deposit-method" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white focus:border-emerald-700 focus:outline-none">
               <option value="Cash">Cash</option>
               <option value="GCash">GCash</option>
-              <option value="Card">Card / Bank</option>
             </select>
           </div>
         </div>
@@ -1110,7 +1136,6 @@
             <select id="folio-payment-method" onchange="toggleFolioArInput()" class="w-full px-3 py-2.5 rounded-xl border border-stone-300 bg-white font-semibold focus:border-emerald-700 focus:outline-none">
               <option value="Cash">Cash</option>
               <option value="GCash">GCash</option>
-              <option value="Card">Card / Bank Transfer</option>
               <option value="Charge / A/R">Charge / Client Account A/R</option>
             </select>
           </div>
@@ -1136,6 +1161,39 @@
             <i class="fa-solid fa-check-double"></i> Issue SI & Check-Out
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. OPEN / PARKED TABS & BILL OUT CONSOLIDATION MODAL -->
+  <div id="parked-tabs-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[65] hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden border border-stone-200 flex flex-col max-h-[90vh]">
+      <div class="bg-emerald-950 text-white px-5 py-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-layer-group text-amber-400 text-lg"></i>
+          <div>
+            <h3 class="text-base font-extrabold">Open / Parked Tabs — Consolidated Bill Out</h3>
+            <p class="text-[11px] text-emerald-300">Park ongoing table or take-out orders, add more rounds, print Running Pre-Bills, or load to Bill Out</p>
+          </div>
+        </div>
+        <button onclick="closeModal('parked-tabs-modal')" class="w-8 h-8 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4 text-xs flex-1">
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-stone-50 p-3 rounded-xl border border-stone-200">
+          <span class="font-semibold text-slate-700">Active Parked Tabs (<span id="modal-parked-count" class="font-mono font-bold">0</span>)</span>
+          <span id="modal-parked-grand-total" class="font-mono font-extrabold text-emerald-900 text-sm">Total Open Tabs: ₱0.00</span>
+        </div>
+
+        <div id="parked-tabs-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </div>
+
+      <div class="p-4 bg-stone-50 border-t border-stone-200 flex justify-end shrink-0">
+        <button type="button" onclick="closeModal('parked-tabs-modal')" class="px-4 py-2 rounded-xl bg-stone-200 hover:bg-stone-300 text-slate-700 font-bold text-xs">
+          Close
+        </button>
       </div>
     </div>
   </div>
@@ -1168,7 +1226,7 @@
     </div>
   </div>
 
-  <!-- 4. GOOGLE SHEETS SYNC CONFIGURATION MODAL -->
+  <!-- 4. GOOGLE SHEETS BRIDGE STATUS MODAL -->
   <div id="sheets-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4 no-print">
     <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-stone-200">
       <div class="bg-emerald-950 text-white px-5 py-4 flex items-center justify-between">
@@ -1176,7 +1234,7 @@
           <i class="fa-solid fa-table text-amber-400 text-lg"></i>
           <div>
             <h3 class="text-base font-extrabold">Google Sheets & Apps Script Bridge</h3>
-            <p class="text-[11px] text-emerald-300">Connected to Daily Cash Sales Catalog</p>
+            <p class="text-[11px] text-emerald-300">Hardcoded endpoint connected to Daily Cash Sales Catalog</p>
           </div>
         </div>
         <button onclick="closeModal('sheets-modal')" class="w-8 h-8 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white flex items-center justify-center">
@@ -1186,13 +1244,13 @@
 
       <div class="p-5 space-y-4 text-xs">
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Active Google Apps Script Web App URL</label>
-          <input type="url" id="sheets-webhook-url" readonly class="w-full px-3 py-2.5 rounded-xl border border-stone-300 bg-stone-100 font-mono text-xs text-slate-700 focus:outline-none" />
-          <p class="text-[11px] text-slate-500 mt-1">Hardcoded to your production Apps Script deployment. Automatically pulls <code class="font-mono">Menu_Master</code>, <code class="font-mono">Rooms_Master</code>, <code class="font-mono">POS_Transactions</code>, <code class="font-mono">Cash_Out_Log</code>, <code class="font-mono">AR_Ledger</code>, and <code class="font-mono">Daily_Sales_Summary</code>.</p>
+          <label class="block font-bold text-slate-700 mb-1">Hardcoded Google Apps Script Web App URL</label>
+          <input type="url" id="sheets-webhook-url" readonly class="w-full px-3 py-2.5 rounded-xl border border-stone-300 bg-stone-100 text-slate-700 font-mono text-[11px] focus:outline-none" />
+          <p class="text-[11px] text-slate-500 mt-1">Two-way synced with <code class="font-mono">Menu_Master</code>, <code class="font-mono">Rooms_Master</code>, <code class="font-mono">POS_Transactions</code>, <code class="font-mono">Cash_Out_Log</code>, <code class="font-mono">AR_Ledger</code>, <code class="font-mono">Client_Accounts</code>, <code class="font-mono">Parked_Tabs</code>, <code class="font-mono">Collections_Log</code>, <code class="font-mono">Staff_Deductions</code>, <code class="font-mono">Cash_Box_Inflows</code>, <code class="font-mono">Mgmt_Cash_Out</code>, and <code class="font-mono">Daily_Sales_Summary</code>.</p>
         </div>
 
         <div>
-          <span class="block font-bold text-slate-700 mb-1">Latest Synced Payload Preview:</span>
+          <span class="block font-bold text-slate-700 mb-1">Live JSON Payload Preview (Latest Transaction):</span>
           <pre id="sheets-json-preview" class="bg-slate-900 text-emerald-300 p-3 rounded-xl font-mono text-[11px] overflow-x-auto max-h-44"></pre>
         </div>
 
@@ -1200,21 +1258,24 @@
           <button type="button" onclick="testSheetsSync()" class="px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold transition">
             <i class="fa-solid fa-paper-plane mr-1"></i> Test Webhook Ping
           </button>
-          <button type="button" onclick="closeModal('sheets-modal')" class="px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold">Done</button>
+          <div class="flex gap-2">
+            <button type="button" onclick="closeModal('sheets-modal')" class="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-slate-700 font-bold">Close</button>
+            <button type="button" onclick="closeModal('sheets-modal'); syncFromGoogleSheets(true);" class="px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold">Pull Latest Sheet Data</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 5. CLIENT ACCOUNTS DIRECTORY & CONSOLIDATED SOA MODAL -->
+  <!-- 5. CLIENT ACCOUNTS & CONSOLIDATED A/R MODAL -->
   <div id="client-accounts-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[60] hidden items-center justify-center p-4 no-print">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden border border-stone-200 flex flex-col max-h-[90vh]">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden border border-stone-200 flex flex-col max-h-[92vh]">
       <div class="bg-emerald-950 text-white px-5 py-4 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-2.5">
           <i class="fa-solid fa-building-user text-amber-400 text-lg"></i>
           <div>
             <h3 class="text-base font-extrabold">Client Accounts & Consolidated A/R Ledger</h3>
-            <p class="text-[11px] text-emerald-300">Create Client Accounts, consolidate unpaid POS & Hotel charges, and print Statements of Account</p>
+            <p class="text-[11px] text-emerald-300">Manage corporate/VIP accounts, consolidate multiple charges, print SOA & settle balances</p>
           </div>
         </div>
         <button onclick="closeModal('client-accounts-modal')" class="w-8 h-8 rounded-lg bg-emerald-900 hover:bg-emerald-800 text-white flex items-center justify-center">
@@ -1222,14 +1283,14 @@
         </button>
       </div>
 
-      <div class="p-5 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-5 text-xs flex-1">
-        <!-- Left: Create New Client Account -->
-        <div class="lg:col-span-4 bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-3 h-fit">
-          <h4 class="font-bold text-slate-900 text-sm border-b border-stone-200 pb-2">Add New Client Account</h4>
-          <form id="new-client-form" onsubmit="submitNewClientAccount(event)" class="space-y-2.5">
-            <div>
+      <div class="p-5 overflow-y-auto space-y-5 text-xs flex-1">
+        <!-- Add New Client Account Form -->
+        <form id="new-client-form" onsubmit="submitNewClientAccount(event)" class="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-3">
+          <h4 class="font-bold text-slate-900 uppercase tracking-wider text-[11px]">Create New Client Account</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+            <div class="sm:col-span-2">
               <label class="block font-bold text-slate-700 mb-1">Client / Company / Office Name *</label>
-              <input type="text" id="ca-new-name" required placeholder="e.g., LGU Catanauan / DepEd District" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white focus:border-emerald-700 focus:outline-none" />
+              <input type="text" id="ca-new-name" required placeholder="e.g., LGU Catanauan / DepEd / ABC Corp" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white focus:border-emerald-700 focus:outline-none" />
             </div>
             <div>
               <label class="block font-bold text-slate-700 mb-1">Account Type</label>
@@ -1237,84 +1298,151 @@
                 <option value="Corporate / Business">Corporate / Business</option>
                 <option value="Government / LGU / DepEd">Government / LGU / DepEd</option>
                 <option value="VIP / Regular Guest">VIP / Regular Guest</option>
-                <option value="Event / Catering Organizer">Event / Catering Organizer</option>
+                <option value="Event / Catering Client">Event / Catering Client</option>
               </select>
             </div>
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="block font-bold text-slate-700 mb-1">Contact Person</label>
-                <input type="text" id="ca-new-contact-person" placeholder="Name" class="w-full px-2.5 py-2 rounded-xl border border-stone-300 bg-white focus:outline-none" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 mb-1">Mobile / Phone</label>
-                <input type="text" id="ca-new-phone" placeholder="09XX-XXX-XXXX" class="w-full px-2.5 py-2 font-mono rounded-xl border border-stone-300 bg-white focus:outline-none" />
-              </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Payment Terms</label>
+              <input type="text" id="ca-new-terms" placeholder="e.g., 15 Days / Monthly" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white focus:outline-none" />
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-end">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Contact Person</label>
+              <input type="text" id="ca-new-contact-person" placeholder="Authorized Representative" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white focus:outline-none" />
             </div>
             <div>
-              <label class="block font-bold text-slate-700 mb-1">Credit Terms / Billing Notes</label>
-              <input type="text" id="ca-new-terms" placeholder="e.g., 15 Days / Monthly Billing / TIN" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white focus:outline-none" />
+              <label class="block font-bold text-slate-700 mb-1">Mobile / Phone #</label>
+              <input type="text" id="ca-new-phone" placeholder="09XX-XXX-XXXX" class="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white font-mono focus:outline-none" />
             </div>
-            <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold shadow-sm transition">
+            <button type="submit" class="py-2.5 px-4 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold shadow-xs transition">
               + Save Client Account
             </button>
-          </form>
+          </div>
+        </form>
+
+        <!-- Client Directory & Consolidated Balances -->
+        <div class="border border-stone-200 rounded-2xl overflow-hidden">
+          <div class="bg-stone-100 px-4 py-2.5 border-b border-stone-200 flex items-center justify-between">
+            <span class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">Registered Client Accounts & Consolidated Balances</span>
+            <span id="ca-modal-total-open" class="font-mono font-extrabold text-amber-800">Total Open A/R: ₱0.00</span>
+          </div>
+          <div class="overflow-x-auto max-h-60">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-stone-50 text-[10px] uppercase text-slate-500 border-b border-stone-200">
+                  <th class="py-2 px-3">Account Name</th>
+                  <th class="py-2 px-3">Contact & Terms</th>
+                  <th class="py-2 px-3 text-right">Consolidated Unpaid</th>
+                  <th class="py-2 px-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="ca-directory-tbody" class="divide-y divide-stone-100"></tbody>
+            </table>
+          </div>
         </div>
 
-        <!-- Right: Client Accounts List & Consolidated Statement Drilldown -->
-        <div class="lg:col-span-8 flex flex-col gap-4">
-          <div class="border border-stone-200 rounded-2xl overflow-hidden">
-            <div class="bg-stone-100 px-3.5 py-2.5 border-b border-stone-200 flex items-center justify-between">
-              <span class="font-bold text-slate-800">Registered Client Accounts (Consolidated Balances)</span>
-              <span id="ca-modal-total-open" class="font-mono font-extrabold text-amber-800">Total Open A/R: ₱0.00</span>
+        <!-- Selected Client Consolidated Statement Drilldown -->
+        <div id="ca-statement-box" class="border border-amber-200 bg-amber-50/30 rounded-2xl p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span class="text-[10px] font-bold uppercase text-amber-800">Consolidated Account Statement</span>
+              <h4 id="ca-stmt-title" class="text-sm font-extrabold text-slate-900">Select a Client Account above to view itemized transactions</h4>
             </div>
-            <div class="overflow-x-auto max-h-52">
-              <table class="w-full text-left border-collapse">
-                <thead>
-                  <tr class="bg-stone-50 text-[10px] uppercase text-slate-500 border-b border-stone-200">
-                    <th class="py-2 px-3">Account Name</th>
-                    <th class="py-2 px-3">Contact / Terms</th>
-                    <th class="py-2 px-3 text-right">Unpaid Balance</th>
-                    <th class="py-2 px-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="ca-directory-tbody" class="divide-y divide-stone-100"></tbody>
-              </table>
+            <div id="ca-stmt-actions" class="hidden flex items-center gap-2">
+              <button type="button" onclick="printConsolidatedClientSOA()" class="px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-slate-800 font-bold text-xs">
+                <i class="fa-solid fa-print mr-1"></i> Print Statement (SOA)
+              </button>
+              <button type="button" onclick="settleAllClientAr()" class="px-3.5 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs">
+                <i class="fa-solid fa-check-double mr-1"></i> Settle Consolidated A/R
+              </button>
             </div>
           </div>
+          <div class="overflow-x-auto bg-white rounded-xl border border-stone-200">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-stone-100 text-[10px] uppercase text-slate-600 border-b border-stone-200">
+                  <th class="py-2 px-2.5">Doc #</th>
+                  <th class="py-2 px-2.5">Date</th>
+                  <th class="py-2 px-2.5">Items / Details</th>
+                  <th class="py-2 px-2.5 text-right">Amount</th>
+                  <th class="py-2 px-2.5 text-center">Status / Settle</th>
+                </tr>
+              </thead>
+              <tbody id="ca-stmt-tbody" class="divide-y divide-stone-100">
+                <tr><td colspan="5" class="py-4 text-center text-slate-400">No client selected.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-          <!-- Consolidated Client Statement Drilldown Box -->
-          <div id="ca-statement-box" class="bg-amber-50/50 border border-amber-200 rounded-2xl p-4 space-y-3">
-            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/80 pb-2.5">
-              <div>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-800">Consolidated Account Statement</span>
-                <h4 id="ca-stmt-title" class="text-sm font-extrabold text-slate-900">Select a Client Account above to inspect all charges</h4>
-              </div>
-              <div id="ca-stmt-actions" class="hidden flex items-center gap-2">
-                <button type="button" onclick="printConsolidatedClientSOA()" class="px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-slate-800 font-bold text-[11px] flex items-center gap-1.5">
-                  <i class="fa-solid fa-print"></i> Print Statement (SOA)
-                </button>
-                <button type="button" onclick="settleAllClientAr()" class="px-3 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center gap-1.5">
-                  <i class="fa-solid fa-peso-sign"></i> Settle Consolidated A/R
-                </button>
-              </div>
-            </div>
-            <div class="overflow-x-auto max-h-48 bg-white rounded-xl border border-stone-200">
-              <table class="w-full text-left border-collapse text-[11px]">
-                <thead>
-                  <tr class="bg-stone-100 text-[10px] uppercase text-slate-600 border-b border-stone-200">
-                    <th class="py-2 px-2.5">Doc #</th>
-                    <th class="py-2 px-2.5">Date</th>
-                    <th class="py-2 px-2.5">Particulars / Items</th>
-                    <th class="py-2 px-2.5 text-right">Amount</th>
-                    <th class="py-2 px-2.5 text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody id="ca-stmt-tbody" class="divide-y divide-stone-100">
-                  <tr><td colspan="5" class="py-5 text-center text-slate-400">Click "Statement" on any client account to consolidate their charges.</td></tr>
-                </tbody>
-              </table>
-            </div>
+  <!-- 6. EDIT / CANCEL (VOID) TRANSACTION MODAL -->
+  <div id="edit-tx-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[70] hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-stone-200 flex flex-col max-h-[90vh]">
+      <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between shrink-0">
+        <div>
+          <span class="text-[10px] uppercase tracking-wider text-amber-400 font-bold">Order & Audit Correction</span>
+          <h3 id="edit-tx-title" class="text-base font-extrabold">Edit / Cancel — OS-1001</h3>
+        </div>
+        <button onclick="closeModal('edit-tx-modal')" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4 text-xs flex-1">
+        <input type="hidden" id="edit-tx-id" />
+
+        <div class="bg-stone-50 p-3 rounded-xl border border-stone-200 flex flex-wrap justify-between gap-2">
+          <div>
+            <span class="text-[10px] uppercase font-bold text-slate-500">Transaction Info</span>
+            <p id="edit-tx-meta" class="font-bold text-slate-900 mt-0.5">--</p>
           </div>
+          <div class="text-right">
+            <span class="text-[10px] uppercase font-bold text-slate-500">Settlement Method</span>
+            <p id="edit-tx-payment" class="font-bold text-emerald-900 mt-0.5">--</p>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-800 uppercase tracking-wider text-[11px] mb-2">
+            Order Items (Reduce Qty or Remove Cancelled Dishes)
+          </label>
+          <div id="edit-tx-items-list" class="border border-stone-200 rounded-xl divide-y divide-stone-100 bg-white"></div>
+        </div>
+
+        <div class="bg-stone-50 p-3 rounded-xl border border-stone-200 space-y-1">
+          <div class="flex justify-between text-slate-600">
+            <span>Updated Gross Subtotal:</span>
+            <span id="edit-tx-gross" class="font-mono font-bold">₱0.00</span>
+          </div>
+          <div class="flex justify-between text-amber-700">
+            <span>Updated Discount / VAT Ex.:</span>
+            <span id="edit-tx-discount" class="font-mono">-₱0.00</span>
+          </div>
+          <div class="flex justify-between text-sm font-extrabold text-emerald-950 pt-1 border-t border-stone-300">
+            <span>UPDATED NET AMOUNT:</span>
+            <span id="edit-tx-net" class="font-mono text-base text-emerald-900">₱0.00</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Reason for Edit / Cancellation (Audit Trail) *</label>
+          <input type="text" id="edit-tx-reason" placeholder="e.g., Guest cancelled 1 order of Crispy Pata / Wrong entry" class="w-full px-3 py-2 rounded-xl border border-stone-300 focus:border-emerald-700 focus:outline-none" />
+        </div>
+      </div>
+
+      <div class="p-4 bg-stone-50 border-t border-stone-200 flex flex-wrap justify-between items-center gap-2 shrink-0">
+        <button type="button" onclick="voidEntireTransaction()" class="px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs flex items-center gap-1.5">
+          <i class="fa-solid fa-ban"></i> Void Entire Transaction
+        </button>
+        <div class="flex gap-2">
+          <button type="button" onclick="closeModal('edit-tx-modal')" class="px-4 py-2.5 rounded-xl bg-stone-200 hover:bg-stone-300 text-slate-700 font-bold text-xs">Close</button>
+          <button type="button" onclick="saveEditedTransaction()" class="px-4 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-xs shadow-sm flex items-center gap-1.5">
+            <i class="fa-solid fa-floppy-disk"></i> Save Amended Order
+          </button>
         </div>
       </div>
     </div>
@@ -1389,6 +1517,7 @@
         staffDeductions: [],
         cashBoxInflows: [],
         mgmtCashOuts: [],
+        parkedTabs: [],
         clientAccounts: [
           { id: 'CLI-001', name: 'LGU Catanauan', type: 'Government / LGU / DepEd', contactPerson: 'Admin / Treasurer', phone: '', terms: 'Monthly Billing' },
           { id: 'CLI-002', name: 'DepEd District Office - Catanauan', type: 'Government / LGU / DepEd', contactPerson: 'District Supervisor', phone: '', terms: '15 Days' },
@@ -1410,6 +1539,7 @@
           if (!Array.isArray(parsed.staffDeductions)) parsed.staffDeductions = [];
           if (!Array.isArray(parsed.cashBoxInflows)) parsed.cashBoxInflows = [];
           if (!Array.isArray(parsed.mgmtCashOuts)) parsed.mgmtCashOuts = [];
+          if (!Array.isArray(parsed.parkedTabs)) parsed.parkedTabs = [];
           if (!Array.isArray(parsed.clientAccounts) || parsed.clientAccounts.length === 0) {
             parsed.clientAccounts = buildInitialSeedState().clientAccounts;
           }
@@ -1434,6 +1564,7 @@
 
     let activeCategory = 'All';
     let currentOrder = {
+      activeTabId: null,
       orderType: 'Dine-In',
       salesClassification: 'Sales (OS + Service Invoice)',
       tableNumber: 'Table #1',
@@ -1563,6 +1694,8 @@
               refNumber: String(t.reference_no || ''),
               arAccount: isCharge ? (arInfo?.account_name || String(t.customer_name || '')) : '',
               arStatus: isCharge ? (arInfo?.status || String(t.status || 'Unpaid')) : String(t.status || 'Paid'),
+              voided: /void|cancelled/i.test(String(t.status || '')),
+              voidReason: '',
               collectedDate: arInfo?.collection_date || '',
               collectedMethod: arInfo?.status === 'Paid' ? 'Cash' : '',
               cashier: String(t.cashier || appState.cashier)
@@ -1644,7 +1777,29 @@
           }));
         }
 
-        // 5. Hydrate Opening Fund from Daily_Sales_Summary for today if available
+        if (Array.isArray(payload.parkedTabs)) {
+          appState.parkedTabs = payload.parkedTabs
+            .filter(pt => String(pt.status || 'Open') === 'Open')
+            .map((pt, idx) => {
+              let items = [];
+              let osList = [];
+              try { if (pt.items_json) items = JSON.parse(pt.items_json); } catch (e) {}
+              try { if (pt.os_numbers_json) osList = JSON.parse(pt.os_numbers_json); } catch (e) {}
+              return {
+                id: String(pt.tab_id || `TAB-${String(idx + 1).padStart(3, '0')}`),
+                orderType: String(pt.order_type || 'Dine-In'),
+                roomNumber: String(pt.room_number || ''),
+                targetLabel: String(pt.target_label || `Table #${idx + 1}`),
+                salesClassification: String(pt.sales_classification || 'Sales (OS + Service Invoice)'),
+                openedAt: extractTimeFromTimestamp(pt.opened_at),
+                date: formatAnyDate(pt.business_date || pt.opened_at),
+                osNumbers: Array.isArray(osList) ? osList : [],
+                items: Array.isArray(items) ? items : [],
+                cashier: String(pt.cashier || appState.cashier)
+              };
+            });
+        }
+
         if (Array.isArray(payload.dailySummaries) && payload.dailySummaries.length > 0) {
           const today = getTodayDateStr();
           const todayRow = payload.dailySummaries.find(s => formatAnyDate(s.business_date) === today);
@@ -1656,7 +1811,6 @@
           }
         }
 
-        // 6. Hydrate Client_Accounts from Google Sheet
         if (Array.isArray(payload.clientAccounts) && payload.clientAccounts.length > 0) {
           appState.clientAccounts = payload.clientAccounts.map((c, idx) => ({
             id: String(c.id || c.client_id || `CLI-${String(idx + 1).padStart(3, '0')}`),
@@ -1894,7 +2048,7 @@
     }
 
     // =========================================================================
-    // 6. MODULE 1: RESTAURANT POS (2-TIER SALES, CLIENT A/R, STAFF CHARGES)
+    // 6. MODULE 1: RESTAURANT POS (PARK TABS, 2-TIER SALES, BILL OUT)
     // =========================================================================
     function renderCategoryPills() {
       const container = document.getElementById('category-pills');
@@ -1966,6 +2120,38 @@
       `).join('');
     }
 
+    function setSalesClassification(classification) {
+      currentOrder.salesClassification = classification;
+      document.querySelectorAll('.sclass-btn').forEach(btn => {
+        btn.classList.remove('bg-emerald-900', 'text-white', 'border-emerald-900');
+        btn.classList.add('bg-white', 'text-slate-700', 'border-stone-300');
+      });
+      const activeBtn = document.getElementById(`sclass-${classification}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-white', 'text-slate-700', 'border-stone-300');
+        activeBtn.classList.add('bg-emerald-900', 'text-white', 'border-emerald-900');
+      }
+
+      const siRow = document.getElementById('si-number-preview-row');
+      const siPreview = document.getElementById('active-si-preview');
+      const finalizeBtnText = document.getElementById('finalize-btn-text');
+
+      if (classification === 'Sales (OS + Service Invoice)') {
+        if (siRow) siRow.classList.remove('hidden');
+        if (siPreview) siPreview.textContent = `SI-${String(appState.nextFolioReceiptNumber).padStart(4, '0')}`;
+      } else {
+        if (siRow) siRow.classList.add('hidden');
+      }
+
+      if (finalizeBtnText && currentOrder.orderType !== 'Room Charge' && currentOrder.paymentMethod !== 'Room Charge') {
+        finalizeBtnText.textContent = currentOrder.activeTabId
+          ? 'Bill Out Consolidated Tab'
+          : classification === 'Takeouts (OS Only)'
+            ? 'Bill Out Takeout (OS Only)'
+            : 'Bill Out & Issue SI';
+      }
+    }
+
     function setOrderType(type) {
       currentOrder.orderType = type;
       document.querySelectorAll('.otype-btn').forEach(btn => {
@@ -1980,7 +2166,7 @@
 
       if (type === 'Take-Out') {
         setSalesClassification('Takeouts (OS Only)');
-      } else if (type === 'Dine-In') {
+      } else if (type === 'Dine-In' || type === 'Room Charge') {
         setSalesClassification('Sales (OS + Service Invoice)');
       }
 
@@ -1990,48 +2176,31 @@
       const paymentSec = document.getElementById('payment-section');
       const roomNotice = document.getElementById('room-charge-notice');
       const finalizeBtnText = document.getElementById('finalize-btn-text');
+      const parkBtn = document.getElementById('park-order-btn');
 
       if (type === 'Room Charge') {
         classBox.classList.add('hidden');
         paymentSec.classList.add('hidden');
         roomNotice.classList.remove('hidden');
-        finalizeBtnText.textContent = 'Post to Room Folio & Print Slip';
+        if (parkBtn) parkBtn.classList.remove('hidden');
+        finalizeBtnText.textContent = currentOrder.activeTabId
+          ? 'Bill Out Tab to Room Folio'
+          : 'Post to Room Folio';
       } else {
         classBox.classList.remove('hidden');
         paymentSec.classList.remove('hidden');
         roomNotice.classList.add('hidden');
-        finalizeBtnText.textContent =
-          currentOrder.salesClassification === 'Takeouts (OS Only)'
-            ? 'Finalize Takeout (Order Slip Only)'
-            : 'Finalize Sale & Issue Service Invoice';
-      }
-    }
-
-    function setSalesClassification(classification) {
-      currentOrder.salesClassification = classification;
-      document.querySelectorAll('.sclass-btn').forEach(btn => {
-        btn.classList.remove('bg-emerald-900', 'text-white', 'border-emerald-900');
-        btn.classList.add('bg-white', 'text-slate-700', 'border-stone-300');
-      });
-      const activeBtn = document.getElementById(`sclass-${classification}`);
-      if (activeBtn) {
-        activeBtn.classList.remove('bg-white', 'text-slate-700', 'border-stone-300');
-        activeBtn.classList.add('bg-emerald-900', 'text-white', 'border-emerald-900');
-      }
-
-      const siRow = document.getElementById('si-number-preview-row');
-      const finalizeBtnText = document.getElementById('finalize-btn-text');
-
-      if (classification === 'Takeouts (OS Only)') {
-        siRow.classList.add('hidden');
-        if (currentOrder.orderType !== 'Room Charge') {
-          finalizeBtnText.textContent = 'Finalize Takeout (Order Slip Only)';
-        }
-      } else {
-        siRow.classList.remove('hidden');
-        document.getElementById('active-si-preview').textContent = `SI-${String(appState.nextFolioReceiptNumber).padStart(4, '0')}`;
-        if (currentOrder.orderType !== 'Room Charge') {
-          finalizeBtnText.textContent = 'Finalize Sale & Issue Service Invoice';
+        if (parkBtn) parkBtn.classList.remove('hidden');
+        if (currentOrder.paymentMethod === 'Room Charge') {
+          finalizeBtnText.textContent = currentOrder.activeTabId
+            ? 'Bill Out Tab to Room Folio'
+            : 'Post to Room Folio';
+        } else {
+          finalizeBtnText.textContent = currentOrder.activeTabId
+            ? 'Bill Out Consolidated Tab'
+            : currentOrder.salesClassification === 'Takeouts (OS Only)'
+              ? 'Bill Out Takeout (OS Only)'
+              : 'Bill Out & Issue SI';
         }
       }
     }
@@ -2121,6 +2290,7 @@
     }
 
     function clearCurrentOrder() {
+      currentOrder.activeTabId = null;
       currentOrder.items = [];
       currentOrder.isScPwd = false;
       document.getElementById('sc-pwd-toggle').checked = false;
@@ -2130,12 +2300,286 @@
       if (arSel && arSel.options.length > 0) arSel.selectedIndex = 0;
       const empInput = document.getElementById('emp-charge-name');
       if (empInput) empInput.value = '';
+      updateLoadedTabBanner();
       renderCart();
+    }
+
+    function detachLoadedTab() {
+      currentOrder.activeTabId = null;
+      currentOrder.items = [];
+      updateLoadedTabBanner();
+      renderCart();
+      showToast('Switched to a fresh order slip.');
+    }
+
+    function updateLoadedTabBanner() {
+      const banner = document.getElementById('loaded-tab-banner');
+      const badge = document.getElementById('active-tab-badge');
+      const parkBtnText = document.getElementById('park-btn-text');
+      const countPill = document.getElementById('parked-tabs-count-pill');
+
+      const openCount = (appState.parkedTabs || []).length;
+      if (countPill) countPill.textContent = openCount;
+
+      const tab = currentOrder.activeTabId
+        ? (appState.parkedTabs || []).find(t => t.id === currentOrder.activeTabId)
+        : null;
+
+      if (tab) {
+        banner.classList.remove('hidden');
+        document.getElementById('loaded-tab-title').textContent = `${tab.id} • ${tab.targetLabel}`;
+        document.getElementById('loaded-tab-slips').textContent = `Slips: ${(tab.osNumbers || []).join(', ')} • Opened ${tab.openedAt}`;
+        badge.classList.remove('hidden');
+        badge.textContent = `Tab: ${tab.targetLabel}`;
+        if (parkBtnText) parkBtnText.textContent = 'Update Parked Tab';
+      } else {
+        banner.classList.add('hidden');
+        badge.classList.add('hidden');
+        if (parkBtnText) parkBtnText.textContent = 'Park / Add to Tab';
+      }
+      setSalesClassification(currentOrder.salesClassification);
+    }
+
+    function parkCurrentOrderToTab() {
+      if (currentOrder.items.length === 0) {
+        showToast('Add at least one dish before parking the order.', 'warning');
+        return;
+      }
+
+      const today = getTodayDateStr();
+      const timeNow = getCurrentTimeStr();
+      const osId = `OS-${appState.nextOsNumber}`;
+
+      let targetLabel = currentOrder.tableNumber;
+      if (currentOrder.orderType === 'Take-Out') {
+        const custName = (document.getElementById('takeout-customer-name')?.value || '').trim();
+        targetLabel = custName ? `Take-Out (${custName})` : `Take-Out Tab #${(appState.parkedTabs || []).length + 1}`;
+      } else if (currentOrder.orderType === 'Room Charge') {
+        if (!currentOrder.roomNumber) {
+          showToast('Select an Occupied Room before parking a room guest tab.', 'warning');
+          return;
+        }
+        const rm = appState.rooms.find(r => r.number === currentOrder.roomNumber);
+        targetLabel = rm && rm.guest ? `Room ${rm.number} (${rm.guest.name})` : `Room ${currentOrder.roomNumber}`;
+      }
+
+      let existingTab = null;
+      if (currentOrder.activeTabId) {
+        existingTab = (appState.parkedTabs || []).find(t => t.id === currentOrder.activeTabId);
+      } else {
+        existingTab = (appState.parkedTabs || []).find(
+          t => t.orderType === currentOrder.orderType && t.targetLabel.toLowerCase() === targetLabel.toLowerCase()
+        );
+      }
+
+      if (existingTab) {
+        if (currentOrder.activeTabId === existingTab.id) {
+          existingTab.items = currentOrder.items.map(i => ({ ...i }));
+        } else {
+          currentOrder.items.forEach(newItem => {
+            const match = existingTab.items.find(ei => ei.id === newItem.id && (ei.note || '') === (newItem.note || ''));
+            if (match) match.qty += newItem.qty;
+            else existingTab.items.push({ ...newItem });
+          });
+          if (!existingTab.osNumbers.includes(osId)) {
+            existingTab.osNumbers.push(osId);
+            appState.nextOsNumber += 1;
+          }
+        }
+        existingTab.salesClassification = currentOrder.salesClassification;
+        existingTab.targetLabel = targetLabel;
+        if (currentOrder.orderType === 'Room Charge') existingTab.roomNumber = currentOrder.roomNumber;
+        saveAppState();
+        pushToGoogleSheets('Parked_Tabs_Sync', { tabs: appState.parkedTabs });
+
+        const savedLabel = existingTab.targetLabel;
+        const savedId = existingTab.id;
+        clearCurrentOrder();
+        showToast(`Order merged into ${savedId} (${savedLabel})!`);
+        return;
+      }
+
+      const newTab = {
+        id: `TAB-${String((appState.parkedTabs || []).length + 1).padStart(3, '0')}`,
+        orderType: currentOrder.orderType,
+        roomNumber: currentOrder.orderType === 'Room Charge' ? currentOrder.roomNumber : '',
+        targetLabel,
+        salesClassification: currentOrder.salesClassification,
+        openedAt: timeNow,
+        date: today,
+        osNumbers: [osId],
+        items: currentOrder.items.map(i => ({ ...i })),
+        cashier: appState.cashier
+      };
+
+      appState.parkedTabs.push(newTab);
+      appState.nextOsNumber += 1;
+      saveAppState();
+      pushToGoogleSheets('Parked_Tabs_Sync', { tabs: appState.parkedTabs });
+
+      clearCurrentOrder();
+      showToast(`Parked ${osId} under ${newTab.id} (${targetLabel})! Decide payment/charge at final Bill Out.`);
+    }
+
+    function openParkedTabsModal() {
+      renderParkedTabsGrid();
+      openModal('parked-tabs-modal');
+    }
+
+    function renderParkedTabsGrid() {
+      const tabs = appState.parkedTabs || [];
+      document.getElementById('modal-parked-count').textContent = tabs.length;
+      const grandTotal = tabs.reduce(
+        (sum, t) => sum + (t.items || []).reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 0), 0),
+        0
+      );
+      document.getElementById('modal-parked-grand-total').textContent = `Total Open Tabs: ${formatPHP(grandTotal)}`;
+
+      const grid = document.getElementById('parked-tabs-grid');
+      if (tabs.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-10 text-center text-slate-400 bg-stone-50 rounded-2xl border border-stone-200">
+            <i class="fa-solid fa-layer-group text-3xl mb-2 opacity-50"></i>
+            <p class="font-semibold text-slate-600">No Open / Parked Tabs right now.</p>
+            <p class="text-[11px] mt-1">Select items in POS and click <strong>"Park / Add to Tab"</strong> to hold a table's running orders until Bill Out.</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = tabs.map(tab => {
+        const subTotal = (tab.items || []).reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 0), 0);
+        const itemsPreview = (tab.items || [])
+          .map(i => `<div class="flex justify-between text-[11px] py-0.5"><span>${i.qty}x ${i.name}</span><span class="font-mono">${formatPHP(i.price * i.qty)}</span></div>`)
+          .join('');
+
+        return `
+          <div class="bg-white rounded-2xl border-2 border-amber-300 shadow-xs overflow-hidden flex flex-col justify-between">
+            <div>
+              <div class="bg-amber-500 text-emerald-950 px-3.5 py-2.5 flex items-center justify-between">
+                <div>
+                  <span class="font-mono font-extrabold text-xs">${tab.id}</span>
+                  <h4 class="font-extrabold text-sm leading-tight">${tab.targetLabel}</h4>
+                </div>
+                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-950 text-amber-300">
+                  ${tab.orderType}
+                </span>
+              </div>
+              <div class="p-3.5 space-y-2">
+                <div class="flex justify-between text-[10px] text-slate-500 border-b border-stone-100 pb-1.5">
+                  <span>Opened: ${tab.openedAt}</span>
+                  <span class="font-mono">Slips: ${(tab.osNumbers || []).join(', ')}</span>
+                </div>
+                <div class="max-h-32 overflow-y-auto divide-y divide-stone-100">
+                  ${itemsPreview}
+                </div>
+              </div>
+            </div>
+            <div class="p-3 bg-stone-50 border-t border-stone-200 space-y-2">
+              <div class="flex justify-between items-center font-extrabold text-sm text-emerald-950">
+                <span>CONSOLIDATED SUBTOTAL:</span>
+                <span class="font-mono text-base text-emerald-900">${formatPHP(subTotal)}</span>
+              </div>
+              <div class="grid grid-cols-3 gap-1.5">
+                <button type="button" onclick="printParkedTabRunningBill('${tab.id}')" class="py-2 px-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-slate-800 font-bold text-[11px] flex items-center justify-center gap-1">
+                  <i class="fa-solid fa-print"></i> Pre-Bill
+                </button>
+                <button type="button" onclick="loadParkedTabToPos('${tab.id}', false)" class="py-2 px-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-[11px] flex items-center justify-center gap-1">
+                  <i class="fa-solid fa-plus"></i> Add Items
+                </button>
+                <button type="button" onclick="loadParkedTabToPos('${tab.id}', true)" class="py-2 px-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center justify-center gap-1 shadow-xs">
+                  <i class="fa-solid fa-check-double"></i> Bill Out
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function loadParkedTabToPos(tabId, focusBillOut = false) {
+      const tab = (appState.parkedTabs || []).find(t => t.id === tabId);
+      if (!tab) return;
+
+      currentOrder.activeTabId = tab.id;
+      currentOrder.orderType = tab.orderType || 'Dine-In';
+      currentOrder.salesClassification = tab.salesClassification || 'Sales (OS + Service Invoice)';
+      if (tab.orderType === 'Dine-In') {
+        currentOrder.tableNumber = tab.targetLabel;
+      } else if (tab.orderType === 'Room Charge' && tab.roomNumber) {
+        currentOrder.roomNumber = tab.roomNumber;
+      }
+      currentOrder.items = (tab.items || []).map(i => ({ ...i }));
+
+      closeModal('parked-tabs-modal');
+      setOrderType(currentOrder.orderType);
+      setSalesClassification(currentOrder.salesClassification);
+      updateLoadedTabBanner();
+      renderCart();
+
+      if (focusBillOut) {
+        const cashInput = document.getElementById('cash-tendered');
+        if (cashInput && currentOrder.paymentMethod === 'Cash') cashInput.focus();
+        showToast(`Loaded ${tab.targetLabel} (${tab.id}) — Choose Cash, GCash, Charge Room, or Client A/R & click "Bill Out"!`);
+      } else {
+        showToast(`Loaded ${tab.targetLabel} (${tab.id}) — Add dishes and click "Update Parked Tab".`);
+      }
+    }
+
+    function previewActiveTabRunningBill() {
+      if (!currentOrder.activeTabId) return;
+      printParkedTabRunningBill(currentOrder.activeTabId);
+    }
+
+    function printParkedTabRunningBill(tabId) {
+      const tab = (appState.parkedTabs || []).find(t => t.id === tabId);
+      if (!tab) return;
+
+      const gross = (tab.items || []).reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 0), 0);
+      const itemsHtml = (tab.items || [])
+        .map(
+          i => `
+          <div class="flex justify-between text-[11px] py-0.5">
+            <span>${i.qty}x ${i.name}</span>
+            <span class="font-mono">${formatPHP(i.price * i.qty)}</span>
+          </div>
+          ${i.note ? `<div class="text-[10px] text-slate-500 pl-3 italic">* ${i.note}</div>` : ''}
+        `
+        )
+        .join('');
+
+      const html = `
+        <div class="font-mono text-xs text-slate-900 space-y-2.5">
+          <div class="text-center border-b border-dashed border-slate-400 pb-2.5">
+            <p class="font-extrabold text-sm tracking-tight">EYNS' HOTEL & RESTAURANT</p>
+            <p class="text-[10px]">Brgy. Poblacion, Catanauan, Quezon</p>
+            <p class="text-[11px] font-extrabold mt-1 bg-amber-100 py-0.5 rounded">RUNNING BILL / PRE-BILL STATEMENT</p>
+          </div>
+          <div class="text-[11px] space-y-0.5 border-b border-dashed border-slate-400 pb-2">
+            <div class="flex justify-between"><span>Open Tab #:</span><span class="font-bold">${tab.id}</span></div>
+            <div class="flex justify-between"><span>Table / Guest:</span><span class="font-bold">${tab.targetLabel}</span></div>
+            <div class="flex justify-between"><span>Order Slips:</span><span>${(tab.osNumbers || []).join(', ')}</span></div>
+            <div class="flex justify-between"><span>Printed At:</span><span>${getTodayDateStr()} ${getCurrentTimeStr()}</span></div>
+          </div>
+          <div class="border-b border-dashed border-slate-400 pb-2">
+            ${itemsHtml}
+          </div>
+          <div class="space-y-1 text-[11px]">
+            <div class="flex justify-between font-extrabold text-sm pt-1">
+              <span>CONSOLIDATED RUNNING TOTAL:</span>
+              <span>${formatPHP(gross)}</span>
+            </div>
+            <p class="text-[10px] text-slate-500 pt-1 italic">* Pre-Bill for review only. Service Invoice / Official Receipt issued upon Bill Out.</p>
+          </div>
+        </div>
+      `;
+
+      closeModal('parked-tabs-modal');
+      showPrintPreviewModal(`Running Pre-Bill — ${tab.targetLabel}`, html, 'max-w-[360px]');
     }
 
     function renderCart() {
       document.getElementById('active-os-number').textContent = `#OS-${appState.nextOsNumber}`;
-      document.getElementById('active-si-preview').textContent = `SI-${String(appState.nextFolioReceiptNumber).padStart(4, '0')}`;
       const container = document.getElementById('cart-items-container');
 
       if (currentOrder.items.length === 0) {
@@ -2230,6 +2674,23 @@
       calculateChange();
     }
 
+    function renderBillOutRoomDropdown() {
+      const sel = document.getElementById('billout-room-select');
+      if (!sel) return;
+      const occupiedRooms = (appState.rooms || []).filter(r => r.status === 'Occupied');
+      if (occupiedRooms.length === 0) {
+        sel.innerHTML = `<option value="">-- No Occupied Rooms Checked In --</option>`;
+        return;
+      }
+      sel.innerHTML = occupiedRooms
+        .map(r => `<option value="${r.number}" ${currentOrder.roomNumber === r.number ? 'selected' : ''}>Room ${r.number} (${r.type}) — ${r.guest.name}</option>`)
+        .join('');
+      if (!currentOrder.roomNumber || !occupiedRooms.some(r => r.number === currentOrder.roomNumber)) {
+        currentOrder.roomNumber = occupiedRooms[0].number;
+      }
+      sel.value = currentOrder.roomNumber;
+    }
+
     function setPaymentMethod(method) {
       currentOrder.paymentMethod = method;
       document.querySelectorAll('.pm-btn').forEach(btn => {
@@ -2244,23 +2705,43 @@
 
       const cashBox = document.getElementById('cash-tender-box');
       const refBox = document.getElementById('ref-number-box');
+      const roomBox = document.getElementById('billout-room-box');
       const arBox = document.getElementById('ar-account-box');
       const empBox = document.getElementById('emp-charge-box');
+      const finalizeBtnText = document.getElementById('finalize-btn-text');
 
       cashBox.classList.add('hidden');
       refBox.classList.add('hidden');
+      if (roomBox) roomBox.classList.add('hidden');
       arBox.classList.add('hidden');
       empBox.classList.add('hidden');
 
       if (method === 'Cash') {
         cashBox.classList.remove('hidden');
-      } else if (method === 'GCash' || method === 'Card') {
+      } else if (method === 'GCash') {
         refBox.classList.remove('hidden');
+      } else if (method === 'Room Charge') {
+        renderBillOutRoomDropdown();
+        if (roomBox) roomBox.classList.remove('hidden');
       } else if (method === 'Charge / A/R') {
         renderClientAccountDropdowns();
         arBox.classList.remove('hidden');
       } else if (method === 'Employee Charge') {
         empBox.classList.remove('hidden');
+      }
+
+      if (finalizeBtnText && currentOrder.orderType !== 'Room Charge') {
+        if (method === 'Room Charge') {
+          finalizeBtnText.textContent = currentOrder.activeTabId
+            ? 'Bill Out Tab to Room Folio'
+            : 'Post to Room Folio';
+        } else {
+          finalizeBtnText.textContent = currentOrder.activeTabId
+            ? 'Bill Out Consolidated Tab'
+            : currentOrder.salesClassification === 'Takeouts (OS Only)'
+              ? 'Bill Out Takeout (OS Only)'
+              : 'Bill Out & Issue SI';
+        }
       }
     }
 
@@ -2281,14 +2762,24 @@
       const osId = `OS-${appState.nextOsNumber}`;
       const today = getTodayDateStr();
       const timeNow = getCurrentTimeStr();
+      const loadedTab = currentOrder.activeTabId
+        ? (appState.parkedTabs || []).find(t => t.id === currentOrder.activeTabId)
+        : null;
+      const consolidatedOsLabel = loadedTab && loadedTab.osNumbers.length > 0
+        ? loadedTab.osNumbers.join('+')
+        : osId;
 
-      // Case A: Room Charge
-      if (currentOrder.orderType === 'Room Charge') {
-        if (!currentOrder.roomNumber) {
+      // Case A: Charge to Room (Either chosen up front OR chosen as final Bill Out method on a Parked Tab)
+      if (currentOrder.orderType === 'Room Charge' || currentOrder.paymentMethod === 'Room Charge') {
+        const chosenRoomNum = currentOrder.orderType === 'Room Charge'
+          ? currentOrder.roomNumber
+          : (document.getElementById('billout-room-select')?.value || currentOrder.roomNumber);
+
+        if (!chosenRoomNum) {
           showToast('Please select an Occupied Room to charge.', 'error');
           return;
         }
-        const room = appState.rooms.find(r => r.number === currentOrder.roomNumber);
+        const room = appState.rooms.find(r => r.number === chosenRoomNum);
         if (!room || room.status !== 'Occupied' || !room.guest) {
           showToast('Selected room is no longer occupied.', 'error');
           return;
@@ -2296,22 +2787,28 @@
 
         const itemsSummary = currentOrder.items.map(i => `${i.qty}x ${i.name}`).join(', ');
         room.guest.roomCharges.push({
-          osNumber: osId,
+          osNumber: consolidatedOsLabel,
           time: timeNow,
           itemsSummary,
           amount: totals.totalDue
         });
 
-        appState.nextOsNumber += 1;
+        if (!loadedTab) {
+          appState.nextOsNumber += 1;
+        } else {
+          appState.parkedTabs = (appState.parkedTabs || []).filter(t => t.id !== loadedTab.id);
+          pushToGoogleSheets('Parked_Tabs_Sync', { tabs: appState.parkedTabs });
+        }
+
         saveAppState();
         pushToGoogleSheets('Rooms_Master', { rooms: appState.rooms });
 
         const slipRecord = {
-          id: osId,
+          id: consolidatedOsLabel,
           date: today,
           time: timeNow,
           source: 'Restaurant',
-          subType: 'Room Charge',
+          subType: loadedTab ? `Room Charge (${loadedTab.targetLabel})` : 'Room Charge',
           salesClassification: 'Room Charge (Pending Check-Out SI)',
           detail: `Room ${room.number} (${room.guest.name})`,
           items: [...currentOrder.items],
@@ -2325,13 +2822,13 @@
         clearCurrentOrder();
         renderRoomRack();
         openOrderSlipReceipt(slipRecord);
-        showToast(`Order ${osId} posted to Room ${room.number} Folio!`);
+        showToast(`Consolidated order ${consolidatedOsLabel} posted to Room ${room.number} Folio!`);
         return;
       }
 
-      // Case B: Direct Settlement (Takeouts OS Only vs Sales OS + Service Invoice)
-      let detailLabel = currentOrder.tableNumber;
-      if (currentOrder.orderType === 'Take-Out') {
+      // Case B: Direct Settlement / Consolidated Bill Out
+      let detailLabel = loadedTab ? loadedTab.targetLabel : currentOrder.tableNumber;
+      if (!loadedTab && currentOrder.orderType === 'Take-Out') {
         const custName = (document.getElementById('takeout-customer-name')?.value || '').trim();
         detailLabel = custName ? `Take-Out (${custName})` : 'Walk-in Take-Out';
       }
@@ -2348,7 +2845,7 @@
           return;
         }
         cashChange = Math.max(0, cashTendered - totals.totalDue);
-      } else if (currentOrder.paymentMethod === 'GCash' || currentOrder.paymentMethod === 'Card') {
+      } else if (currentOrder.paymentMethod === 'GCash') {
         refNumber = (document.getElementById('payment-ref-input').value || '').trim();
       } else if (currentOrder.paymentMethod === 'Charge / A/R') {
         arAccount = (document.getElementById('ar-account-select')?.value || '').trim();
@@ -2367,16 +2864,16 @@
 
       const isServiceInvoice = currentOrder.salesClassification === 'Sales (OS + Service Invoice)';
       const siTag = isServiceInvoice ? `SI-${String(appState.nextFolioReceiptNumber).padStart(4, '0')}` : '';
-      const docId = isServiceInvoice ? `${osId} / ${siTag}` : osId;
+      const docId = isServiceInvoice ? `${consolidatedOsLabel} / ${siTag}` : consolidatedOsLabel;
 
       const txRecord = {
         id: docId,
-        osNumber: osId,
+        osNumber: consolidatedOsLabel,
         siNumber: siTag,
         date: today,
         time: timeNow,
         source: 'Restaurant',
-        subType: currentOrder.orderType,
+        subType: loadedTab ? `${currentOrder.orderType} (Bill Out)` : currentOrder.orderType,
         salesClassification: currentOrder.salesClassification,
         detail: detailLabel,
         items: [...currentOrder.items],
@@ -2395,7 +2892,12 @@
       };
 
       appState.transactions.push(txRecord);
-      appState.nextOsNumber += 1;
+      if (!loadedTab) {
+        appState.nextOsNumber += 1;
+      } else {
+        appState.parkedTabs = (appState.parkedTabs || []).filter(t => t.id !== loadedTab.id);
+        pushToGoogleSheets('Parked_Tabs_Sync', { tabs: appState.parkedTabs });
+      }
       if (isServiceInvoice) {
         appState.nextFolioReceiptNumber += 1;
       }
@@ -2424,7 +2926,7 @@
       setSalesClassification(currentOrder.salesClassification);
       renderClientAccountDropdowns();
       openOrderSlipReceipt(txRecord);
-      showToast(`${docId} finalized (${formatPHP(txRecord.netAmount)})!`);
+      showToast(`Bill Out ${docId} settled (${formatPHP(txRecord.netAmount)})!`);
     }
 
     // =========================================================================
@@ -2530,7 +3032,7 @@
     function getClientConsolidatedSummary(clientName) {
       const target = clientName.toLowerCase().trim();
       const txs = appState.transactions.filter(
-        t => t.paymentMethod === 'Charge / A/R' && String(t.arAccount || t.detail || '').toLowerCase().trim() === target
+        t => !t.voided && t.paymentMethod === 'Charge / A/R' && String(t.arAccount || t.detail || '').toLowerCase().trim() === target
       );
       const totalBilled = txs.reduce((s, t) => s + (Number(t.netAmount) || 0), 0);
       const unpaidTxs = txs.filter(t => t.arStatus === 'Unpaid');
@@ -3002,12 +3504,17 @@
           </tr>
         `;
       } else {
-        foodCharges.forEach(fc => {
+        foodCharges.forEach((fc, fcIdx) => {
           rowsHtml += `
             <tr class="bg-amber-50/40">
               <td class="py-2 px-3 font-medium text-slate-800">Restaurant Room Charge (${fc.osNumber})<br/><span class="text-[10px] text-slate-500">${fc.itemsSummary}</span></td>
               <td class="py-2 px-3 font-mono text-slate-500">${fc.time}</td>
-              <td class="py-2 px-3 text-right font-mono font-bold text-amber-900">${formatPHP(fc.amount)}</td>
+              <td class="py-2 px-3 text-right font-mono font-bold text-amber-900">
+                ${formatPHP(fc.amount)}
+                <button type="button" onclick="removeRoomChargeFromFolio('${room.number}', ${fcIdx})" class="ml-2 text-rose-600 hover:text-rose-800 text-[10px] underline" title="Cancel this Room Charge">
+                  Void
+                </button>
+              </td>
             </tr>
           `;
         });
@@ -3039,6 +3546,26 @@
       } else {
         box.classList.add('hidden');
       }
+    }
+
+    function removeRoomChargeFromFolio(roomNum, chargeIndex) {
+      const room = appState.rooms.find(r => r.number === roomNum);
+      if (!room || !room.guest || !Array.isArray(room.guest.roomCharges)) return;
+      const target = room.guest.roomCharges[chargeIndex];
+      if (!target) return;
+
+      showConfirmDialog(
+        `Cancel Room Charge (${target.osNumber})?`,
+        `Remove ${target.osNumber} (${formatPHP(target.amount)}) from Room ${room.number}'s folio?`,
+        () => {
+          room.guest.roomCharges.splice(chargeIndex, 1);
+          saveAppState();
+          pushToGoogleSheets('Rooms_Master', { rooms: appState.rooms });
+          openFolioModal(room);
+          renderRoomRack();
+          showToast(`Cancelled Room Charge ${target.osNumber} from Room ${room.number}.`, 'warning');
+        }
+      );
     }
 
     function quickPostRoomFood() {
@@ -3589,19 +4116,19 @@
       document.getElementById('opening-float-input').value = appState.openingFloat;
 
       const dayTx = appState.transactions.filter(t => t.date === targetDate);
+      const activeDayTx = dayTx.filter(t => !t.voided);
       const dayPurchases = appState.cashOuts.filter(c => c.date === targetDate);
       const dayCashBoxIn = (appState.cashBoxInflows || []).filter(c => c.date === targetDate);
       const dayMgmtOut = (appState.mgmtCashOuts || []).filter(c => c.date === targetDate);
       const dayCollections = (appState.collections || []).filter(c => c.date === targetDate);
       const dayStaffAdv = (appState.staffDeductions || []).filter(d => d.date === targetDate && d.type.includes('Cash Advance'));
 
-      // Section 1: 2-Tier Sales Breakdown
       let tier1Takeouts = 0;
       let tier2RestoSI = 0;
       let tier2HotelSI = 0;
       let totalDiscounts = 0;
 
-      dayTx.forEach(t => {
+      activeDayTx.forEach(t => {
         if (t.source === 'A/R Collection') return;
         totalDiscounts += t.discountAmount || 0;
         if (t.source === 'Hotel' || t.source === 'Collection Settlement') {
@@ -3623,14 +4150,13 @@
       document.getElementById('sum-discounts').textContent = `-${formatPHP(totalDiscounts)}`;
       document.getElementById('sum-net-sales').textContent = formatPHP(netSales);
 
-      // Section 2: Tender, A/R & Collections Mix
       let cashSales = 0;
       let digitalSales = 0;
       let newArCharges = 0;
       let newEmpCharges = 0;
       let arPaymentsToday = 0;
 
-      dayTx.forEach(t => {
+      activeDayTx.forEach(t => {
         if (t.source === 'A/R Collection') {
           arPaymentsToday += t.netAmount;
         } else if (t.paymentMethod === 'Cash') {
@@ -3656,7 +4182,6 @@
       document.getElementById('sum-new-deposits').textContent = formatPHP(totalNewCollections);
       document.getElementById('sum-tender-total').textContent = formatPHP(totalAccountedInflows);
 
-      // Section 3: Cash Box Accountability
       const mgmtInflowsTotal = dayCashBoxIn.reduce((s, c) => s + c.amount, 0);
       const cashInFromOps = cashSales + arPaymentsToday + newCashCollections;
       const drawerPurchasesOut = dayPurchases.filter(c => c.source === 'Cash Drawer').reduce((s, c) => s + c.amount, 0);
@@ -3681,7 +4206,6 @@
 
       calculateDrawerVariance();
 
-      // Section 4: Purchases by Category
       const catMap = {};
       let totalAllPurchases = 0;
       dayPurchases.forEach(c => {
@@ -3705,8 +4229,7 @@
           .join('');
       }
 
-      // Section 5: Client Accounts & Consolidated A/R
-      const arTxs = appState.transactions.filter(t => t.paymentMethod === 'Charge / A/R');
+      const arTxs = appState.transactions.filter(t => !t.voided && t.paymentMethod === 'Charge / A/R');
       const openArTotal = arTxs.filter(t => t.arStatus === 'Unpaid').reduce((s, t) => s + t.netAmount, 0);
 
       document.getElementById('sec5-open-ar-badge').textContent = `Open: ${formatPHP(openArTotal)}`;
@@ -3750,8 +4273,7 @@
           }).join('');
       }
 
-      // Section 6: Master Transaction Audit Log
-      document.getElementById('sec6-count-badge').textContent = `${dayTx.length} Transaction(s)`;
+      document.getElementById('sec6-count-badge').textContent = `${activeDayTx.length} Active / ${dayTx.length} Total`;
       const auditTbody = document.getElementById('sec6-audit-tbody');
       if (dayTx.length === 0) {
         auditTbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400">No transactions recorded on ${targetDate}.</td></tr>`;
@@ -3759,33 +4281,229 @@
         auditTbody.innerHTML = dayTx
           .slice()
           .reverse()
-          .map(t => `
-            <tr class="hover:bg-stone-50">
-              <td class="py-2.5 px-4 font-mono font-bold text-emerald-900">${t.id}</td>
+          .map(t => {
+            const safeId = t.id.replace(/'/g, "\\'");
+            const isVoid = Boolean(t.voided);
+            return `
+            <tr class="${isVoid ? 'bg-rose-50/60 text-slate-400' : 'hover:bg-stone-50'}">
+              <td class="py-2.5 px-4 font-mono font-bold ${isVoid ? 'line-through text-rose-700' : 'text-emerald-900'}">${t.id}</td>
               <td class="py-2.5 px-4 font-mono text-slate-500">${t.time}</td>
               <td class="py-2.5 px-4">
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                  t.salesClassification === 'Takeouts (OS Only)'
+                  isVoid
+                    ? 'bg-rose-200 text-rose-900'
+                    : t.salesClassification === 'Takeouts (OS Only)'
                     ? 'bg-stone-200 text-slate-800'
                     : t.source === 'A/R Collection'
                     ? 'bg-sky-100 text-sky-900'
                     : 'bg-emerald-100 text-emerald-900'
                 }">
-                  ${t.salesClassification || t.source}
+                  ${isVoid ? 'VOIDED / CANCELLED' : (t.salesClassification || t.source)}
                 </span>
               </td>
-              <td class="py-2.5 px-4 font-medium text-slate-800">${t.detail}${t.arAccount ? ` (${t.arAccount})` : ''}</td>
+              <td class="py-2.5 px-4 font-medium ${isVoid ? 'line-through' : 'text-slate-800'}">
+                ${t.detail}${t.arAccount ? ` (${t.arAccount})` : ''}
+                ${t.voidReason ? `<span class="block no-underline text-[10px] text-rose-700 font-semibold">Note: ${t.voidReason}</span>` : ''}
+              </td>
               <td class="py-2.5 px-4 font-semibold text-slate-700">${t.paymentMethod}</td>
               <td class="py-2.5 px-4 text-right font-mono text-slate-500">${t.discountAmount > 0 ? formatPHP(t.discountAmount) : '-'}</td>
-              <td class="py-2.5 px-4 text-right font-mono font-extrabold text-slate-900">${formatPHP(t.netAmount)}</td>
-              <td class="py-2.5 px-4 text-center">
-                <button onclick="reprintTransaction('${t.id}')" class="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-emerald-900 text-slate-700 hover:text-white text-[11px] font-bold transition">
+              <td class="py-2.5 px-4 text-right font-mono font-extrabold ${isVoid ? 'line-through text-rose-700' : 'text-slate-900'}">${formatPHP(t.netAmount)}</td>
+              <td class="py-2.5 px-4 text-center whitespace-nowrap">
+                <button onclick="reprintTransaction('${safeId}')" class="px-2 py-1 rounded-lg bg-stone-100 hover:bg-emerald-900 text-slate-700 hover:text-white text-[11px] font-bold transition" title="Reprint Receipt">
                   <i class="fa-solid fa-print"></i>
                 </button>
+                ${
+                  !isVoid
+                    ? `<button onclick="openEditTransactionModal('${safeId}')" class="ml-1 px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-500 text-amber-900 hover:text-emerald-950 text-[11px] font-bold transition" title="Edit Dishes or Cancel Transaction">
+                        <i class="fa-solid fa-pen-to-square"></i> Edit / Void
+                      </button>`
+                    : ''
+                }
               </td>
             </tr>
-          `).join('');
+          `;
+          }).join('');
       }
+    }
+
+    // =========================================================================
+    // 9B. EDIT DISHES OR VOID EXISTING TRANSACTION
+    // =========================================================================
+    let editingTxDraft = null;
+
+    function openEditTransactionModal(txId) {
+      const tx = appState.transactions.find(t => t.id === txId);
+      if (!tx) return;
+
+      editingTxDraft = {
+        id: tx.id,
+        items: (tx.items || []).map(i => ({ ...i })),
+        originalGross: Number(tx.grossAmount) || 0,
+        originalDiscount: Number(tx.discountAmount) || 0,
+        hasScPwdRatio: (Number(tx.discountAmount) || 0) > 0 && (Number(tx.grossAmount) || 0) > 0
+      };
+
+      document.getElementById('edit-tx-id').value = tx.id;
+      document.getElementById('edit-tx-title').textContent = `Edit / Cancel — ${tx.id}`;
+      document.getElementById('edit-tx-meta').textContent = `${tx.date} ${tx.time} • ${tx.detail}${tx.arAccount ? ` (${tx.arAccount})` : ''}`;
+      document.getElementById('edit-tx-payment').textContent = `${tx.paymentMethod} (${tx.salesClassification || tx.source})`;
+      document.getElementById('edit-tx-reason').value = tx.voidReason || '';
+
+      renderEditTxItems();
+      openModal('edit-tx-modal');
+    }
+
+    function renderEditTxItems() {
+      if (!editingTxDraft) return;
+      const listEl = document.getElementById('edit-tx-items-list');
+
+      if (editingTxDraft.items.length === 0) {
+        listEl.innerHTML = `<div class="p-4 text-center text-rose-700 font-semibold">All dishes removed. Click "Void Entire Transaction" below to cancel this slip.</div>`;
+      } else {
+        listEl.innerHTML = editingTxDraft.items.map((item, idx) => `
+          <div class="p-2.5 flex items-center justify-between gap-2">
+            <div class="flex-1">
+              <p class="font-bold text-slate-900">${item.name}</p>
+              <span class="font-mono text-[11px] text-slate-500">${formatPHP(item.price)} each</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="adjustEditTxItemQty(${idx}, -1)" class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-rose-100 text-slate-700 hover:text-rose-700 font-bold">
+                <i class="fa-solid fa-minus text-[10px]"></i>
+              </button>
+              <span class="font-mono font-extrabold w-6 text-center">${item.qty}</span>
+              <button type="button" onclick="adjustEditTxItemQty(${idx}, 1)" class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-800 font-bold">
+                <i class="fa-solid fa-plus text-[10px]"></i>
+              </button>
+              <button type="button" onclick="adjustEditTxItemQty(${idx}, -${item.qty})" class="ml-1 px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white text-[10px] font-bold transition" title="Cancel Dish">
+                Cancel Dish
+              </button>
+            </div>
+            <div class="w-20 text-right font-mono font-bold text-slate-900">
+              ${formatPHP(item.price * item.qty)}
+            </div>
+          </div>
+        `).join('');
+      }
+
+      const newGross = editingTxDraft.items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 0), 0);
+      let newDiscount = 0;
+      if (editingTxDraft.hasScPwdRatio && newGross > 0) {
+        const vatExempt = newGross / 1.12;
+        newDiscount = (newGross - vatExempt) + (vatExempt * 0.20);
+      }
+      const newNet = Math.max(0, newGross - newDiscount);
+
+      document.getElementById('edit-tx-gross').textContent = formatPHP(newGross);
+      document.getElementById('edit-tx-discount').textContent = `-${formatPHP(newDiscount)}`;
+      document.getElementById('edit-tx-net').textContent = formatPHP(newNet);
+    }
+
+    function adjustEditTxItemQty(index, delta) {
+      if (!editingTxDraft || !editingTxDraft.items[index]) return;
+      editingTxDraft.items[index].qty += delta;
+      if (editingTxDraft.items[index].qty <= 0) {
+        editingTxDraft.items.splice(index, 1);
+      }
+      renderEditTxItems();
+    }
+
+    function saveEditedTransaction() {
+      if (!editingTxDraft) return;
+      if (editingTxDraft.items.length === 0) {
+        voidEntireTransaction();
+        return;
+      }
+
+      const reason = document.getElementById('edit-tx-reason').value.trim() || 'Amended order items';
+      const tx = appState.transactions.find(t => t.id === editingTxDraft.id);
+      if (!tx) return;
+
+      const newGross = editingTxDraft.items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 0), 0);
+      let newVatLess = 0;
+      let newScDisc = 0;
+      if (editingTxDraft.hasScPwdRatio && newGross > 0) {
+        const vatExempt = newGross / 1.12;
+        newVatLess = newGross - vatExempt;
+        newScDisc = vatExempt * 0.20;
+      }
+      const newDiscount = newVatLess + newScDisc;
+      const newNet = Math.max(0, newGross - newDiscount);
+
+      tx.items = editingTxDraft.items.map(i => ({ ...i }));
+      tx.grossAmount = newGross;
+      tx.vatLess = newVatLess;
+      tx.scDiscount = newScDisc;
+      tx.discountAmount = newDiscount;
+      tx.netAmount = newNet;
+      tx.voidReason = `Edited (${getCurrentTimeStr()}): ${reason}`;
+
+      if (tx.paymentMethod === 'Employee Charge') {
+        const linkedDed = (appState.staffDeductions || []).find(d => d.type.includes(tx.id));
+        if (linkedDed) linkedDed.amount = newNet;
+      }
+
+      saveAppState();
+      pushToGoogleSheets('Transaction_Update', {
+        txn_id: tx.id,
+        action: 'EDIT',
+        items: tx.items,
+        grossAmount: newGross,
+        vatLess: newVatLess,
+        scDiscount: newScDisc,
+        netAmount: newNet,
+        status: tx.arStatus || 'Paid',
+        reason: tx.voidReason
+      });
+
+      closeModal('edit-tx-modal');
+      renderSalesSummary();
+      renderStaffDeductionsTable();
+      showToast(`Transaction ${tx.id} updated to ${formatPHP(newNet)}!`);
+    }
+
+    function voidEntireTransaction() {
+      if (!editingTxDraft) return;
+      const reason = document.getElementById('edit-tx-reason').value.trim();
+      if (!reason) {
+        showToast('Please enter a reason for cancelling/voiding this transaction.', 'warning');
+        document.getElementById('edit-tx-reason').focus();
+        return;
+      }
+
+      const tx = appState.transactions.find(t => t.id === editingTxDraft.id);
+      if (!tx) return;
+
+      showConfirmDialog(
+        `Void Transaction ${tx.id}?`,
+        `Cancel ${tx.id} (${formatPHP(tx.netAmount)})? It will remain visible as VOIDED in the audit log and be excluded from Sales, Cash Box, and A/R totals.`,
+        () => {
+          tx.voided = true;
+          tx.arStatus = 'Voided';
+          tx.voidReason = `Voided by ${appState.cashier} (${getCurrentTimeStr()}): ${reason}`;
+
+          if (tx.paymentMethod === 'Employee Charge') {
+            appState.staffDeductions = (appState.staffDeductions || []).filter(d => !d.type.includes(tx.id));
+          }
+
+          saveAppState();
+          pushToGoogleSheets('Transaction_Update', {
+            txn_id: tx.id,
+            action: 'VOID',
+            items: tx.items,
+            grossAmount: tx.grossAmount,
+            vatLess: tx.vatLess || 0,
+            scDiscount: tx.scDiscount || 0,
+            netAmount: tx.netAmount,
+            status: 'Voided',
+            reason: tx.voidReason
+          });
+
+          closeModal('edit-tx-modal');
+          renderSalesSummary();
+          renderStaffDeductionsTable();
+          showToast(`Transaction ${tx.id} has been voided.`, 'warning');
+        }
+      );
     }
 
     function calculateDrawerVariance() {
@@ -3865,7 +4583,7 @@
 
     function saveDailySummaryToSheet() {
       const targetDate = document.getElementById('summary-date-filter').value || getTodayDateStr();
-      const dayTx = appState.transactions.filter(t => t.date === targetDate);
+      const dayTx = appState.transactions.filter(t => t.date === targetDate && !t.voided);
       const dayPurchases = appState.cashOuts.filter(c => c.date === targetDate);
       const dayCashBoxIn = (appState.cashBoxInflows || []).filter(c => c.date === targetDate);
       const dayMgmtOut = (appState.mgmtCashOuts || []).filter(c => c.date === targetDate);
@@ -4172,6 +4890,7 @@
       setOrderType(currentOrder.orderType || 'Dine-In');
       setSalesClassification(currentOrder.salesClassification || 'Sales (OS + Service Invoice)');
       setPaymentMethod(currentOrder.paymentMethod || 'Cash');
+      updateLoadedTabBanner();
       renderCart();
       renderRoomRack();
       renderCollectionsTable();
